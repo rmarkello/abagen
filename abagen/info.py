@@ -13,9 +13,10 @@ A toolbox for working with the Allen Brain Atlas genetic expression data.
 
 INSTALL_REQUIRES = [
     'nibabel',
+    'nilearn',
     'numpy',
     'pandas',
-    'scikit-learn'
+    'scikit-learn',
     'scipy',
 ]
 

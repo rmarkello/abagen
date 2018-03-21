@@ -1,3 +1,7 @@
-data/
+allenbrain/
 *pyc
 __pycache__/
+.coverage
+.cache/
+*.egg-info/
+.pytest_cache/

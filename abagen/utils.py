@@ -8,7 +8,7 @@ import scipy.spatial as ss
 
 def get_unique_labels(label_image):
     """
-    Returns all possible parcel labels from `label_image`
+    Returns all possible parcel labels from ``label_image``
 
     Parameters
     ----------
@@ -72,7 +72,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
 
 def ijk_xyz_input_check(coords):
     """
-    Confirms inputs to `ijk_to_xyz()` and `xyz_to_ijk()` are in proper format
+    Confirms proper inputs to ``ijk_to_xyz()`` and ``xyz_to_ijk()``
 
     Parameters
     ----------
@@ -88,7 +88,7 @@ def ijk_xyz_input_check(coords):
     if coords.shape[0] != 3:
         coords = coords.T
     if coords.shape[0] != 3:
-        raise ValueError("Input coordinates must be of shape (3,N).")
+        raise ValueError("Input coordinates must be of shape (3 x N).")
 
     return coords
 
@@ -100,7 +100,7 @@ def ijk_to_xyz(coords, affine):
     Parameters
     ----------
     coords : (3 x N) array_like
-        i, j, k values
+        Cartesian coordinate i, j, k values
     affine : (3 x 4) array_like
         Affine matrix containing displacement + boundary
 
@@ -117,19 +117,19 @@ def ijk_to_xyz(coords, affine):
 
 def xyz_to_ijk(coords, affine):
     """
-    Converts voxel `coords` in `affine` space to cartesian space
+    Converts voxel ``coords`` in ``affine`` space to cartesian space
 
     Parameters
     ----------
     coords : (3 x N) array_like
-        x, y, z values
+        Image coordinate x, y, z values
     affine : (3 x 4) array_like
         Affine matrix containing displacement + boundary
 
     Returns
     -------
     coords : (3 x N) np.ndarray
-        Provided `coords` in cartesian space
+        Provided ``coords`` in cartesian space
     """
 
     coords = ijk_xyz_input_check(coords)
