@@ -16,11 +16,11 @@ WELL_KNOWN_IDS = Recoder(
     fields=('subj', 'uid', 'url', 't1w',)
 )
 
-VALID_SUBJECTS = sorted(WELL_KNOWN_IDS.value_set('subj') |
-                        WELL_KNOWN_IDS.value_set('uid'))
+VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
+                      WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, subjects=['9861'], url=None, resume=True,
+def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
                      verbose=1):
     """
     Download and load the Allen Brain human microarray expression dataset
@@ -30,9 +30,9 @@ def fetch_microarray(data_dir=None, subjects=['9861'], url=None, resume=True,
     data_dir : str, optional
         Directory where data should be downloaded and unpacked. Default:
         current directory
-    subjects : list, optional
-        List of subjects to download; can be either donor number or UID.
-        Default: donor9861 will be loaded
+    donors : list, optional
+        List of donors to download; can be either donor number or UID.
+        Default: donor9861
     url : str, optional
         Url of file to download
     resume : bool, optional
@@ -72,24 +72,26 @@ def fetch_microarray(data_dir=None, subjects=['9861'], url=None, resume=True,
                  'Probes.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
 
-    if subjects is not None and (isinstance(subjects, (list, tuple))):
-        for n, sub_id in enumerate(subjects):
-            if sub_id not in VALID_SUBJECTS:
-                raise ValueError("You provided invalid subject id {0} in a"
-                                 "list. Subjects must be selected in {1}."
-                                 .format(sub_id, VALID_SUBJECTS))
-            subjects[n] = WELL_KNOWN_IDS.subj[sub_id]  # convert to ID system
+    if donors is not None and (isinstance(donors, (list, tuple))):
+        for n, sub_id in enumerate(donors):
+            if sub_id not in VALID_DONORS:
+                raise ValueError('You provided invalid subject id {0} in a'
+                                 'list. Subjects must be selected in {1}.'
+                                 .format(sub_id, VALID_DONORS))
+            donors[n] = WELL_KNOWN_IDS.get(sub_id)  # convert to ID system
+    elif donors == 'all':
+        donors = WELL_KNOWN_IDS.value_set('subj')
     else:
-        subjects = []
-    subjects = sorted(set(subjects), key=lambda x: int(x))  # avoid duplicates
+        donors = []
+    donors = sorted(set(donors), key=lambda x: int(x))  # avoid duplicates
 
     files = [
-         (os.path.join('donor{}'.format(sub), fname),
+         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
           url.format(WELL_KNOWN_IDS.url[sub]),
           dict(uncompress=True,
-               move=os.path.join('donor{}'.format(sub),
+               move=os.path.join('normalized_microarray_donor{}'.format(sub),
                                  'donor{}.zip'.format(sub))))
-         for sub in subjects
+         for sub in donors
          for fname in sub_files
     ]
 
@@ -100,11 +102,12 @@ def fetch_microarray(data_dir=None, subjects=['9861'], url=None, resume=True,
         ontology=files[1::n_files],
         pacall=files[2::n_files],
         probes=files[3::n_files],
-        sampleannot=files[4::n_files]
+        annotation=files[4::n_files]
     )
 
 
-def fetch_mri(data_dir=None, subjects=[], url=None, resume=True, verbose=1):
+def fetch_mri(data_dir=None, donors=['9861'], url=None, resume=True,
+              verbose=1):
     """
     Download and load the Allen Brain human MRI images
 
@@ -113,9 +116,9 @@ def fetch_mri(data_dir=None, subjects=[], url=None, resume=True, verbose=1):
     data_dir : str, optional
         Directory where data should be downloaded and unpacked. Default:
         current directory
-    subjects : list, optional
-        List of subjects to download; can be either donor number or UID.
-        Default: all subjects
+    donors : list, optional
+        List of donors to download; can be either donor number or UID.
+        Default: donor9861
     url : str, optional
         Url of file to download
     resume : bool, optional
