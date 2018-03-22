@@ -37,7 +37,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
         List of values containing labels of which to find centroids. Default:
         all possible labels
     image_space : bool, optional
-        Whether to return x,y,z (image space) coordinates for centroids,
+        Whether to return x, y, z (image space) coordinates for centroids,
         based on transformation in ``label_image.affine``. Default: False
 
     Returns
@@ -50,17 +50,10 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
     if labels_of_interest is None:
         labels_of_interest = get_unique_labels(label_image)
 
+    # get centroids for all possible labels
     image_data = label_image.get_data()
-    centroids = []
-
-    # iterate through all the provided labels
-    for label in labels_of_interest:
-        # create blank array with only locations = `label` set to 1
-        temp = np.zeros_like(image_data)
-        temp[image_data == label] = 1
-        # find centroid for this `label`
-        centroids.append(snd.measurements.center_of_mass(temp))
-
+    centroids = [snd.measurements.center_of_mass(image_data == label) for
+                 label in labels_of_interest]
     centroids = np.row_stack(centroids).T
 
     # return x,y,z if desired; otherwise, i,j,k
@@ -70,7 +63,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
         return centroids
 
 
-def ijk_xyz_input_check(coords):
+def _ijk_xyz_input_check(coords):
     """
     Confirms proper inputs to ``ijk_to_xyz()`` and ``xyz_to_ijk()``
 
@@ -84,11 +77,10 @@ def ijk_xyz_input_check(coords):
     """
 
     coords = np.atleast_2d(coords)
-
+    if 3 not in coords.shape:
+        raise ValueError('Input coordinates must be of shape (3 x N).')
     if coords.shape[0] != 3:
         coords = coords.T
-    if coords.shape[0] != 3:
-        raise ValueError("Input coordinates must be of shape (3 x N).")
 
     return coords
 
@@ -110,7 +102,7 @@ def ijk_to_xyz(coords, affine):
         Provided ``coords`` in ``affine`` space
     """
 
-    coords = ijk_xyz_input_check(coords)
+    coords = _ijk_xyz_input_check(coords)
 
     return (affine[:, :-1] @ coords) + affine[:, [-1]]
 
@@ -132,7 +124,7 @@ def xyz_to_ijk(coords, affine):
         Provided ``coords`` in cartesian space
     """
 
-    coords = ijk_xyz_input_check(coords)
+    coords = _ijk_xyz_input_check(coords)
 
     return np.linalg.solve(affine[:, :-1], coords - affine[:, [-1]])
 
@@ -181,9 +173,9 @@ def closest_centroid(coords, centroids):
 
     Parameters
     ----------
-    coords : (1 x 3) array_like
+    coords : (3 x 1) array_like
         Coordinates of sample
-    centroids : (N x 3) array_like
+    centroids : (3 x N) array_like
         Centroids of parcels (in same space as `coords`)
 
     Returns
@@ -192,6 +184,7 @@ def closest_centroid(coords, centroids):
         Index of closest centroid in ``centroids``
     """
 
-    distances = np.squeeze(ss.distance.cdist(np.atleast_2d(coords), centroids))
+    distances = np.squeeze(ss.distance.cdist(np.atleast_2d(coords).T,
+                                             centroids.T))
 
     return distances.argmin()

@@ -4,10 +4,8 @@ import glob
 import os
 import numpy as np
 import pandas as pd
-import scipy.spatial as ss
-from sklearn.utils.extmath import cartesian
 
-from . import utils
+from abagen import utils
 
 
 def group_by_gene(microarray, info):
@@ -37,20 +35,18 @@ def group_by_gene(microarray, info):
     return microarray_by_gene.T.drop(['na'], axis=1)
 
 
-def assign_roi(sample, closest_coords, label_image, tolerance=3):
+def assign_roi(sample, label_image, tolerance=3):
     """
     Determines what parcel ``sample`` belongs to in ``label_image``
 
     Parameters
     ----------
     sample : (3 x 1) array_like
-        Coordinates (x,y,z) of microarray probe in MNI space
-    closest_coords : (3 x 1) array_like
-        Coordinates (x,y,z) for closest point in ``label_image`` to ``sample``
+        Coordinates (i, j, k) of microarray probe in ``label_image`` space
     label_image : niimg-like object
         Parcel image, where each parcel should be identified with a unique
         integer ID
-   tolerance : int, optional
+    tolerance : int, optional
         Distance that sample must be from parcel for it to be considered
         within that parcel. This is only used if the sample is not directly
         within a parcel. Default: 3mm
@@ -62,22 +58,11 @@ def assign_roi(sample, closest_coords, label_image, tolerance=3):
     """
 
     # pull relevant info from label_image
-    label_data, affine_trans = label_image.get_data(), label_image.affine[:-1]
+    label_data = label_image.get_data()
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
-    expanded_coords = np.asarray(list(utils.expand_roi(closest_coords,
-                                                       dilation=tolerance)))
-    distances = ss.distance.cdist(expanded_coords, np.atleast_2d(sample))
-    expanded_coords_tol = expanded_coords[np.where(distances < tolerance)[0]]
-
-    # convert expanded_coords_tol to i,j,k values for subsetting label_data
-    expanded_coords_ijk = utils.xyz_to_ijk(expanded_coords_tol.T,
-                                           affine_trans).T
-
-    # get non-zero parcel labels for every i,j,k in expanded_coords_ijk
-    possible_labels = np.asarray([label_data[f[0], f[1], f[2]] for f in
-                                  expanded_coords_ijk.astype('int')],
-                                 dtype='int')
+    coords = utils.expand_roi(sample, dilation=tolerance, return_array=True)
+    possible_labels = label_data[coords[:, 0], coords[:, 1], coords[:, 2]]
     nz_labels = possible_labels[possible_labels.nonzero()]
 
     # determine unique labels and counts of those labels
@@ -100,7 +85,7 @@ def assign_roi(sample, closest_coords, label_image, tolerance=3):
             centroids = utils.get_centroids(label_image,
                                             labels,
                                             image_space=True)
-            return labels[utils.closest_centroid(sample, centroids.T)]
+            return labels[utils.closest_centroid(sample, centroids)]
 
 
 def match_sample_to_parcel(annotation, label_image, tolerance=3):
@@ -141,46 +126,31 @@ def match_sample_to_parcel(annotation, label_image, tolerance=3):
         Dataframe with parcel label; shape (probes x 1)
     """
 
-    affine_trans = label_image.affine[:-1]
+    label_data, affine_trans = label_image.get_data(), label_image.affine[:-1]
 
-    # get i,j,k indices for `label_image` and convert to x,y,z
-    label_ijk = cartesian(list(map(np.arange, label_image.shape)))
-    label_xyz = utils.ijk_to_xyz(label_ijk, affine_trans).T
+    # grab xyz coordinates for microarray samples and convert to ijk
+    g_xyz = annotation[['mni_x', 'mni_y', 'mni_z']].get_values()
+    g_ijk = np.floor(utils.xyz_to_ijk(g_xyz, affine_trans)).T.astype(int)
+    # TODO:
 
-    # grab x,y,z coordinates for microarray samples
-    gene_xyz = annotation[['mni_x', 'mni_y', 'mni_z']].get_values()
-
-    # get data (3D) from `label_image`
-    label_data = label_image.get_data()
-    labelled_samples = []
+    # get labels for all ijk values
+    labelled_samples = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
 
     # go through every sample location
-    for n, sample in enumerate(gene_xyz):
-        # get index & i,j,k of closest voxel in `label_image`
-        closest_ind = ss.distance.cdist(label_xyz,
-                                        np.atleast_2d(sample)).argmin()
-        ijk_coords = label_ijk[closest_ind]
-
-        # find the label for the determined coordinates
-        label = label_data[ijk_coords[0], ijk_coords[1], ijk_coords[2]]
-
+    for n, label in enumerate(labelled_samples):
+        if label != 0:
+            continue
         # if coordinates not within parcel, check for neighboring parcels
         # slowly increase radius around parcel (by 1mm each iteration)
-        # up to `tolerance` to try and find nearby parcels
-        # if still no nearby parcel at `tolerance`, then consider probe to
-        # be "off-brain"
-        if label == 0:
-            tol = 1
-            while tol <= tolerance and label == 0:
-                label = assign_roi(sample,
-                                   label_xyz[closest_ind],
-                                   label_image,
-                                   tolerance=tol)
-                tol += 1
-
-        # append the determined parcel label and probe well_id to our list
-        # we'll use the well_id to average across probes w/i the same parcel
-        labelled_samples.append([label])
+        # up to ``tolerance`` to try and find nearby parcels. if still no
+        # nearby parcel at ``tolerance``, then consider probe to be "off-brain"
+        for tol in range(1, tolerance + 1):
+            label = assign_roi(g_ijk[n, None].T,
+                               label_image,
+                               tolerance=tol)
+            if label != 0:
+                break
+        labelled_samples[n] = label
 
     # convert probe information into DataFrame for ease of use
     labelled_samples = pd.DataFrame(labelled_samples, columns=['label'])
