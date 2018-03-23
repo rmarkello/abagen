@@ -1,9 +1,15 @@
 # -*- coding: utf-8 -*-
+"""
+Functions for loading the various files associated with the Allen Brain Atlas
+human microarray datasets.
+
+Primarily here because I always forget which ones have headers and which ones
+don't, so I figure this is a bit more foolproof.
+"""
 
 import pandas as pd
 
 
-# because I always forget which ones have headers and which ones don't
 def read_microarray(fname):
     if not isinstance(fname, str):
         return fname

@@ -236,17 +236,17 @@ def get_expression_data(files, label_image, metric='mean', tolerance=3,
     metric : str or func
         Mechanism by which to collapse across donors, if input ``files``
         provides multiple microarray expression datasets. If str, should be in
-        ['mean', 'median'].
+        ['mean', 'median']. Default: 'mean'
     tolerance : int, optional
-        Distance (in mm) that a sample must be from a parcel's boundary for it
-        to be considered *within* that parcel. This is only used if the sample
-        is not directly within a parcel. Default: 3
+        Distance (in mm) that a sample must be from a ROI's boundary for it to
+        be considered within that ROI. This is only used if the sample is not
+        directly within a ROI. Default: 3
     use_centroids : bool, optional
         If no ROI is within ``tolerance`` of a sample, assign sample to ROI
         with closest centroid. Default: False
     return_counts : bool, optional
         Whether to return counts of how many samples were collapsed into each
-        ROI for each donor
+        ROI, for each donor. Default: False
 
     Returns
     -------

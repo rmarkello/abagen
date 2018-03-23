@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+"""
+Functions for downloading Allen Brain Atlas human microarray dataset
+
+Modeled after ``nilearn.datasets``. Currently just downloads into current
+working directory, but will likely be modified to download into a more
+"standard" directory.
+"""
+
 
 import os
 from nibabel.volumeutils import Recoder
@@ -78,7 +86,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
                 raise ValueError('You provided invalid subject id {0} in a'
                                  'list. Subjects must be selected in {1}.'
                                  .format(sub_id, VALID_DONORS))
-            donors[n] = WELL_KNOWN_IDS.get(sub_id)  # convert to ID system
+            donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
     elif donors == 'all':
         donors = WELL_KNOWN_IDS.value_set('subj')
     else:

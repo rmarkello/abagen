@@ -10,18 +10,17 @@ from scipy.spatial.distance import cdist
 
 def get_unique_labels(label_image):
     """
-    Returns all possible parcel labels from ``label_image``
+    Returns all possible ROI labels from ``label_image``
 
     Parameters
     ----------
     label_image : niimg-like object
-        Parcel image, where each parcel should be identified with a unique
-        integer ID
+        ROI image, where each ROI is identified with a unique integer ID
 
     Returns
     -------
     labels : np.ndarray
-        Integer labels of all parcels found within ``label_image``
+        Integer labels of all ROIS found within ``label_image``
     """
 
     label_image = check_niimg_3d(label_image)
