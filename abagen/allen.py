@@ -164,7 +164,8 @@ def group_by_gene(microarray, probes):
                                            right_index=True)
                                     .groupby(['gene_symbol'])
                                     .mean()
-                                    .drop(['na']).T
+                                    .drop(['na'])
+                                    .T
                                     .reset_index(drop=True))
 
     return microarray_by_gene
@@ -206,7 +207,6 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     if labels is not None:
         labels = pd.DataFrame(index=np.setdiff1d(labels, sample_labels))
 
-    # take median of samples within an ROI to avoid outliers
     gene_by_label = (microarray.merge(sample_labels,
                                       left_index=True, right_index=True)
                                .groupby('label')
@@ -262,8 +262,8 @@ def get_expression_data(files, label_image, metric='mean', tolerance=3,
     files = Bunch(**files)
     for key in ['microarray', 'probes', 'annotation']:
         if key not in files:
-            raise KeyError('Provided ``files`` dictionary was missing key '
-                           '{}. Please check inputs.'.format(key))
+            raise KeyError('Provided ``files`` dictionary is missing {}. '
+                           'Please check inputs.'.format(key))
 
     # get combination function
     if isinstance(metric, str):
