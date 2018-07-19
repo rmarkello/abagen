@@ -219,8 +219,115 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     return gene_by_label
 
 
+def label_rois(annotation, label_image, tolerance=3):
+    """
+    Matches all ROIs in ``label_image`` to closest samples in ``annotation``
+
+    Attempts to place each sample provided in ``annotation`` into a labelled
+    ROI in ``label_image``, where the latter is a 3D niimg-like object that
+    contains ROI data, each with a unique integer ID.
+
+    The function tries to best match the microarray sample to the ROIs by:
+    1. Determining which samples falls directly within a ROI.
+    2. If there is no sample assigned to an ROI, find the closest sample to the
+       centroid of the ROI
+
+    Parameters
+    ----------
+    annotation : (S x 13) pd.core.frame.DataFrame
+        Annotation information, where ``S`` is samples
+    label_image : niimg-like object
+        ROI image, where each ROI should be identified with a unique integer ID
+    tolerance : int, optional
+        Not uses in this implementation.
+
+    Returns
+    -------
+    labels : (L x ...) pd.core.frame.DataFrame
+        Dataframe with lists of sample labels for each ROI
+    """
+
+    # read annotation file, if provided
+    if isinstance(annotation, str):
+        annotation = io.read_sampleannot(annotation)
+
+    # get image data
+    label_image = check_niimg_3d(label_image)
+    label_data, affine_trans = label_image.get_data(), label_image.affine[:-1]
+
+    # calculate the centroids
+    all_labels = utils.get_unique_labels(label_image)
+    centroids = utils.get_centroids(label_image, all_labels)
+
+    # grab xyz coordinates for microarray samples and convert to ijk
+    g_xyz = annotation[['mni_x', 'mni_y', 'mni_z']].get_values()
+    g_ijk = np.floor(utils.xyz_to_ijk(g_xyz, affine_trans)).T.astype(int)
+
+    # get labels for all ijk values
+    labelled_samples = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
+
+    # make a list of samples within each ROI
+    # if no sample is assigned to an ROI, find closest sample to ROI centroid
+    listlabelled_samples = labelled_samples.tolist()
+    labelled_rois = []
+    for nn in range(len(all_labels)):
+        indices = [i for i, x in enumerate(listlabelled_samples) if x == nn+1]
+        labelled_rois.append(indices)
+        if not labelled_rois[nn]:
+            emptyroi = np.reshape(centroids[:, nn], (-1, 1))
+            label = utils.closest_centroid(emptyroi, g_ijk.T)
+            labelled_rois[nn] = [label]
+
+    # return DataFrame for ease of use
+    return pd.DataFrame(labelled_rois,
+                        index=pd.Series(all_labels, name='label'))
+
+
+def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
+    """
+    Averages expression data in ``microarray`` over samples within same ROI
+
+    Parameters
+    ----------
+    microarray : (S x G) pd.core.frame.DataFrame
+        Microarray expression data, where ``S`` is samples and ``G`` is genes
+    roi_labels : (L x ...) pd.core.frame.DataFrame
+        Lists of sample labels with varying lengths for ``L`` ROIs, as returned
+        by e.g., ``label_rois()``
+    labels : (L,) array_like, optional
+        All possible labels for parcellation scheme (to account for possibility
+        that some parcels have NO expression data). Default: None
+    metric : str or func
+        Mechanism by which to collapse across samples within an ROI. If str,
+        should be in ['mean', 'median'].
+
+    Returns
+    -------
+    genes : (L x G) pd.core.frame.DataFrame
+        Microarray expression data
+    """
+    # get combination function
+    if isinstance(metric, str):
+        try:
+            metric = AGG_FUNCS[metric]
+        except KeyError:
+            raise ValueError('Provided metric {0} is not valid. If supplied'
+                             'as string, metric must be in {1}.'
+                             .format(metric, list(AGG_FUNCS.keys())))
+
+    # take median of samples within an ROI to avoid outliers
+    gene_by_label = np.zeros((len(roi_labels), microarray.shape[1]))
+    subj_microarray = np.array(microarray)
+    for nn in range(len(roi_labels)):
+        temp = subj_microarray[roi_labels.iloc[nn].dropna().astype(int)]
+        gene_by_label[nn, :] = metric(temp, 0)
+
+    return pd.DataFrame(gene_by_label, columns=microarray.columns,
+                        index=roi_labels.index)
+
+
 def get_expression_data(files, label_image, metric='mean', tolerance=3,
-                        use_centroids=False, return_counts=False):
+                        use_centroids=False, return_counts=False, dense=False):
     """
     Assigns microarray expression data in ``files`` to ROIs in ``label_image``
 
@@ -247,10 +354,14 @@ def get_expression_data(files, label_image, metric='mean', tolerance=3,
     return_counts : bool, optional
         Whether to return counts of how many samples were collapsed into each
         ROI, for each donor. Default: False
+    dense : bool, optional
+        Whether to return a dense microarray expression matrix by matching all
+        ROIs in ``label_image`` to closest samples in ``anotation``, instead of
+        matching all samples to closes ROIs. Default: False
 
     Returns
     -------
-    expression : pb.core.frame.DataFrame
+    expression : pd.core.frame.DataFrame
         Microarray expression averaged across samples within a given parcel and
         across probes within a given gene family
     labels : pd.core.frame.DataFrame
@@ -288,17 +399,22 @@ def get_expression_data(files, label_image, metric='mean', tolerance=3,
 
         # generate parcel labels for each microarray sample
         annotation = io.read_sampleannot(files.annotation[subj])
-        sample_labels = label_samples(annotation, label_image,
-                                      tolerance=tolerance)
 
-        # average microarray expression across all samples w/i same parcel
-        expression += [group_by_label(sample_by_genes,
-                                      sample_labels,
-                                      all_labels,
-                                      metric=metric)]
+        if dense:
+            label_func, group_func = label_rois, group_by_roi
+        else:
+            label_func, group_func = label_samples, group_by_label
+
+        sample_labels = label_func(annotation, label_image,
+                                   tolerance=tolerance)
+        expression += [group_func(sample_by_genes, sample_labels,
+                                  all_labels, metric=metric)]
 
         # get counts of samples collapsed into each ROI
-        labs, counts = np.unique(sample_labels, return_counts=True)
+        if dense:
+            labs, counts = all_labels, sample_labels.count(axis=1)
+        else:
+            labs, counts = np.unique(sample_labels, return_counts=True)
         labels[labs, subj] = counts
 
     # aggregate over ROI across donors, if needed
