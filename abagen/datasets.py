@@ -28,8 +28,7 @@ VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
                       WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
-                     verbose=1):
+def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
     """
     Download and load the Allen Brain human microarray expression dataset
 
@@ -39,10 +38,8 @@ def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
         Directory where data should be downloaded and unpacked. Default:
         current directory
     donors : list, optional
-        List of donors to download; can be either donor number or UID.
-        Default: donor9861
-    url : str, optional
-        Url of file to download
+        List of donors to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors. Default: donor9861
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
@@ -51,7 +48,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
     Returns
     -------
     data : sklearn.datasets.base.Bunch
-        Dictionary-like object, with attributes of interest being:
+        Dictionary-like object, with attributes of interest including:
         'microarray': string list. Paths to microarray expression CSV files
         'ontology': string list. Paths to ontology CSV files
         'pacall': string list. Paths to pacall CSV files
@@ -66,8 +63,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
        489(7416), 391.
     """
 
-    if url is None:
-        url = "http://human.brain-map.org/api/v2/well_known_file_download/{}"
+    url = "http://human.brain-map.org/api/v2/well_known_file_download/{}"
 
     dataset_name = 'allenbrain'
     if data_dir is None:
@@ -114,8 +110,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], url=None, resume=True,
     )
 
 
-def fetch_mri(data_dir=None, donors=['9861'], url=None, resume=True,
-              verbose=1):
+def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
     """
     Download and load the Allen Brain human MRI images
 
@@ -127,8 +122,6 @@ def fetch_mri(data_dir=None, donors=['9861'], url=None, resume=True,
     donors : list, optional
         List of donors to download; can be either donor number or UID.
         Default: donor9861
-    url : str, optional
-        Url of file to download
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
