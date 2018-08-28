@@ -1,6 +1,8 @@
+fastparquet
 nibabel
 nilearn
 numpy
 pandas
 scipy
 scikit-learn
+snappy

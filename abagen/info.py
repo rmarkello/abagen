@@ -20,6 +20,10 @@ INSTALL_REQUIRES = [
     'scipy',
 ]
 
+EXTRAS_REQUIRE = {
+    'io': ['fastparquet', 'snappy']
+}
+
 TESTS_REQUIRE = [
     'pytest',
 ]

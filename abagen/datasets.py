@@ -7,12 +7,11 @@ working directory, but will likely be modified to download into a more
 "standard" directory.
 """
 
-
 import os
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
 from sklearn.utils import Bunch
-
+from abagen import io
 
 WELL_KNOWN_IDS = Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636'),
@@ -28,7 +27,8 @@ VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
                       WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
+def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
+                     convert=True):
     """
     Download and load the Allen Brain human microarray expression dataset
 
@@ -44,6 +44,9 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
         Verbosity level (0 means no message). Default: 1
+    convert : bool, optional
+        Whether to convert downloaded CSV files into parquet format for faster
+        loading. Default: True
 
     Returns
     -------
@@ -100,6 +103,12 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
     ]
 
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
+
+    # if we want to convert files to parquet format it's good to do that now
+    # this step is _already_ super long, so an extra 1-2 minutes is negligible
+    if convert and io.use_parq:
+        for fn in files[0::n_files] + files[2::n_files]:
+            io._make_parquet(fn, convert_only=True)
 
     return Bunch(
         microarray=files[0::n_files],
