@@ -4,8 +4,125 @@ import itertools
 
 from nilearn._utils import check_niimg_3d
 import numpy as np
+import pandas as pd
 from scipy.ndimage.measurements import center_of_mass
 from scipy.spatial.distance import cdist
+from scipy.stats import zscore
+
+AGG_FUNCS = dict(
+    mean=np.mean,
+    median=np.median
+)
+
+
+def check_atlas_info(atlas, info):
+    """
+    Checks whether provided `info` on `atlas` is sufficient for processing
+
+    Parameters
+    ----------
+    atlas : niimg-like object
+        Parcel image, where each parcel should be identified with a unique
+        integer ID
+    info : str or pandas.DataFrame, optional
+        Filepath to or pre-loaded dataframe containing information about
+        `atlas`. Must jhave _at least_ columns 'id', 'hemisphere', and
+        'structure' containing information mapping atlas IDs to hemisphere and
+        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
+        Default: None
+
+    Returns
+    -------
+    info : pandas.DataFrame
+        Loaded dataframe with information on atlas
+
+    Raises
+    ------
+    ValueError
+        If `info` does not have sufficient information
+    """
+    atlas = check_niimg_3d(atlas)
+
+    # load info, if not already
+    if isinstance(info, str):
+        info = pd.read_csv(info)
+
+    if not isinstance(info, pd.DataFrame):
+        raise ValueError('Provided `info` of type {} is not a filepath or '
+                         'DataFrame. Please confirm inputs and try again.'
+                         .format(type(info)))
+
+    ids = get_unique_labels(atlas)
+    cols = ['id', 'hemisphere', 'structure']
+    try:
+        assert all(c in info.columns for c in cols)
+        assert np.setdiff1d(ids, info.id.values).size == 0
+    except AssertionError:
+        raise ValueError('Provided `info` does not have adequate information '
+                         'on supplied `atlas`. Please confirm that `info` has '
+                         'columns [\'id\', \'hemisphere\', \'structure\'], '
+                         'and that the region IDs listed in `info` account '
+                         'for all those found in `atlas.')
+
+    return info
+
+
+def check_metric(metric):
+    """
+    Confirms `metric` is a valid aggregation metric
+
+    Parameters
+    ----------
+    metric : str or func, optional
+        Mechanism by which to reduce arrays. If str, should be in ['mean',
+        'median']. If func, should be able to accept an `N`-dimensional input
+        and the `axis` keyword argument and return an `N-1`-dimensional output.
+        Default: 'mean'
+
+    Returns
+    -------
+    metric : func
+        Mechanism by which to reduce arrays
+    """
+    if isinstance(metric, str):
+        try:
+            metric = AGG_FUNCS[metric]
+        except KeyError:
+            raise ValueError('Provided metric {0} is not valid. If supplied'
+                             'as string, metric must be in {1}.'
+                             .format(metric, list(AGG_FUNCS.keys())))
+    else:
+        try:
+            test = np.random.rand(10, 10, 10)
+            assert metric(test, axis=0).shape == (10, 10)
+            assert isinstance(metric(test), float)
+        except (AssertionError, TypeError):
+            raise TypeError('Provided metric {0} does not perform as '
+                            'expected. Please ensure it accepts the `axis` '
+                            'keyword argument and can reduce an `N`-'
+                            'dimensional input to an `N-1`-dimensional output.'
+                            .format(metric))
+
+    return metric
+
+
+def efficient_corr(x, y):
+    """
+    Computes correlation of i-th column in `x` with i-th column in `y`
+
+    Parameters
+    ----------
+    x, y : (N, M) array_like
+        Input data arrays
+
+    Returns
+    -------
+    corr : (M,) numpy.ndarray
+        Correlations of columns in `x` and `y`
+    """
+    corr = np.sum(zscore(x, ddof=1) * zscore(y, ddof=1), axis=0) / (len(x) - 1)
+
+    return corr
 
 
 def get_unique_labels(label_image):
