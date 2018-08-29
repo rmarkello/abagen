@@ -53,7 +53,7 @@ def _make_parquet(fname, convert_only=False):
     # do some cleaning up of the data
     data = data.set_index('0')
     data.index.name = 'probe_id'
-    data.columns = pd.Series(data.columns.astype(int), name='sample_id')
+    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
 
     return data
 
@@ -79,7 +79,11 @@ def read_microarray(fname, parquet=True):
         processing
     """
     if not isinstance(fname, str):
-        return fname
+        if isinstance(fname, pd.DataFrame):
+            return fname.copy()
+        else:
+            raise TypeError('Provided fname {} must be a filepath.'
+                            .format(fname))
 
     if use_parq and parquet:
         return _make_parquet(fname)
@@ -105,7 +109,11 @@ def read_ontology(fname, parquet=True):
         structures used during sample collection
     """
     if not isinstance(fname, str):
-        return fname
+        if isinstance(fname, pd.DataFrame):
+            return fname.copy()
+        else:
+            raise TypeError('Provided fname {} must be a filepath.'
+                            .format(fname))
 
     return pd.read_csv(fname)
 
@@ -131,7 +139,11 @@ def read_pacall(fname, parquet=True):
         where `P` is probes and `S` is samples
     """
     if not isinstance(fname, str):
-        return fname
+        if isinstance(fname, pd.DataFrame):
+            return fname.copy()
+        else:
+            raise TypeError('Provided fname {} must be a filepath.'
+                            .format(fname))
 
     if use_parq and parquet:
         return _make_parquet(fname)
@@ -156,7 +168,11 @@ def read_probes(fname, parquet=True):
         Dataframe containing genetic information for `P` probes
     """
     if not isinstance(fname, str):
-        return fname
+        if isinstance(fname, pd.DataFrame):
+            return fname.copy()
+        else:
+            raise TypeError('Provided fname {} must be a filepath.'
+                            .format(fname))
 
     return pd.read_csv(fname, index_col=0)
 
@@ -178,6 +194,10 @@ def read_annotation(fname, parquet=True):
         Dataframe containing structural information on `S` samples
     """
     if not isinstance(fname, str):
-        return fname
+        if isinstance(fname, pd.DataFrame):
+            return fname.copy()
+        else:
+            raise TypeError('Provided fname {} must be a filepath.'
+                            .format(fname))
 
     return pd.read_csv(fname)
