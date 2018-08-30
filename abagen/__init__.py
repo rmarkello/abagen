@@ -1,4 +1,4 @@
-__all__ = ['allen', 'datasets', 'info', 'io', 'utils']
+__all__ = ['__version__', 'get_expression_data', 'fetch_microarray', 'io']
 
 from .info import __version__
 

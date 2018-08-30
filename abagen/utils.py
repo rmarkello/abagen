@@ -61,7 +61,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
 
     # return x,y,z if desired; otherwise, i,j,k
     if image_space:
-        return ijk_to_xyz(centroids, label_image.affine[:-1])
+        return ijk_to_xyz(centroids, label_image.affine)
 
     return centroids
 
@@ -91,73 +91,71 @@ def closest_centroid(coords, centroids):
     return distances.argmin()
 
 
-def _ijk_xyz_input_check(coords):
+def _check_coord_inputs(coords):
     """
-    Confirms proper inputs to ``ijk_to_xyz()`` and ``xyz_to_ijk()``
+    Confirms `coords` are appropriate shape for coordinate transform
 
     Parameters
     ----------
-    coords : array_like
+    coords : array-like
 
     Returns
     -------
-    coords : (3 x N) np.ndarray
+    coords : (4 x N) numpy.ndarray
     """
-
+    coords = np.atleast_2d(coords).T
     if 3 not in coords.shape:
-        raise ValueError('Input coordinates must be of shape (3 x N).')
-
-    coords = np.atleast_2d(coords)
+        raise ValueError('Input coordinates must be of shape (3 x N). '
+                         'Provided coordinate shape: {}'.format(coords.shape))
     if coords.shape[0] != 3:
         coords = coords.T
-
+    # add constant term to coords to make 4 x N
+    coords = np.row_stack([coords, np.ones_like(coords[0])])
     return coords
 
 
 def ijk_to_xyz(coords, affine):
     """
-    Converts voxel ``coords`` in cartesian space to ``affine`` space
+    Converts `coords` in cartesian space to `affine` space
 
     Parameters
     ----------
-    coords : (3 x N) array_like
-        Cartesian (ijk) coordinate values
-    affine : (3 x 4) array_like
-        Affine matrix containing displacement + boundary
+    coords : (N, 3) array_like
+        Image coordinate values, where each entry is an ijk coordinate in
+        cartesian space
+    affine : (4, 4) array-like
+        Affine matrix
 
     Returns
-    -------
-    xyz : (3 x N) np.ndarray
-        Provided ``coords`` in ``affine`` space
+    ------
+    xyz : (N, 3) numpy.ndarray
+        Provided `coords` in `affine` space
     """
-
-    coords = _ijk_xyz_input_check(coords)
-    xyz = np.dot(affine[:, :-1], coords) + affine[:, [-1]]
-
-    return xyz
+    coords = _check_coord_inputs(coords)
+    aff_coords = np.dot(affine, coords)[:3].T
+    return aff_coords
 
 
 def xyz_to_ijk(coords, affine):
     """
-    Converts voxel ``coords`` in ``affine`` space to cartesian space
+    Converts `coords` in `affine` space to cartesian space
 
     Parameters
     ----------
-    coords : (3 x N) array_like
-        Image coordinate (xyz) values
-    affine : (3 x 4) array_like
-        Affine matrix containing displacement + boundary
+    coords : (N, 3) array_like
+        Image coordinate values, where each entry is an xyz coordinates in
+        `affine` space
+    affine : (4, 4) array-like
+        Affine matrix
 
     Returns
-    -------
-    ijk : (3 x N) np.ndarray
-        Provided ``coords`` in cartesian space
+    ------
+    ijk : (N, 3) numpy.ndarray
+        Provided `coords` in cartesian space
     """
-
-    coords = _ijk_xyz_input_check(coords)
-    ijk = np.linalg.solve(affine[:, :-1], coords - affine[:, [-1]])
-
-    return ijk.astype(int)
+    coords = _check_coord_inputs(coords)
+    ijk_coords = np.linalg.solve(affine, coords)[:3].T.astype(int)
+    return ijk_coords
 
 
 def expand_roi(coords, dilation=1, return_array=True):
@@ -170,7 +168,7 @@ def expand_roi(coords, dilation=1, return_array=True):
 
     Parameters
     ----------
-    coords : (3 x 1) array_like
+    coords : (3,) array_like
         List of ijk values for coordinate in 3D space
     dilation : int, optional
         How many neighboring voxels to expand around `coords`. Default: 1
@@ -187,6 +185,7 @@ def expand_roi(coords, dilation=1, return_array=True):
         return np.arange((x - d), (x + d + 1), dtype=int)
 
     # return all combinations of coordinates
+    coords = np.atleast_2d(coords)
     gen = itertools.product(*[expand(n, d=dilation) for n in coords])
 
     # coerce to array if desired
