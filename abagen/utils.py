@@ -15,7 +15,7 @@ AGG_FUNCS = dict(
 )
 
 
-def check_atlas_info(atlas, info):
+def check_atlas_info(atlas, atlas_info):
     """
     Checks whether provided `info` on `atlas` is sufficient for processing
 
@@ -24,7 +24,7 @@ def check_atlas_info(atlas, info):
     atlas : niimg-like object
         Parcel image, where each parcel should be identified with a unique
         integer ID
-    info : str or pandas.DataFrame, optional
+    atlas_info : str or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must jhave _at least_ columns 'id', 'hemisphere', and
         'structure' containing information mapping atlas IDs to hemisphere and
@@ -33,38 +33,39 @@ def check_atlas_info(atlas, info):
 
     Returns
     -------
-    info : pandas.DataFrame
+    atlas_info : pandas.DataFrame
         Loaded dataframe with information on atlas
 
     Raises
     ------
     ValueError
-        If `info` does not have sufficient information
+        If `atlas_info` does not have sufficient information
     """
     atlas = check_niimg_3d(atlas)
 
     # load info, if not already
-    if isinstance(info, str):
-        info = pd.read_csv(info)
+    if isinstance(atlas_info, str):
+        atlas_info = pd.read_csv(atlas_info)
 
-    if not isinstance(info, pd.DataFrame):
-        raise ValueError('Provided `info` of type {} is not a filepath or '
-                         'DataFrame. Please confirm inputs and try again.'
-                         .format(type(info)))
+    if not isinstance(atlas_info, pd.DataFrame):
+        raise ValueError('Provided `atlas_info` of type {} is not a filepath '
+                         'or DataFrame. Please confirm inputs and try again.'
+                         .format(type(atlas_info)))
 
     ids = get_unique_labels(atlas)
     cols = ['id', 'hemisphere', 'structure']
     try:
-        assert all(c in info.columns for c in cols)
-        assert np.setdiff1d(ids, info.id.values).size == 0
+        assert all(c in atlas_info.columns for c in cols)
+        assert np.setdiff1d(ids, atlas_info.id.values).size == 0
     except AssertionError:
-        raise ValueError('Provided `info` does not have adequate information '
-                         'on supplied `atlas`. Please confirm that `info` has '
-                         'columns [\'id\', \'hemisphere\', \'structure\'], '
-                         'and that the region IDs listed in `info` account '
-                         'for all those found in `atlas.')
+        raise ValueError('Provided `atlas_info` does not have adequate '
+                         'information  on supplied `atlas`. Please confirm '
+                         'that `atlas_info` has columns [\'id\', '
+                         '\'hemisphere\', \'structure\'], and that the region '
+                         'IDs listed in `atlas_info` account for all those '
+                         'found in `atlas.')
 
-    return info
+    return atlas_info
 
 
 def check_metric(metric):
@@ -161,7 +162,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
 
     Returns
     -------
-    centroids : (3, N) np.ndarray
+    centroids : (N, 3) np.ndarray
         Coordinates of centroids for ROIs in input data
     """
 
@@ -174,9 +175,9 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
     # get centroids for all possible labels
     image_data = label_image.get_data()
     centroids = np.row_stack([center_of_mass(image_data == label) for
-                              label in labels_of_interest]).T
+                              label in labels_of_interest])
 
-    # return x,y,z if desired; otherwise, i,j,k
+    # return xyz if desired; otherwise, ijk
     if image_space:
         return ijk_to_xyz(centroids, label_image.affine)
 
@@ -192,9 +193,9 @@ def closest_centroid(coords, centroids):
 
     Parameters
     ----------
-    coords : (3, 1) array_like
+    coords : (1, 3) array_like
         Coordinates of sample
-    centroids : (3, N) array_like
+    centroids : (N, 3) array_like
         Centroids of parcels (in same space as `coords`)
 
     Returns
@@ -203,7 +204,7 @@ def closest_centroid(coords, centroids):
         Index of closest centroid in ``centroids``
     """
 
-    distances = np.squeeze(cdist(np.atleast_2d(coords).T, centroids.T))
+    distances = np.squeeze(cdist(np.atleast_2d(coords), centroids))
 
     return distances.argmin()
 
@@ -237,14 +238,14 @@ def ijk_to_xyz(coords, affine):
 
     Parameters
     ----------
-    coords : (3, N) array_like
+    coords : (N, 3) array_like
         Cartesian (ijk) coordinate values
-    affine : (3, 4) array_like
+    affine : (4, 4) array_like
         Affine matrix containing displacement + boundary
 
     Returns
     -------
-    xyz : (3, N) np.ndarray
+    xyz : (N, 3) np.ndarray
         Provided ``coords`` in ``affine`` space
     """
     coords = _check_coord_inputs(coords)
@@ -258,9 +259,9 @@ def xyz_to_ijk(coords, affine):
 
     Parameters
     ----------
-    coords : (3, N) array_like
+    coords : (N, 3) array_like
         Image coordinate (xyz) values
-    affine : (3, 4) array_like
+    affine : (4, 4) array_like
         Affine matrix containing displacement + boundary
 
     Returns
@@ -283,7 +284,7 @@ def expand_roi(coords, dilation=1, return_array=True):
 
     Parameters
     ----------
-    coords : (3, 1) array_like
+    coords : (1, 3) array_like
         List of ijk values for coordinate in 3D space
     dilation : int, optional
         How many neighboring voxels to expand around `coords`. Default: 1
@@ -300,7 +301,7 @@ def expand_roi(coords, dilation=1, return_array=True):
         return np.arange((x - d), (x + d + 1), dtype=int)
 
     # return all combinations of coordinates
-    coords = np.atleast_2d(coords)
+    coords = np.squeeze(coords)
     gen = itertools.product(*[expand(n, d=dilation) for n in coords])
 
     # coerce to array if desired

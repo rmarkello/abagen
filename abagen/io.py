@@ -200,4 +200,7 @@ def read_annotation(fname, parquet=True):
             raise TypeError('Provided fname {} must be a filepath.'
                             .format(fname))
 
-    return pd.read_csv(fname)
+    annotation = pd.read_csv(fname)
+    annotation.index.name = 'sample_id'
+
+    return annotation

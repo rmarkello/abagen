@@ -193,12 +193,12 @@ def drop_mismatch_samples(annotation, ontology):
     # add hemisphere + brain "structure" designation to annotation data
     hemi = dict(zip(ont.id, ont.hemisphere))
     stru = dict(zip(ont.id, ont.structure_id_path.apply(_get_path_structure)))
-    annot = annot.assign(hemi=annot.structure_id.replace(hemi),
+    annot = annot.assign(hemisphere=annot.structure_id.replace(hemi),
                          structure=annot.structure_id.replace(stru))
 
     # only keep samples with consistent hemisphere + MNI coordinate designation
-    keep = annot.query('(hemi == "L" & mni_x < 0) | '
-                       '(hemi == "R" & mni_x > 0)')
+    keep = annot.query('(hemisphere == "L" & mni_x < 0) | '
+                       '(hemisphere == "R" & mni_x > 0)')
 
     return keep
 
