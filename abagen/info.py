@@ -14,7 +14,7 @@ LONG_DESCRIPTION = """\
 """
 URL = 'https://github.com/rmarkello/{name}'.format(name=NAME)
 DOWNLOAD_URL = ('http://github.com/rmarkello/{name}/archive/{ver}.tar.gz'
-                .format(name=NAME, version=__version__))
+                .format(name=NAME, ver=__version__))
 
 INSTALL_REQUIRES = [
     'nibabel',
