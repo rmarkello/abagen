@@ -111,7 +111,7 @@ def label_samples(annotation, label_image, tolerance=3, use_centroids=False):
 
     # get image data
     label_image = check_niimg_3d(label_image)
-    label_data, affine_trans = label_image.get_data(), label_image.affine[:-1]
+    label_data, affine_trans = label_image.get_data(), label_image.affine
 
     # if we're going to use centroids, calculate them ahead of time
     if use_centroids:
@@ -253,7 +253,7 @@ def label_rois(annotation, label_image, tolerance=3):
 
     # get image data
     label_image = check_niimg_3d(label_image)
-    label_data, affine_trans = label_image.get_data(), label_image.affine[:-1]
+    label_data, affine_trans = label_image.get_data(), label_image.affine
 
     # calculate the centroids
     all_labels = utils.get_unique_labels(label_image)
