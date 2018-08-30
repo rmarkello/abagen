@@ -1,5 +1,7 @@
 language: python
 sudo: false
+notifications:
+    email: change
 
 python:
     - 3.6
