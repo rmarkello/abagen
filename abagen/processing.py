@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-
+"""
+Functions for cleaning and processing the AHBA microarray dataset
+"""
 import itertools
 from nibabel.volumeutils import Recoder
 import numpy as np

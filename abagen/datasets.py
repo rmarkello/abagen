@@ -46,7 +46,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         Verbosity level (0 means no message). Default: 1
     convert : bool, optional
         Whether to convert downloaded CSV files into parquet format for faster
-        loading. Default: True
+        loading in the future. Default: True
 
     Returns
     -------

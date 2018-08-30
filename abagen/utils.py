@@ -108,7 +108,7 @@ def check_metric(metric):
 
 def efficient_corr(x, y):
     """
-    Computes correlation of i-th column in `x` with i-th column in `y`
+    Computes correlation of matching columns in `x` and `y`
 
     Parameters
     ----------
@@ -161,7 +161,7 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
 
     Returns
     -------
-    centroids : (3 x N) np.ndarray
+    centroids : (3, N) np.ndarray
         Coordinates of centroids for ROIs in input data
     """
 
@@ -192,9 +192,9 @@ def closest_centroid(coords, centroids):
 
     Parameters
     ----------
-    coords : (3 x 1) array_like
+    coords : (3, 1) array_like
         Coordinates of sample
-    centroids : (3 x N) array_like
+    centroids : (3, N) array_like
         Centroids of parcels (in same space as `coords`)
 
     Returns
@@ -218,7 +218,7 @@ def _check_coord_inputs(coords):
 
     Returns
     -------
-    coords : (4 x N) numpy.ndarray
+    coords : (3, N) np.ndarray
     """
     coords = np.atleast_2d(coords).T
     if 3 not in coords.shape:
@@ -237,16 +237,15 @@ def ijk_to_xyz(coords, affine):
 
     Parameters
     ----------
-    coords : (N, 3) array_like
-        Image coordinate values, where each entry is an ijk coordinate in
-        cartesian space
-    affine : (4, 4) array-like
-        Affine matrix
+    coords : (3, N) array_like
+        Cartesian (ijk) coordinate values
+    affine : (3, 4) array_like
+        Affine matrix containing displacement + boundary
 
     Returns
-    ------
-    xyz : (N, 3) numpy.ndarray
-        Provided `coords` in `affine` space
+    -------
+    xyz : (3, N) np.ndarray
+        Provided ``coords`` in ``affine`` space
     """
     coords = _check_coord_inputs(coords)
     aff_coords = np.dot(affine, coords)[:3].T
@@ -259,11 +258,10 @@ def xyz_to_ijk(coords, affine):
 
     Parameters
     ----------
-    coords : (N, 3) array_like
-        Image coordinate values, where each entry is an xyz coordinates in
-        `affine` space
-    affine : (4, 4) array-like
-        Affine matrix
+    coords : (3, N) array_like
+        Image coordinate (xyz) values
+    affine : (3, 4) array_like
+        Affine matrix containing displacement + boundary
 
     Returns
     ------
@@ -285,7 +283,7 @@ def expand_roi(coords, dilation=1, return_array=True):
 
     Parameters
     ----------
-    coords : (3,) array_like
+    coords : (3, 1) array_like
         List of ijk values for coordinate in 3D space
     dilation : int, optional
         How many neighboring voxels to expand around `coords`. Default: 1

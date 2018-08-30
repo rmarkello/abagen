@@ -4,12 +4,17 @@ __version__ = '0.0.1'
 
 NAME = 'abagen'
 MAINTAINER = 'Ross Markello'
+EMAIL = 'rossmarkello@gmail.com'
 VERSION = __version__
 LICENSE = 'MIT'
-DOWNLOAD_URL = 'http://github.com/rmarkello/abagen'
-DESCRIPTION = """
-A toolbox for working with the Allen Brain Atlas genetic expression data.
+DESCRIPTION = """\
+A toolbox for working with the Allen Brain Atlas human microarray datasets\
 """
+LONG_DESCRIPTION = """\
+"""
+URL = 'https://github.com/rmarkello/{name}'.format(name=NAME)
+DOWNLOAD_URL = ('http://github.com/rmarkello/{name}/archive/{ver}.tar.gz'
+                .format(name=NAME, version=__version__))
 
 INSTALL_REQUIRES = [
     'nibabel',

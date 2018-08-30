@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-
+"""
+Functions for mapping AHBA microarray dataset to atlases and and parcellations
+in MNI space
+"""
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
@@ -14,7 +17,7 @@ def assign_sample(sample, label_image, tolerance=3):
 
     Parameters
     ----------
-    sample : (3 x 1) array_like
+    sample : (3, 1) array_like
         Coordinates (ijk) of microarray probe in `label_image` space
     label_image : niimg-like object
         ROI image, where each ROI should be identified with a unique
@@ -81,7 +84,7 @@ def label_samples(annotation, label_image, tolerance=3, use_centroids=False):
 
     Parameters
     ----------
-    annotation : (S x 13) pd.core.frame.DataFrame
+    annotation : (S, 13) pandas.DataFrame
         Annotation information, where `S` is samples
     label_image : niimg-like object
         ROI image, where each ROI should be identified with a unique integer ID
@@ -95,7 +98,7 @@ def label_samples(annotation, label_image, tolerance=3, use_centroids=False):
 
     Returns
     -------
-    labels : (S x 1) pd.core.frame.DataFrame
+    labels : (S, 1) pandas.DataFrame
         Dataframe with ROI labels
     """
 
@@ -142,14 +145,14 @@ def group_by_gene(microarray, probes):
 
     Parameters
     ----------
-    microarray : (P x S) pd.core.frame.DataFrame
+    microarray : (P, S) pandas.DataFrame
         Micoarray expression data, where ``P`` is probes and ``S`` is samples
-    probes : (P x 6) pd.core.frame.DataFrame
+    probes : (P, 6) pandas.DataFrame
         Probe information, where ``P`` is probes
 
     Returns
     -------
-    microarray_by_gene : (S x G) pd.core.frame.DataFrame
+    microarray_by_gene : (S, G) pandas.DataFrame
         ``microarray``, where ``G`` is the number of unique genes
     """
 
@@ -171,9 +174,9 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 
     Parameters
     ----------
-    microarray : (S x G) pd.core.frame.DataFrame
+    microarray : (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples and `G` is genes
-    sample_labels : (S x 1) pd.core.frame.DataFrame
+    sample_labels : (S, 1) pandas.DataFrame
         ROI labels for `S` samples, as returned by e.g., `label_samples()`
     labels : (L,) array_like, optional
         All possible labels for parcellation scheme (to account for possibility
@@ -184,7 +187,7 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 
     Returns
     -------
-    genes : (L x G) pd.core.frame.DataFrame
+    genes : (L, G) pandas.DataFrame
         Microarray expression data
     """
 
@@ -222,7 +225,7 @@ def label_rois(annotation, label_image, tolerance=3):
 
     Parameters
     ----------
-    annotation : (S x 13) pd.core.frame.DataFrame
+    annotation : (S, 13) pandas.DataFrame
         Annotation information, where `S` is samples
     label_image : niimg-like object
         ROI image, where each ROI should be identified with a unique integer ID
@@ -231,13 +234,12 @@ def label_rois(annotation, label_image, tolerance=3):
 
     Returns
     -------
-    labels : (L x ...) pd.core.frame.DataFrame
+    labels : (L, ...) pandas.DataFrame
         Dataframe with lists of sample labels for each ROI
     """
 
     # read annotation file, if provided
-    if isinstance(annotation, str):
-        annotation = io.read_sampleannot(annotation)
+    annotation = io.read_sampleannot(annotation)
 
     # get image data
     label_image = check_niimg_3d(label_image)
@@ -277,9 +279,9 @@ def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
 
     Parameters
     ----------
-    microarray : (S x G) pd.core.frame.DataFrame
+    microarray : (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples and `G` is genes
-    roi_labels : (L x ...) pd.core.frame.DataFrame
+    roi_labels : (L, ...) pandas.DataFrame
         Lists of sample labels with varying lengths for `L` ROIs, as returned
         by e.g., `label_rois()`
     labels : (L,) array_like, optional
@@ -291,7 +293,7 @@ def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
 
     Returns
     -------
-    genes : (L x G) pd.core.frame.DataFrame
+    genes : (L x G) pandas.DataFrame
         Microarray expression data
     """
     # get combination function
@@ -312,7 +314,7 @@ def get_expression_data(files, atlas, atlas_info=None,
                         metric='mean', tolerance=3, use_centroids=False,
                         return_counts=False, dense=False, ibf_thresh=0.5):
     """
-    Assigns microarray expression data in `files` to ROIs in `label_image`
+    Assigns microarray expression data in `files` to ROIs defined in `atlas`
 
     Parameters
     ----------
@@ -352,10 +354,10 @@ def get_expression_data(files, atlas, atlas_info=None,
 
     Returns
     -------
-    expression : pd.core.frame.DataFrame
+    expression : pandas.DataFrame
         Microarray expression averaged across samples within a given parcel and
         across probes within a given gene family
-    labels : pd.core.frame.DataFrame
+    labels : pandas.DataFrame
         Number of samples averaged into each ROI label, by donor (if multiple
         donors provided)
     """

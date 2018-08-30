@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Functions for loading the various files associated with the Allen Brain Atlas
-human microarray datasets.
+Functions for loading the various files associated with the AHBA microarray
+dataset
 
 This also contains functionality for optionally converting the downloaded CSV
 files to the parquet format, which provides much faster I/O access and quicker
-loading times.
+loading times
 """
 
 import os.path as op
@@ -104,7 +104,7 @@ def read_ontology(fname, parquet=True):
 
     Returns
     -------
-    ontology : pandas.DataFrame
+    ontology : (R, 8) pandas.DataFrame
         Dataframe containing ontology information for all labelled brain
         structures used during sample collection
     """
