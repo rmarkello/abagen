@@ -7,6 +7,7 @@ from nibabel.volumeutils import Recoder
 import numpy as np
 import pandas as pd
 from abagen import io, utils
+from abagen.datasets import _fetch_alleninf_coords
 
 # AHBA structure IDs corresponding to different brain parts
 ONTOLOGY = Recoder(
@@ -167,7 +168,7 @@ def _reduce_micro(micro, annot, probes):
     return micro[micro.index.isin(probes.index)]
 
 
-def drop_mismatch_samples(annotation, ontology):
+def drop_mismatch_samples(annotation, ontology, corrected=True):
     """
     Parameters
     ----------
@@ -179,6 +180,10 @@ def drop_mismatch_samples(annotation, ontology):
         Ontology file from Allen Brain Institute. Optimally obtained by
         calling `abagen.fetch_microarray()` and accessing the `ontology`
         attribute on the resulting object
+    corrected : bool, optional
+        Whether to use the "corrected" MNI coordinates shipped with the
+        `alleninf` package instead of the coordinates provided with the AHBA
+        data. Default: True
 
     Returns
     -------
@@ -196,11 +201,39 @@ def drop_mismatch_samples(annotation, ontology):
     annot = annot.assign(hemisphere=annot.structure_id.replace(hemi),
                          structure=annot.structure_id.replace(stru))
 
+    # correct MNI coordinates, if requested
+    if corrected:
+        annot = _replace_mni_coords(annot)
+
     # only keep samples with consistent hemisphere + MNI coordinate designation
     keep = annot.query('(hemisphere == "L" & mni_x < 0) | '
                        '(hemisphere == "R" & mni_x > 0)')
 
     return keep
+
+
+def _replace_mni_coords(annotation):
+    """
+    Replaces MNI coords in `annotation` with corrected coords from alleninf
+
+    Parameters
+    ----------
+    annotation : str
+        Annotation file from Allen Brain Institute. Optimally obtained by
+        calling `abagen.fetch_microarray()` and accessing the `annotation`
+        attribute on the resulting object
+
+    Returns
+    -------
+    corrected : pandas.DataFrame
+        Annotation data with corrected MNI coordinates
+    """
+
+    annotation = io.read_annotation(annotation)
+    mni_coords = _fetch_alleninf_coords().loc[annotation.well_id]
+    annotation[['mni_x', 'mni_y', 'mni_z']] = mni_coords.get_values()
+
+    return annotation
 
 
 def _get_path_structure(structure_path):

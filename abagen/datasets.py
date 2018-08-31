@@ -166,4 +166,8 @@ def _fetch_alleninf_coords(*args, **kwargs):
     with requests.get(url, stream=True) as r:
         coords = StringIO(r.content.decode('utf-8'))
 
-    return pd.read_csv(coords)
+    coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
+                                             corrected_mni_y='mni_y',
+                                             corrected_mni_z='mni_z'),
+                                        axis=1)
+    return coords.set_index('well_id')
