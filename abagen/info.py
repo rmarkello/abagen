@@ -34,4 +34,5 @@ TESTS_REQUIRE = [
 ]
 
 PACKAGE_DATA = {
+    'abagen': ['abagen/data/*']
 }
