@@ -8,8 +8,11 @@ working directory, but will likely be modified to download into a more
 """
 
 import os
+from io import StringIO
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
+import pandas as pd
+import requests
 from sklearn.utils import Bunch
 from abagen import io
 
@@ -138,3 +141,29 @@ def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
     """
 
     raise NotImplementedError
+
+
+def _fetch_alleninf_coords(*args, **kwargs):
+    """
+    Gets updated MNI coordinates for AHBA samples, as shipped with `alleninf`
+
+    Returns
+    -------
+    coords : pandas.DataFrame
+        Updated MNI coordinates for all AHBA samples
+
+    References
+    ----------
+    .. [1] https://github.com/chrisfilo/alleninf
+    """
+
+    # can't ship it because there's no LICENSE on the repo
+    # this should be a more-or-less stable reference to the CSV file
+    url = ("https://raw.githubusercontent.com/chrisfilo/alleninf/"
+           "e48cd817849be4195b1569b7ac1eaf2c3e5a1085/alleninf/data/"
+           "corrected_mni_coordinates.csv")
+
+    with requests.get(url, stream=True) as r:
+        coords = StringIO(r.content.decode('utf-8'))
+
+    return pd.read_csv(coords)
