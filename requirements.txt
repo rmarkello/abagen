@@ -3,6 +3,6 @@ nibabel
 nilearn
 numpy
 pandas
+python-snappy
 scipy
 scikit-learn
-snappy

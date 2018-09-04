@@ -1,5 +1,5 @@
 language: python
-sudo: false
+sudo: true
 notifications:
     email: change
 
@@ -10,35 +10,49 @@ matrix:
   include:
     - python: 3.6
       env:
-        - STYLE=1
+        - LINTING=1
     - python: 3.6
       env:
-        - COVERAGE=1
+        - TESTING=1
+    - python: 3.6
+      env:
+        - TESTING=1
+        - EXTRAS=1
 
 before_install:
     - python -m pip install --upgrade pip
-    - if [ "${STYLE}" == "1" ]; then
+    - if [ "${LINTING}" == "1" ]; then
           pip install flake8;
       fi
-    - if [ "${COVERAGE}" == "1" ]; then
+    - if [ "${TESTING}" == "1" ]; then
           pip install coverage coveralls codecov pytest pytest-cov;
+      fi
+    - if [ "${EXTRAS}" == "1" ]; then
+          sudo apt-get install libsnappy-dev;
       fi
 
 install:
-    - python setup.py install
+    - if [ "${EXTRAS}" == "1" ]; then
+        pip install -e .[io];
+      else
+        pip install -e .;
+      fi
 
 script:
     - |
-      if [ "${STYLE}" == "1" ]; then
+      if [ "${LINTING}" == "1" ]; then
           flake8 abagen
       else
-          if [ "${COVERAGE}" == "1" ]; then
+          if [ "${TESTING}" == "1" ]; then
               TEST_ARGS="--cov-report term-missing --cov=abagen";
+              if [ "${EXTRAS}" != "1" ]; then
+                IO_ARGS="--ignore=abagen/tests/test_datasets.py";
+              fi
           fi
-          py.test ${TEST_ARGS} abagen;
+          py.test ${IO_ARGS} ${TEST_ARGS} abagen;
       fi
 
 after_success:
-    - if [ "${COVERAGE}" == "1" ]; then
+    - if [ "${TESTING}" == "1" ]; then
           coveralls; codecov;
       fi

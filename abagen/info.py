@@ -26,7 +26,7 @@ INSTALL_REQUIRES = [
 ]
 
 EXTRAS_REQUIRE = {
-    'io': ['fastparquet', 'snappy']
+    'io': ['fastparquet', 'python-snappy']
 }
 
 TESTS_REQUIRE = [

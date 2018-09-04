@@ -42,7 +42,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         current directory
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. Default: donor9861
+        specify 'all' to download all available donors. Default: 9861
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
