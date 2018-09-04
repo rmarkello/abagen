@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
@@ -188,29 +187,38 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
     return centroids
 
 
-def closest_centroid(coords, centroids):
+def closest_centroid(coord, centroids, return_dist=False):
     """
-    Returns label for parcel with centroid closest to ``coords``
+    Returns index of `centroids` closest to `coord`
 
-    Computes Euclidean distances between ``coords`` and each centroid in
-    ``centroids``, returning index of closest centroid
+    Computes Euclidean distances between `coord` and each of `centroids`,
+    returning index of closest centroid
 
     Parameters
     ----------
-    coords : (1, 3) array_like
+    coord : (1, 3) array_like
         Coordinates of sample
     centroids : (N, 3) array_like
-        Centroids of parcels (in same space as `coords`)
+        Centroids of parcels (in same space as `coord`)
+    return_dist : bool, optional
+        Whether to also return distance of closest centroid
 
     Returns
     -------
-    label : int
-        Index of closest centroid in ``centroids``
+    closest : int
+        Index of closest centroid in `centroids` to `coord`
+    distance : float
+        Distance of closest centroid in `centroids` to `coord`. Only returned
+        if `return_dist=True`
     """
 
-    distances = np.squeeze(cdist(np.atleast_2d(coords), centroids))
+    distances = np.squeeze(cdist(np.atleast_2d(coord), centroids))
+    closest = distances.argmin(axis=0)
 
-    return distances.argmin()
+    if return_dist:
+        return closest, distances[closest]
+
+    return closest
 
 
 def _check_coord_inputs(coords):

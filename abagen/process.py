@@ -280,8 +280,10 @@ def normalize_expression(expression):
         Data from `expression` normalized separately for each gene
     """
 
+    # get non-NaN values
+    data = expression.dropna(axis=0, how='all').get_values()
+
     # calculate sigmoid normalization
-    data = expression.get_values()
     norm = (data - np.median(data, axis=0)) / np.std(data, axis=0)
     srs = 1 / (1 + np.exp(-norm))
 
@@ -290,9 +292,11 @@ def normalize_expression(expression):
     srs_max = srs.max(axis=0, keepdims=True)
     scaled = (srs - srs_min) / (srs_max - srs_min)
 
-    # recreate dataframe
-    normalized = pd.DataFrame(scaled,
+    # recreate dataframe and fill non-NaN values
+    normalized = pd.DataFrame(np.nan,
                               columns=expression.columns,
                               index=expression.index)
+    inds = expression[expression.notna().all(axis=1)].index
+    normalized.loc[inds] = scaled
 
     return normalized
