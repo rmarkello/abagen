@@ -45,11 +45,8 @@ script:
       else
           if [ "${TESTING}" == "1" ]; then
               TEST_ARGS="--cov-report term-missing --cov=abagen";
-              if [ "${EXTRAS}" != "1" ]; then
-                IO_ARGS="--ignore=abagen/tests/test_datasets.py";
-              fi
           fi
-          py.test ${IO_ARGS} ${TEST_ARGS} abagen;
+          py.test ${TEST_ARGS} abagen;
       fi
 
 after_success:

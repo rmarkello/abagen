@@ -86,7 +86,7 @@ def read_microarray(fname, parquet=True):
                             .format(fname))
 
     if use_parq and parquet:
-        return _make_parquet(fname)
+        return _make_parquet(fname, convert_only=False)
 
     return pd.read_csv(fname, header=None, index_col=0)
 
@@ -146,7 +146,7 @@ def read_pacall(fname, parquet=True):
                             .format(fname))
 
     if use_parq and parquet:
-        return _make_parquet(fname)
+        return _make_parquet(fname, convert_only=False)
 
     return pd.read_csv(fname, header=None, index_col=0)
 
