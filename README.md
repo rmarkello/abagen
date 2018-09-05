@@ -45,7 +45,7 @@ The current Python package, `abagen`, aims to provide a fully reproducible pipel
 
 ### Development
 
-This package has been largely developed in the spare time of a single graduate student ([`@rmarkello`](https://github.com/rmarkello))&mdash;with help from some incredible [contributors](https://github.com/rmarkello/abagen/graphs/contributors)).
+This package has been largely developed in the spare time of a single graduate student ([`@rmarkello`](https://github.com/rmarkello))&mdash;with help from some incredible [contributors](https://github.com/rmarkello/abagen/graphs/contributors).
 While it would be :sparkles: amazing :sparkles: if anyone else finds it helpful, given the limited time constraints of graduate school, the current package is not currently accepting requests for new features.
 However, if you might be interested in contributing yourself, take a look at [how to get involved](#how-to-get-involved)!
 
