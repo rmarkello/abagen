@@ -7,12 +7,14 @@ working directory, but will likely be modified to download into a more
 "standard" directory.
 """
 
-
 import os
+from io import StringIO
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
+import pandas as pd
+import requests
 from sklearn.utils import Bunch
-
+from abagen import io
 
 WELL_KNOWN_IDS = Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636'),
@@ -28,7 +30,8 @@ VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
                       WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
+def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
+                     convert=True):
     """
     Download and load the Allen Brain human microarray expression dataset
 
@@ -39,11 +42,14 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
         current directory
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. Default: donor9861
+        specify 'all' to download all available donors. Default: 9861
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
         Verbosity level (0 means no message). Default: 1
+    convert : bool, optional
+        Whether to convert downloaded CSV files into parquet format for faster
+        loading in the future. Default: True
 
     Returns
     -------
@@ -101,6 +107,12 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1):
 
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
+    # if we want to convert files to parquet format it's good to do that now
+    # this step is _already_ super long, so an extra 1-2 minutes is negligible
+    if convert and io.use_parq:
+        for fn in files[0::n_files] + files[2::n_files]:
+            io._make_parquet(fn, convert_only=True)
+
     return Bunch(
         microarray=files[0::n_files],
         ontology=files[1::n_files],
@@ -129,3 +141,33 @@ def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
     """
 
     raise NotImplementedError
+
+
+def _fetch_alleninf_coords(*args, **kwargs):
+    """
+    Gets updated MNI coordinates for AHBA samples, as shipped with `alleninf`
+
+    Returns
+    -------
+    coords : pandas.DataFrame
+        Updated MNI coordinates for all AHBA samples
+
+    References
+    ----------
+    .. [1] https://github.com/chrisfilo/alleninf
+    """
+
+    # can't ship it because there's no LICENSE on the repo
+    # this should be a more-or-less stable reference to the CSV file
+    url = ("https://raw.githubusercontent.com/chrisfilo/alleninf/"
+           "e48cd817849be4195b1569b7ac1eaf2c3e5a1085/alleninf/data/"
+           "corrected_mni_coordinates.csv")
+
+    with requests.get(url, stream=True) as r:
+        coords = StringIO(r.content.decode('utf-8'))
+
+    coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
+                                             corrected_mni_y='mni_y',
+                                             corrected_mni_z='mni_z'),
+                                        axis=1)
+    return coords.set_index('well_id')

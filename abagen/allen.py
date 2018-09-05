@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
-
+"""
+Functions for mapping AHBA microarray dataset to atlases and and parcellations
+in MNI space
+"""
+from functools import reduce
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 from sklearn.utils import Bunch
-
-from abagen import io, utils
-
-
-AGG_FUNCS = dict(mean=np.mean,
-                 median=np.median)
+from abagen import io, process, utils
 
 
-def assign_sample(sample, label_image, tolerance=3):
+def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
+                   tolerance=3):
     """
-    Determines what ROI ``sample`` belongs to in ``label_image``
+    Determines what ROI `sample` belongs to in `atlas`
 
     Parameters
     ----------
-    sample : (3 x 1) array_like
-        Coordinates (ijk) of microarray probe in ``label_image`` space
-    label_image : niimg-like object
+    sample : (1, 3) array_like
+        Coordinates (ijk) of microarray probe in `atlas` space
+    atlas : niimg-like object
         ROI image, where each ROI should be identified with a unique
         integer ID
     tolerance : int, optional
@@ -32,21 +32,29 @@ def assign_sample(sample, label_image, tolerance=3):
     Returns
     -------
     label : int
-        ROI label of ``sample``
+        ROI label of `sample`
     """
 
-    # pull relevant info from label_image
-    label_data = check_niimg_3d(label_image).get_data()
+    # pull relevant info from atlas
+    label_data = check_niimg_3d(atlas).get_data()
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
     coords = utils.expand_roi(sample, dilation=tolerance, return_array=True)
-    coords = coords[cdist(sample.T, coords).squeeze() < tolerance]
+    coords = coords[cdist(sample, coords).squeeze() < tolerance]
 
     # grab non-zero labels for expanded coordinates
     possible_labels = label_data[coords[:, 0], coords[:, 1], coords[:, 2]]
     nz_labels = possible_labels[possible_labels.nonzero()]
     labels, counts = np.unique(nz_labels, return_counts=True)
+
+    # if atlas_info and sample_info are provided, drop potential labels who
+    # don't match hemisphere or structural class defined in `sample_info`
+    if atlas_info is not None and sample_info is not None:
+        for old_label in labels:
+            new_label = _check_label(old_label, sample_info, atlas_info)
+            nz_labels[nz_labels == old_label] = new_label
+        labels, counts = np.unique(nz_labels, return_counts=True)
 
     # if there is still nothing in the vicinity, return 0
     if labels.size == 0:
@@ -56,131 +64,125 @@ def assign_sample(sample, label_image, tolerance=3):
         return labels[0]
 
     # if more than one ROI in the vicinity, return the most frequent
-    indmax = np.where(counts == counts.max())[0]
+    indmax, = np.where(counts == counts.max())
     if indmax.size == 1:
         return labels[indmax[0]]
 
     # if two or more parcels tied for neighboring frequency, use ROI
     # with closest centroid to `coords`
-    centroids = utils.get_centroids(label_image, labels)
+    centroids = utils.get_centroids(atlas, labels)
     return labels[utils.closest_centroid(sample, centroids)]
 
 
-def label_samples(annotation, label_image, tolerance=3, use_centroids=False):
+def _check_label(label, sample_info, atlas_info):
     """
-    Matches all samples in ``annotation`` to closest ROIs in ``label_image``
+    Checks that `label` defined by `sample_info` is coherent with `atlas_info`
 
-    Attempts to place each sample provided in ``annotation`` into a labelled
-    ROI in ``label_image``, where the latter is a 3D niimg-like object that
-    contains ROI data, each with a unique integer ID.
+    Parameters
+    ----------
+    label : int
+        Tenative label for sample in `sample_info`
+    sample_info : pandas.DataFrame
+    atlas_info : pandas.DataFrame
+
+    Returns
+    -------
+    label : int
+        New tentative label
+    """
+
+    cols = ['hemisphere', 'structure']
+
+    if label != 0:
+        sample_info = sample_info[cols]
+        atlas_info = atlas_info.loc[label][cols]
+        if not np.all(sample_info.values == atlas_info.values):
+            label = 0
+
+    return label
+
+
+def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
+    """
+    Matches all samples in `annotation` to closest ROIs in `atlas_info`
+
+    Attempts to place each sample provided in `annotation` into a labelled ROI
+    in `atlas_info`, where the latter is a 3D niimg-like object that contains
+    ROI data, each with a unique integer ID.
 
     The function tries to best match the microarray sample to the ROIs by:
     1. Determining if the sample falls directly within a ROI.
     2. Checking to see if there are nearby ROIs by slowly expanding radius
-       around sample (up to radius = ``tolerance``); if there are multiple
-       nearby ROIs, determining which ROI is closer (i.e., by centroid of
-       the ROI).
-    3. If ``user_centroids`` is set, find the ROI with the closest centroid
+       around sample (up to radius = `tolerance`); if there are multiple nearby
+       ROIs, determining which ROI is closer (i.e., by centroid of the ROI).
+    3. If `user_centroids` is set, find the ROI with the closest centroid
 
     If there is still no ROI for a given sample, it is assigned as "NA" and
     should likely be ignored in further analyses.
 
     Parameters
     ----------
-    annotation : (S x 13) pd.core.frame.DataFrame
-        Annotation information, where ``S`` is samples
-    label_image : niimg-like object
+    annotation : (S, 13) pandas.DataFrame
+        Annotation information, where `S` is samples
+    atlas : niimg-like object
         ROI image, where each ROI should be identified with a unique integer ID
+    atlas_info : pandas.DataFrame, optional
+        Filepath to or pre-loaded dataframe containing information about
+        `atlas`. Must have _at least_ columns 'id', 'hemisphere', and
+        'structure' containing information mapping atlas IDs to hemisphere and
+        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
+        Default: None
     tolerance : int, optional
-        Distance that sample must be from ROI for it to be considered within
-        a ROI. This is only used if the sample is not directly inside a ROI.
-        Default: 3mm
-    use_centroids : bool, optional
-        If no ROI is within ``tolerance`` of a sample, assign sample to ROI
-        with closest centroid. Default: False
+        Distance (in mm) that a sample must be from an ROI boundary for it to
+        be considered within that ROI. This is only used if the sample is not
+        directly within a ROI. Default: 2
 
     Returns
     -------
-    labels : (S x 1) pd.core.frame.DataFrame
+    labels : (S, 1) pandas.DataFrame
         Dataframe with ROI labels
     """
 
-    # read annotation file, if provided
-    if isinstance(annotation, str):
-        annotation = io.read_sampleannot(annotation)
+    # get annotation and atlas data
+    annotation = io.read_annotation(annotation)
+    atlas = check_niimg_3d(atlas)
+    label_data, affine = atlas.get_data(), atlas.affine
 
-    # get image data
-    label_image = check_niimg_3d(label_image)
-    label_data, affine_trans = label_image.get_data(), label_image.affine
+    # load atlas_info, if provided
+    if atlas_info is not None:
+        atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
-    # if we're going to use centroids, calculate them ahead of time
-    if use_centroids:
-        all_labels = utils.get_unique_labels(label_image)
-        centroids = utils.get_centroids(label_image, all_labels)
-
-    # grab xyz coordinates for microarray samples and convert to ijk
-    g_xyz = annotation[['mni_x', 'mni_y', 'mni_z']].get_values()
-    g_ijk = np.floor(utils.xyz_to_ijk(g_xyz, affine_trans)).T.astype(int)
-
-    # get labels for all ijk values
+    # get ijk coordinates for microarray samples and find labels
+    g_ijk = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']], affine)
     labelled_samples = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
 
-    # if coordinates aren't within the parcel, check for neighboring parcels
-    # and slowly increase the radius around parcel up to ``tolerance`` to try
-    # and find nearby parcels. if still no nearby parcel then ignore probe
-    for n, label in enumerate(labelled_samples):
-        sample, tol = g_ijk[n, None].T, 1
+    # if sample coordinates aren't directly inside a parcel, increment radius
+    # around sample up to `tolerance` to try and find nearby parcels.
+    # if still no parcel, then ignore this sample
+    for idx in np.where(labelled_samples == 0)[0]:
+        label, tol = labelled_samples[idx], 1
         while label == 0 and tol <= tolerance:
-            label = assign_sample(sample, label_image, tolerance=tol)
+            label = _assign_sample(g_ijk[[idx]], atlas,
+                                   sample_info=annotation.iloc[idx],
+                                   atlas_info=atlas_info,
+                                   tolerance=tol)
             tol += 1
-        if label == 0 and use_centroids:
-            label = all_labels[utils.closest_centroid(sample, centroids)]
+        labelled_samples[idx] = label
 
-        labelled_samples[n] = label
-
-    # return DataFrame for ease of use
-    return pd.DataFrame(labelled_samples,  columns=['label'], dtype=int)
-
-
-def group_by_gene(microarray, probes):
-    """
-    Average over probes in ``microarray``, grouping by genes
-
-    Parameters
-    ----------
-    microarray : (P x S) pd.core.frame.DataFrame
-        Micoarray expression data, where ``P`` is probes and ``S`` is samples
-    probes : (P x 6) pd.core.frame.DataFrame
-        Probe information, where ``P`` is probes
-
-    Returns
-    -------
-    microarray_by_gene : (S x G) pd.core.frame.DataFrame
-        ``microarray``, where ``G`` is the number of unique genes
-    """
-
-    microarray_by_gene = (microarray.merge(probes[['gene_symbol']],
-                                           left_index=True,
-                                           right_index=True)
-                                    .groupby(['gene_symbol'])
-                                    .mean()
-                                    .drop(['na'])
-                                    .T
-                                    .reset_index(drop=True))
-
-    return microarray_by_gene
+    return pd.DataFrame(labelled_samples, dtype=int,
+                        columns=['label'], index=annotation.index)
 
 
 def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     """
-    Averages expression data in ``microarray`` over samples with same label
+    Averages expression data in `microarray` over samples with same label
 
     Parameters
     ----------
-    microarray : (S x G) pd.core.frame.DataFrame
-        Microarray expression data, where ``S`` is samples and ``G`` is genes
-    sample_labels : (S x 1) pd.core.frame.DataFrame
-        ROI labels for ``S`` samples, as returned by e.g., ``label_samples()``
+    microarray : (S, G) pandas.DataFrame
+        Microarray expression data, where `S` is samples and `G` is genes
+    sample_labels : (S, 1) pandas.DataFrame
+        ROI labels for `S` samples, as returned by e.g., `label_samples()`
     labels : (L,) array_like, optional
         All possible labels for parcellation scheme (to account for possibility
         that some parcels have NO expression data). Default: None
@@ -190,22 +192,18 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 
     Returns
     -------
-    genes : (L x G) pd.core.frame.DataFrame
+    gene_by_label : (L, G) pandas.DataFrame
         Microarray expression data
     """
 
     # get combination function
-    if isinstance(metric, str):
-        try:
-            metric = AGG_FUNCS[metric]
-        except KeyError:
-            raise ValueError('Provided metric {0} is not valid. If supplied'
-                             'as string, metric must be in {1}.'
-                             .format(metric, list(AGG_FUNCS.keys())))
+    metric = utils.check_metric(metric)
 
     # get missing labels
     if labels is not None:
-        labels = pd.DataFrame(index=np.setdiff1d(labels, sample_labels))
+        missing = np.setdiff1d(labels, sample_labels)
+        labels = pd.DataFrame(columns=microarray.columns,
+                              index=pd.Series(missing, name='label'))
 
     gene_by_label = (microarray.merge(sample_labels,
                                       left_index=True, right_index=True)
@@ -219,13 +217,13 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     return gene_by_label
 
 
-def label_rois(annotation, label_image, tolerance=3):
+def label_rois(annotation, label_image, tolerance=2):
     """
-    Matches all ROIs in ``label_image`` to closest samples in ``annotation``
+    Matches all ROIs in `label_image` to closest samples in `annotation`
 
-    Attempts to place each sample provided in ``annotation`` into a labelled
-    ROI in ``label_image``, where the latter is a 3D niimg-like object that
-    contains ROI data, each with a unique integer ID.
+    Attempts to place each sample provided in `annotation` into a labelled ROI
+    in `label_image`, where the latter is a 3D niimg-like object that contains
+    ROI data, each with a unique integer ID.
 
     The function tries to best match the microarray sample to the ROIs by:
     1. Determining which samples falls directly within a ROI.
@@ -234,8 +232,8 @@ def label_rois(annotation, label_image, tolerance=3):
 
     Parameters
     ----------
-    annotation : (S x 13) pd.core.frame.DataFrame
-        Annotation information, where ``S`` is samples
+    annotation : (S, 13) pandas.DataFrame
+        Annotation information, where `S` is samples
     label_image : niimg-like object
         ROI image, where each ROI should be identified with a unique integer ID
     tolerance : int, optional
@@ -243,13 +241,12 @@ def label_rois(annotation, label_image, tolerance=3):
 
     Returns
     -------
-    labels : (L x ...) pd.core.frame.DataFrame
+    labels : (L, ...) pandas.DataFrame
         Dataframe with lists of sample labels for each ROI
     """
 
     # read annotation file, if provided
-    if isinstance(annotation, str):
-        annotation = io.read_sampleannot(annotation)
+    annotation = io.read_sampleannot(annotation)
 
     # get image data
     label_image = check_niimg_3d(label_image)
@@ -261,17 +258,16 @@ def label_rois(annotation, label_image, tolerance=3):
 
     # grab xyz coordinates for microarray samples and convert to ijk
     g_xyz = annotation[['mni_x', 'mni_y', 'mni_z']].get_values()
-    g_ijk = np.floor(utils.xyz_to_ijk(g_xyz, affine_trans)).T.astype(int)
+    g_ijk = np.floor(utils.xyz_to_ijk(g_xyz, affine_trans)).astype(int)
 
     # get labels for all ijk values
     labelled_samples = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
 
     # make a list of samples within each ROI
     # if no sample is assigned to an ROI, find closest sample to ROI centroid
-    listlabelled_samples = labelled_samples.tolist()
     labelled_rois = []
     for nn in range(len(all_labels)):
-        indices = [i for i, x in enumerate(listlabelled_samples) if x == nn+1]
+        indices = [i for i, x in enumerate(labelled_samples) if x == nn + 1]
         labelled_rois.append(indices)
         if not labelled_rois[nn]:
             emptyroi = np.reshape(centroids[:, nn], (-1, 1))
@@ -285,15 +281,15 @@ def label_rois(annotation, label_image, tolerance=3):
 
 def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
     """
-    Averages expression data in ``microarray`` over samples within same ROI
+    Averages expression data in `microarray` over samples within same ROI
 
     Parameters
     ----------
-    microarray : (S x G) pd.core.frame.DataFrame
-        Microarray expression data, where ``S`` is samples and ``G`` is genes
-    roi_labels : (L x ...) pd.core.frame.DataFrame
-        Lists of sample labels with varying lengths for ``L`` ROIs, as returned
-        by e.g., ``label_rois()``
+    microarray : (S, G) pandas.DataFrame
+        Microarray expression data, where `S` is samples and `G` is genes
+    roi_labels : (L, ...) pandas.DataFrame
+        Lists of sample labels with varying lengths for `L` ROIs, as returned
+        by e.g., `label_rois()`
     labels : (L,) array_like, optional
         All possible labels for parcellation scheme (to account for possibility
         that some parcels have NO expression data). Default: None
@@ -303,17 +299,11 @@ def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
 
     Returns
     -------
-    genes : (L x G) pd.core.frame.DataFrame
+    genes : (L x G) pandas.DataFrame
         Microarray expression data
     """
     # get combination function
-    if isinstance(metric, str):
-        try:
-            metric = AGG_FUNCS[metric]
-        except KeyError:
-            raise ValueError('Provided metric {0} is not valid. If supplied'
-                             'as string, metric must be in {1}.'
-                             .format(metric, list(AGG_FUNCS.keys())))
+    metric = utils.check_metric(metric)
 
     # take median of samples within an ROI to avoid outliers
     gene_by_label = np.zeros((len(roi_labels), microarray.shape[1]))
@@ -326,101 +316,139 @@ def group_by_roi(microarray, roi_labels, labels=None, metric='mean'):
                         index=roi_labels.index)
 
 
-def get_expression_data(files, label_image, metric='mean', tolerance=3,
-                        use_centroids=False, return_counts=False, dense=False):
+def get_expression_data(files, atlas, atlas_info=None, *,
+                        exact=True, tolerance=2, metric='mean',
+                        ibf_threshold=0.5, corrected_mni=True,
+                        return_counts=False):
     """
-    Assigns microarray expression data in ``files`` to ROIs in ``label_image``
+    Assigns microarray expression data in `files` to ROIs defined in `atlas`
 
     Parameters
     ----------
     files : dict
-        Should have keys ``microarray``, ``probes``, and ``anotation`` pointing
+        Should have keys `microarray`, `probes`, and `anotation` pointing
         to filename (or list of filenames) of relevant files from Allen Brain
-        Institute. Optimally obtained by calling ``abagen.fetch_microarray()``.
-    label_image : niimg-like object
+        Institute. Optimally obtained by calling `abagen.fetch_microarray()`.
+    atlas : niimg-like object
         Parcel image, where each parcel should be identified with a unique
         integer ID
-    metric : str or func
-        Mechanism by which to collapse across donors, if input ``files``
-        provides multiple microarray expression datasets. If str, should be in
-        ['mean', 'median']. Default: 'mean'
+    atlas_info : str or pandas.DataFrame, optional
+        Filepath to or pre-loaded dataframe containing information about
+        `atlas`. Must have _at least_ columns 'id', 'hemisphere', and
+        'structure' containing information mapping atlas IDs to hemisphere and
+        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
+        Default: None
+    exact : bool, optional
+        Whether to use exact matching of samples to parcel in `atlas`. If True,
+        will only match samples to parcels within `threshold` mm of the sample;
+        otherwise, will perform the same procedure but fill any ROIs that are
+        missing expression data by matching them to the nearest sample.
+        Default: True
     tolerance : int, optional
-        Distance (in mm) that a sample must be from a ROI's boundary for it to
+        Distance (in mm) that a sample must be from a parcel boundary for it to
         be considered within that ROI. This is only used if the sample is not
         directly within a ROI. Default: 3
-    use_centroids : bool, optional
-        If no ROI is within ``tolerance`` of a sample, assign sample to ROI
-        with closest centroid. Default: False
+    metric : str or func, optional
+        Mechanism by which to collapse across donors, if input `files` provides
+        multiple microarray expression datasets. If str, should be in ['mean',
+        'median']. If func, should be able to accept an `N`-dimensional input
+        and the `axis` keyword argument and return an `N-1`-dimensional output.
+        Default: 'mean'
+    ibf_threshold : [0, 1] float, optional
+        Threshold for intensity-based filtering specifying the percentage of
+        samples for which a probe must have signal above background noise in
+        order to be retained for further consideration. Default: 0.5
+    corrected_mni : bool, optional
+        Whether to use the "corrected" MNI coordinates shipped with the
+        `alleninf` package instead of the coordinates provided with the AHBA
+        data. Default: True
     return_counts : bool, optional
         Whether to return counts of how many samples were collapsed into each
         ROI, for each donor. Default: False
-    dense : bool, optional
-        Whether to return a dense microarray expression matrix by matching all
-        ROIs in ``label_image`` to closest samples in ``anotation``, instead of
-        matching all samples to closes ROIs. Default: False
 
     Returns
     -------
-    expression : pd.core.frame.DataFrame
+    expression : pandas.DataFrame
         Microarray expression averaged across samples within a given parcel and
         across probes within a given gene family
-    labels : pd.core.frame.DataFrame
-        Number of samples averaged into each ROI label, by donor (if multiple
-        donors provided)
+    counts : pandas.DataFrame
+        Number of samples averaged into each ROI label (by donor, if multiple
+        donors provided); only provided if `return_counts=True`
     """
 
-    # coerce to Bunch in case simple dictionary was provided
+    # coerce to Bunch in case a simple dictionary was provided
     files = Bunch(**files)
-    for key in ['microarray', 'probes', 'annotation']:
+    for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
         if key not in files:
-            raise KeyError('Provided ``files`` dictionary is missing {}. '
+            raise KeyError('Provided `files` dictionary is missing {}. '
                            'Please check inputs.'.format(key))
 
-    # get combination function
-    if isinstance(metric, str):
-        try:
-            metric = AGG_FUNCS[metric]
-        except KeyError:
-            raise ValueError('Provided metric {0} is not valid. If supplied'
-                             'as string, metric must be in {1}.'
-                             .format(metric, list(AGG_FUNCS.keys())))
+    # load atlas_info, if provided
+    atlas = check_niimg_3d(atlas)
+    if atlas_info is not None:
+        atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
-    # get some info on the number of subjects, labels in `label_image`
+    # get combination functions
+    metric = utils.check_metric(metric)
+
+    # get some info on the number of subjects, labels in `atlas_img`
     num_subj = len(files.microarray)
-    all_labels = utils.get_unique_labels(label_image)
+    all_labels = utils.get_unique_labels(atlas)
+    if not exact:
+        centroids = utils.get_centroids(atlas, labels_of_interest=all_labels)
 
-    # empty lists and arrays to hold the expression information
-    expression, labels = [], np.zeros((len(all_labels) + 1, num_subj))
+    probes = process.filter_probes(files.pacall, files.probes,
+                                   threshold=ibf_threshold)
+    probes = process.get_stable_probes(files.microarray, files.annotation,
+                                       probes)
+
+    expression, counts = [], np.zeros((len(all_labels) + 1, num_subj))
+    missing = []
     for subj in range(num_subj):
-        # average microarray expression across all probes w/i same gene
-        microarray, probes = files.microarray[subj], files.probes[subj]
-        sample_by_genes = group_by_gene(io.read_microarray(microarray),
-                                        io.read_probes(probes))
+        # get rid of samples whose coordinates don't match ontological profile
+        annotation = process.drop_mismatch_samples(files.annotation[subj],
+                                                   files.ontology[subj],
+                                                   corrected=corrected_mni)
 
-        # generate parcel labels for each microarray sample
-        annotation = io.read_sampleannot(files.annotation[subj])
+        # get representative probes + samples from microarray data
+        microarray = io.read_microarray(files.microarray[subj])
+        samples = microarray.loc[probes.index, annotation.index].T
+        samples.columns = probes.gene_symbol
 
-        if dense:
-            label_func, group_func = label_rois, group_by_roi
-        else:
-            label_func, group_func = label_samples, group_by_label
-
-        sample_labels = label_func(annotation, label_image,
-                                   tolerance=tolerance)
-        expression += [group_func(sample_by_genes, sample_labels,
-                                  all_labels, metric=metric)]
+        # assign samples to regions and aggregate samples w/i the same region
+        sample_labels = label_samples(annotation, atlas,
+                                      atlas_info=atlas_info,
+                                      tolerance=tolerance)
+        expression += [group_by_label(samples, sample_labels,
+                                      all_labels, metric=metric)]
 
         # get counts of samples collapsed into each ROI
-        if dense:
-            labs, counts = all_labels, sample_labels.count(axis=1)
-        else:
-            labs, counts = np.unique(sample_labels, return_counts=True)
-        labels[labs, subj] = counts
+        labs, num = np.unique(sample_labels, return_counts=True)
+        counts[labs, subj] = num
 
-    # aggregate over ROI across donors, if needed
+        if not exact:
+            coords = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
+                                      atlas.affine)
+            empty = np.setdiff1d(all_labels, labs)
+            closest, dist = utils.closest_centroid(coords, centroids[empty],
+                                                   return_dist=True)
+            closest = samples.loc[annotation.iloc[closest].index]
+            closest.index = pd.Series(empty, name='label')
+            missing += [(closest, dict(zip(empty, np.diag(dist))))]
+
+    # check for missing ROIs and fill in, as needed
+    if not exact:
+        empty = reduce(set.intersection, [set(f.index) for f, d in missing])
+        for roi in empty:
+            ind = np.argmin([d.get(roi) for f, d in missing])
+            expression[ind].loc[roi] = missing[ind][0].loc[roi]
+            counts[roi, ind] += 1
+
+    # normalize data and aggregate across donors
+    expression = [process.normalize_expression(e) for e in expression]
     expression = pd.concat(expression).groupby('label').aggregate(metric)
 
     if return_counts:
-        return expression, labels[1:]
+        return expression, counts[1:]
 
     return expression

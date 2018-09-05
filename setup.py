@@ -22,12 +22,16 @@ def main():
         name=ldict['NAME'],
         version=ldict['VERSION'],
         description=ldict['DESCRIPTION'],
+        long_description=ldict['LONG_DESCRIPTION'],
         maintainer=ldict['MAINTAINER'],
+        maintainer_email=ldict['EMAIL'],
+        url=ldict['URL'],
         download_url=ldict['DOWNLOAD_URL'],
         install_requires=ldict['INSTALL_REQUIRES'],
         packages=find_packages(exclude=['abagen/tests']),
         package_data=ldict['PACKAGE_DATA'],
         tests_require=ldict['TESTS_REQUIRE'],
+        extras_require=ldict['EXTRAS_REQUIRE'],
         license=ldict['LICENSE'])
 
 
