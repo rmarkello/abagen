@@ -69,8 +69,7 @@ The returned object `atlas` is a `dict` with two keys: `image`, which points to 
 '/local/path/to/atlas-desikankilliany.csv'
 ```
 
-While we only **need** the `atlas` image, the `atlas` info CSV can also be very useful!
-If desired, we can use the CSV file to constrain the matching of microarray expression samples to anatomical regions.
+While we only **need** the image, the info CSV can also be very useful; we can use the CSV file to constrain the matching of microarray expression samples to anatomical regions.
 
 If you want to supply your own CSV file with information about an atlas, you must ensure it has the following columns:
 
@@ -108,7 +107,7 @@ If you have already downloaded the microarray expression from the Allen Brain In
 ```
 
 The returned object is a dictionary pointing to the different data files supplied by the Allen Institute.
-We can then use those files, along with the `atlas` image and `atlas` info, to generate a region x gene expression array:
+We can then use those files, along with the atlas image and atlas info, to generate a region x gene expression array:
 
 ```python
 >>> expression = abagen.get_expression_data(files, atlas.image, atlas.info)
@@ -117,7 +116,7 @@ We can then use those files, along with the `atlas` image and `atlas` info, to g
 Unfortunately, due to how samples were collected from the donor brains, it is possible that some regions in the atlas may not be represented by any expression data. If you require a full matrix with expression data for _every_ region, you can specify the following:
 
 ```python
->>> expression = abagen.get_expression_data(files, dk_atlas.image, dk_atlas.info, exact=False)
+>>> expression = abagen.get_expression_data(files, atlas.image, atlas.info, exact=False)
 ```
 
 By default, `abagen` will attempt to be as precise as possible in matching microarray samples with brain regions.
