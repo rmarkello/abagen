@@ -10,9 +10,9 @@ This package provides a Python interface for working with the [Allen Human Brain
 If you know where you're going, feel free to jump ahead:
 
 * [Installation](#installation-and-setup)
-* [Purpose](#purpose)   
-    * [Overview](#overview)   
-    * [Development](#development)   
+* [Purpose](#purpose)
+  * [Overview](#overview)
+  * [Development](#development)
 * [Example usage](#usage)
 * [How to get involved](#how-to-get-involved)
 * [Credits](#credits)
@@ -110,7 +110,7 @@ Unfortunately, due to how samples were collected from the donor brains, it is po
 >>> expression = abagen.get_expression_data(files, atlas, atlas_info, exact=False)
 ```
 
-By default, `abagen` `will attempt to be as precise as possible in matching microarray samples with brain regions.
+By default, `abagen` will attempt to be as precise as possible in matching microarray samples with brain regions.
 Specifying `exact=False` will, at the cost of this precision, ensure that every brain region is matched to _at least_ one sample.
 You can investigate other options for modifying how the `expression` array is generated in the documentation by typing `help(abagen.get_expression_data)`.
 
