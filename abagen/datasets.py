@@ -7,8 +7,9 @@ working directory, but will likely be modified to download into a more
 "standard" directory.
 """
 
-import os
 from io import StringIO
+import os
+from pkg_resources import resource_filename
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
 import pandas as pd
@@ -53,7 +54,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
 
     Returns
     -------
-    data : sklearn.datasets.base.Bunch
+    data : sklearn.utils.Bunch
         Dictionary-like object, with attributes of interest including:
         'microarray': string list. Paths to microarray expression CSV files
         'ontology': string list. Paths to ontology CSV files
@@ -171,3 +172,28 @@ def _fetch_alleninf_coords(*args, **kwargs):
                                              corrected_mni_z='mni_z'),
                                         axis=1)
     return coords.set_index('well_id')
+
+
+def fetch_desikan_killiany(*args, **kwargs):
+    """
+    Fetches Desikan-Killiany atlas shipped with `abagen`
+
+    Returns
+    -------
+    atlas : sklearn.utils.Bunch
+        Dictionary-like object, with attributes of interest including:
+        'image': str. Filepath to Nifti file containing atlas data
+        'info': str. Filepath to CSV file containing atlas information
+
+    References
+    ----------
+    .. [1] Desikan, R. S., Ségonne, F., Fischl, B., Quinn, B. T., Dickerson, B.
+       C., Blacker, D., ... & Albert, M. S. (2006). An automated labeling
+       system for subdividing the human cerebral cortex on MRI scans into gyral
+       based regions of interest. Neuroimage, 31(3), 968-980.
+    """
+    # grab resource filenames
+    image = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
+    info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
+
+    return Bunch(image=image, info=info)
