@@ -46,13 +46,13 @@ def check_atlas_info(atlas, atlas_info):
     if isinstance(atlas_info, str):
         atlas_info = pd.read_csv(atlas_info)
 
-    if 'id' in atlas_info.columns:
-        atlas_info = atlas_info.set_index('id')
-
     if not isinstance(atlas_info, pd.DataFrame):
         raise ValueError('Provided `atlas_info` of type {} is not a filepath '
                          'or DataFrame. Please confirm inputs and try again.'
                          .format(type(atlas_info)))
+
+    if 'id' in atlas_info.columns:
+        atlas_info = atlas_info.set_index('id')
 
     ids = get_unique_labels(atlas)
     cols = ['hemisphere', 'structure']

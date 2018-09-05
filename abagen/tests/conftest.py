@@ -11,6 +11,6 @@ def testdir(tmpdir_factory):
 @pytest.fixture(scope='session')
 def testfiles(testdir):
     files = fetch_microarray(data_dir=str(testdir),
-                             donors=['12876'],
+                             donors=['12876', '15496'],
                              convert=True)
     return files
