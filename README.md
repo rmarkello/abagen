@@ -1,6 +1,6 @@
 # abagen
 
-This package provides a Python interface for working with the [Allen Human Brain Atlas Institute](http://human.brain-map.org/microarray/search) (AHBA) microarray expression data.
+This package provides a Python interface for working with the [Allen Human Brain Atlas](http://human.brain-map.org/microarray/search) (AHBA) microarray expression data.
 
 [![Build Status](https://travis-ci.org/rmarkello/abagen.svg?branch=master)](https://travis-ci.org/rmarkello/abagen)
 [![Codecov](https://codecov.io/gh/rmarkello/abagen/branch/master/graph/badge.svg)](https://codecov.io/gh/rmarkello/abagen)
@@ -99,7 +99,7 @@ Once you have an atlas and, if desired, a supplementary CSV file, you can downlo
 >>> files = abagen.fetch_microarray(donors='all')
 ```
 
-If you do not specify `donors='all'` microarray expression data from only one donor will be downloaded.
+If you do not specify `donors='all'`, microarray expression data from only one donor will be downloaded.
 If you have already downloaded the microarray expression from the Allen Brain Institute website, you can set the `data_dir` argument to use those files:
 
 ```python
