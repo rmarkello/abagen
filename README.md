@@ -80,7 +80,7 @@ If you want to supply your own CSV file with information about an atlas, you mus
 For example, a valid CSV might look like this:
 
 ```python
-
+>>> import pandas as pd
 >>> pd.read_csv(atlas.info)
    id                    label hemisphere structure
 0   1  lateralorbitofrontal_rh          R    cortex
@@ -99,19 +99,25 @@ Once you have an atlas and, if desired, a supplementary CSV file, you can downlo
 >>> files = abagen.fetch_microarray(donors='all')
 ```
 
+**Note**: Downloading all the data will take a long time!
+Thankfully, you only have to do this step once.
+
 If you do not specify `donors='all'`, microarray expression data from only one donor will be downloaded.
-If you have already downloaded the microarray expression from the Allen Brain Institute website, you can set the `data_dir` argument to use those files:
+If you have already downloaded the microarray expression from the Allen Brain Institute website, you can set the `data_dir` argument to use those files instead of re-downloading it:
 
 ```python
 >>> files = abagen.fetch_microarray(data_dir='/local/path/to/download', donors='all')
 ```
 
-The returned object is a dictionary pointing to the different data files supplied by the Allen Institute.
+The returned object `files` is a dictionary pointing to the different data files supplied by the Allen Institute.
 We can then use those files, along with the atlas image and atlas info, to generate a region x gene expression array:
 
 ```python
 >>> expression = abagen.get_expression_data(files, atlas.image, atlas.info)
 ```
+
+**Note**: Wrangling all the raw microarray data is quite time-consuming!
+This call will take quite a while...
 
 Unfortunately, due to how samples were collected from the donor brains, it is possible that some regions in the atlas may not be represented by any expression data. If you require a full matrix with expression data for _every_ region, you can specify the following:
 
