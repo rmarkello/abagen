@@ -32,7 +32,7 @@ expression data needs to be, at a minimum, (1) collapsed into regions of
 interest (e.g., parcels or networks), and (2) combined across donors. While
 this may potentially seem trivial, there are numerous analytic choices in these
 steps that can dramatically influence the resulting data and any downstream
-analyses. Indeed, Arnatkevičiūte et al., 2018 [1]_ provided a thorough
+analyses. Indeed, Arnatkevičiūte et al., 2018 ([1]_) provided a thorough
 treatment of this in a `recent manuscript <https://www.biorxiv.org/content/
 early/2018/07/30/380089>`_, demonstrating how the techniques and code used to
 the prepare the raw AHBA data have varied widely across published reports.
@@ -40,6 +40,10 @@ the prepare the raw AHBA data have varied widely across published reports.
 The current Python package, ``abagen``, aims to provide a fully reproducible
 pipeline for processing and preparing the AHBA microarray expression data for
 analysis.
+
+If you'd like more information about ``abagen``, including how to install the
+package and instructions on using it, check out our `documentation <https://
+abagen.readthedocs.io>`_!
 
 .. _development:
 
@@ -90,6 +94,4 @@ abagen/blob/master/LICENSE>`_ file in the ``abagen`` distribution.
 
 All trademarks referenced herein are property of their respective holders.
 
-.. |sparkles| image:: https://assets-cdn.github.com/images/icons/emoji/unicode/2728.png
-   :align: middle
-   :width: 14
+.. |sparkles| replace:: ✨
