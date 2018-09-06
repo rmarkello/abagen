@@ -34,7 +34,7 @@ VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
 def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
                      convert=True):
     """
-    Download and load the Allen Brain human microarray expression dataset
+    Downloads the Allen Human Brain Atlas microarray expression dataset
 
     Parameters
     ----------
@@ -50,24 +50,21 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         Verbosity level (0 means no message). Default: 1
     convert : bool, optional
         Whether to convert downloaded CSV files into parquet format for faster
-        loading in the future. Default: True
+        loading in the future; only available if ``fastparquet`` and ``python-
+        snappy`` are installed. Default: True
 
     Returns
     -------
-    data : sklearn.utils.Bunch
-        Dictionary-like object, with attributes of interest including:
-        'microarray': string list. Paths to microarray expression CSV files
-        'ontology': string list. Paths to ontology CSV files
-        'pacall': string list. Paths to pacall CSV files
-        'probes': string list. Paths to probes CSV files
-        'sampleannot': string list. Paths to sample annot CSV files
+    data : :class:`sklearn.utils.Bunch`
+        Dictionary-like object with keys ['microarray', 'ontology', 'pacall',
+        'probes', 'annotation'], where corresponding values are lists of
+        filepaths to downloaded CSV files.
 
     References
     ----------
-    .. [1] Hawrylycz, M. J., Lein, E. S., Guillozet-Bongaarts, A. L., Shen, E.
-       H., Ng, L., Miller, J. A., ... & Abajian, C. (2012). An anatomically
-       comprehensive atlas of the adult human brain transcriptome. Nature,
-       489(7416), 391.
+    Hawrylycz, M. J., Lein, E. S., Guillozet-Bongaarts, A. L., Shen, E. H., Ng,
+    L., Miller, J. A., ... & Abajian, C. (2012). An anatomically comprehensive
+    atlas of the adult human brain transcriptome. Nature, 489(7416), 391.
     """
 
     url = "http://human.brain-map.org/api/v2/well_known_file_download/{}"
@@ -125,7 +122,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
 
 def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
     """
-    Download and load the Allen Brain human MRI images
+    Downloads the Allen Human Brain Atlas T1w MRI images
 
     Parameters
     ----------
@@ -150,12 +147,12 @@ def _fetch_alleninf_coords(*args, **kwargs):
 
     Returns
     -------
-    coords : pandas.DataFrame
+    coords : :class:`pandas.DataFrame`
         Updated MNI coordinates for all AHBA samples
 
     References
     ----------
-    .. [1] https://github.com/chrisfilo/alleninf
+    https://github.com/chrisfilo/alleninf
     """
 
     # can't ship it because there's no LICENSE on the repo
@@ -180,17 +177,16 @@ def fetch_desikan_killiany(*args, **kwargs):
 
     Returns
     -------
-    atlas : sklearn.utils.Bunch
-        Dictionary-like object, with attributes of interest including:
-        'image': str. Filepath to Nifti file containing atlas data
-        'info': str. Filepath to CSV file containing atlas information
+    atlas : :class:`sklearn.utils.Bunch`
+        Dictionary-like object with attributes ['image', 'info'] pointing to
+        atlas image (.nii.gz) and information (.csv) files
 
     References
     ----------
-    .. [1] Desikan, R. S., Ségonne, F., Fischl, B., Quinn, B. T., Dickerson, B.
-       C., Blacker, D., ... & Albert, M. S. (2006). An automated labeling
-       system for subdividing the human cerebral cortex on MRI scans into gyral
-       based regions of interest. Neuroimage, 31(3), 968-980.
+    Desikan, R. S., Ségonne, F., Fischl, B., Quinn, B. T., Dickerson, B. C.,
+    Blacker, D., ... & Albert, M. S. (2006). An automated labeling system
+    for subdividing the human cerebral cortex on MRI scans into gyral based
+    regions of interest. Neuroimage, 31(3), 968-980.
     """
     # grab resource filenames
     image = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')

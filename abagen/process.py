@@ -102,9 +102,9 @@ def get_stable_probes(microarray, annotation, probes):
 
     References
     ----------
-    .. [1] Hawrylycz, M., Miller, J. A., Menon, V., Feng, D., Dolbeare, T.,
-       Guillozet-Bongaarts, A. L., ... & Lein, E. (2015). Canonical genetic
-       signatures of the adult human brain. Nature Neuroscience, 18(12), 1832.
+    Hawrylycz, M., Miller, J. A., Menon, V., Feng, D., Dolbeare, T., Guillozet-
+    Bongaarts, A. L., ... & Lein, E. (2015). Canonical genetic signatures of
+    the adult human brain. Nature Neuroscience, 18(12), 1832.
     """
 
     # read in microarray data for all subjects

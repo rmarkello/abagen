@@ -227,54 +227,59 @@ def get_expression_data(files, atlas, atlas_info=None, *,
     Parameters
     ----------
     files : dict
-        Should have keys `microarray`, `probes`, and `anotation` pointing
-        to filename (or list of filenames) of relevant files from Allen Brain
-        Institute. Optimally obtained by calling `abagen.fetch_microarray()`.
+        Optimally obtained by calling `abagen.fetch_microarray()`, this should
+        be a dict with keys ['annotation', 'microarray', 'ontology', 'pacall',
+        'probes'], where corresponding values are lists of filepaths to
+        downloaded AHBA data
     atlas : niimg-like object
-        Parcel image, where each parcel should be identified with a unique
-        integer ID
-    atlas_info : str or pandas.DataFrame, optional
+        A parcellation image in MNI space, where each parcel is identified by a
+        unique integer ID
+    atlas_info : str or :class:`pandas.DataFrame`, optional
         Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must have _at least_ columns 'id', 'hemisphere', and
-        'structure' containing information mapping atlas IDs to hemisphere and
-        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
+        `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
+        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
+        and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
     exact : bool, optional
-        Whether to use exact matching of samples to parcel in `atlas`. If True,
-        will only match samples to parcels within `threshold` mm of the sample;
-        otherwise, will perform the same procedure but fill any ROIs that are
-        missing expression data by matching them to the nearest sample.
-        Default: True
+        Whether to use exact matching of donor tissue samples to parcels in
+        `atlas`. If True, this function will match tissue samples to parcels
+        within `threshold` mm of the sample; any samples that are beyond
+        `threshold` mm of a parcel will be discarded. This may result in some
+        parcels having no assigned sample / expression data. If False, the
+        default matching procedure will be performed and followed by a check
+        for parcels with no assigned samples; any such parcels will be matched
+        to the nearest sample (nearest defined as the sample with the closest
+        Euclidean distance to the parcel centroid). Default: True
     tolerance : int, optional
-        Distance (in mm) that a sample must be from a parcel boundary for it to
-        be considered within that ROI. This is only used if the sample is not
-        directly within a ROI. Default: 3
+        Distance (in mm) that a sample must be from a parcel for it to be
+        matched to that parcel. Default: 3
     metric : str or func, optional
         Mechanism by which to collapse across donors, if input `files` provides
-        multiple microarray expression datasets. If str, should be in ['mean',
-        'median']. If func, should be able to accept an `N`-dimensional input
-        and the `axis` keyword argument and return an `N-1`-dimensional output.
+        multiple donor datasets. If a str, should be in ['mean', 'median']; if
+        a function, should be able to accept an `N`-dimensional input and the
+        `axis` keyword argument and return an `N-1`-dimensional output.
         Default: 'mean'
     ibf_threshold : [0, 1] float, optional
-        Threshold for intensity-based filtering specifying the percentage of
-        samples for which a probe must have signal above background noise in
-        order to be retained for further consideration. Default: 0.5
+        Threshold for intensity-based filtering specifying. This number should
+        specify the ratio of samples, across all supplied donors, for which a
+        probe must have signal above background noise in order to be retained.
+        Default: 0.5
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
-        data. Default: True
+        data when matching tissue samples to anatomical regions. Default: True
     return_counts : bool, optional
-        Whether to return counts of how many samples were collapsed into each
-        ROI, for each donor. Default: False
+        Whether to return how many samples were assigned to each parcel in
+        `atlas` for each donor. Default: False
 
     Returns
     -------
-    expression : pandas.DataFrame
-        Microarray expression averaged across samples within a given parcel and
-        across probes within a given gene family
-    counts : pandas.DataFrame
-        Number of samples averaged into each ROI label (by donor, if multiple
-        donors provided); only provided if `return_counts=True`
+    expression : (R x G) :class:`pandas.DataFrame`
+        Microarray expression for `R` regions in `atlas` across `G` genes,
+        averaged across donors.
+    counts : :class:`pandas.DataFrame`
+        Number of samples assigned to each parcel in `atlas` (by donor, if
+        multiple donors provided); only provided if `return_counts=True`
     """
 
     # coerce to Bunch in case a simple dictionary was provided
