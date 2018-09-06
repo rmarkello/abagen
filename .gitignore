@@ -5,3 +5,6 @@ __pycache__/
 .cache/
 *.egg-info/
 .pytest_cache/
+.vscode/
+_build/
+_static/
