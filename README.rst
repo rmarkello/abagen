@@ -2,8 +2,7 @@ abagen: Wrangling the Allen Human Brain Atlas in Python
 =======================================================
 
 This package provides a Python interface for working with the `Allen Human
-Brain Atlas <http://human.brain-map.org/microarray/search>`_ (AHBA) microarray
-expression data.
+Brain Atlas <http://human.brain-map.org/>`_ (AHBA) microarray expression data.
 
 .. image:: https://travis-ci.org/rmarkello/abagen.svg?branch=master
    :target: https://travis-ci.org/rmarkello/abagen
@@ -20,13 +19,12 @@ Overview
 --------
 
 In 2013, the Allen Institute for Brain Science released the Allen Human Brain
-Atlas, `a dataset <http://human.brain-map.org/microarray/search>`_ containing
-microarray expression data collected from six human brains. This dataset has
-offered an unprecedented opportunity to examine the genetic underpinnings of
-the human brain, and has already yielded novel insight into e.g., `adolescent
-brain development <http://www.pnas.org/content/113/32/9105.long>`_ and
-`functional brain organization <http://science.sciencemag.org/content/348/6240/
-1241.long>`_.
+Atlas, `a dataset <http://human.brain-map.org/>`_ containing microarray
+expression data collected from six human brains. This dataset has offered an
+unprecedented opportunity to examine the genetic underpinnings of the human
+brain, and has already yielded novel insight into e.g., `adolescent brain
+development <http://www.pnas.org/content/113/32/9105.long>`_ and `functional
+brain organization <http://science.sciencemag.org/content/348/6240/1241.long>`_.
 
 However, in order to be effectively used in most analyses, the AHBA microarray
 expression data often needs to be (1) collapsed into regions of interest (e.g.,
