@@ -1,7 +1,7 @@
 .. _usage:
 
-Usage
-=====
+Example usage
+=============
 
 At a minimum, you will need an atlas image that you want to use to parcellate
 the microarray expression data. The supplied atlas should be a Nifti image

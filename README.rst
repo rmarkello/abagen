@@ -19,31 +19,30 @@ expression data.
 Overview
 --------
 
-In 2013, the Allen Brain Institute released `a dataset <http://human.brain-map.
-org/microarray/search>`_ containing microarray expression data from human brain
-tissue, sampled post-mortem from six donors. This dataset has offered an
-unprecedented opportunity to examine the genetic underpinnings of the human
-brain, and has already yielded novel insight into e.g., `adolescent brain
-development <http://www.pnas.org/content/113/32/9105.long>`_ and `functional
-brain organization <http://science.sciencemag.org/content/348/6240/1241.long>`_.
+In 2013, the Allen Institute for Brain Science released the Allen Human Brain
+Atlas, `a dataset <http://human.brain-map.org/microarray/search>`_ containing
+microarray expression data collected from six human brains. This dataset has
+offered an unprecedented opportunity to examine the genetic underpinnings of
+the human brain, and has already yielded novel insight into e.g., `adolescent
+brain development <http://www.pnas.org/content/113/32/9105.long>`_ and
+`functional brain organization <http://science.sciencemag.org/content/348/6240/
+1241.long>`_.
 
-In order to be effectively used in most analyses, the AHBA microarray
-expression data needs to be, at a minimum, (1) collapsed into regions of
-interest (e.g., parcels or networks), and (2) combined across donors. While
-this may potentially seem trivial, there are numerous analytic choices in these
-steps that can dramatically influence the resulting data and any downstream
-analyses. Indeed, Arnatkevičiūte et al., 2018 ([1]_) provided a thorough
-treatment of this in a `recent manuscript <https://www.biorxiv.org/content/
-early/2018/07/30/380089>`_, demonstrating how the techniques and code used to
-the prepare the raw AHBA data have varied widely across published reports.
+However, in order to be effectively used in most analyses, the AHBA microarray
+expression data often needs to be (1) collapsed into regions of interest (e.g.,
+parcels or networks), and (2) combined across donors. While this may
+potentially seem trivial, there are numerous analytic choices in these steps
+that can dramatically influence the resulting data and any downstream analyses.
+Indeed, Arnatkevičiūte et al., 2018 ([1]_) provided a thorough treatment of
+this in a `recent manuscript <https://www.biorxiv.org/content/early/2018/07/30/
+380089>`_, demonstrating how the techniques and code used to prepare the raw
+AHBA data have varied widely across published reports.
 
-The current Python package, ``abagen``, aims to provide a fully reproducible
-pipeline for processing and preparing the AHBA microarray expression data for
-analysis.
-
-If you'd like more information about ``abagen``, including how to install the
-package and instructions on using it, check out our `documentation <https://
-abagen.readthedocs.io>`_!
+The current Python package, ``abagen``, aims to provide a reproducible pipeline
+for processing and preparing the AHBA microarray expression data for analysis.
+If you'd like more information about the package, including how to install it
+and some example instructions on its use, check out our `documentation <https:
+//abagen.readthedocs.io>`_!
 
 .. _development:
 
@@ -57,16 +56,15 @@ contributors>`_. While it would be |sparkles| amazing |sparkles| if anyone else
 finds it helpful, given the limited time constraints of graduate school, the
 current package is not currently accepting requests for new features.
 
-However, if you might be interested in contributing yourself, we're thrilled to
-welcome new contributors! If you're interesting in getting involved, you should
-start by reading our `contributing guidelines <https://github.com/rmarkello/
-abagen/blob/master/CONTRIBUTING.md>`_ and `code of conduct <https://github.com/
-rmarkello/abagen/blob/master/CODE_OF_CONDUCT.md>`_. Once you're done with that,
-take a look at our `issues <https://github.com/rmarkello/abagen/issues>`_ to
-see if there's anything you might like to work on.
-
-If you've found a bug, are experiencing a problem, or have a question, create a
-new issue with some information about it!
+However, if you're interested in getting involved in the project, we're
+thrilled to welcome new contributors! You shouldstart by reading our
+`contributing guidelines <https://github.com/rmarkello/abagen/blob/master/
+CONTRIBUTING.md>`_ and `code of conduct <https://github.com/rmarkello/abagen/
+blob/master/CODE_OF_CONDUCT.md>`_. Once you're done with that, take a look at
+our `issues <https://github.com/rmarkello/abagen/issues>`_ to see if there's
+anything you might like to work on. Alternatively, if you've found a bug, are
+experiencing a problem, or have a question, create a new issue with some
+information about it!
 
 .. _acknowledgments:
 
@@ -88,9 +86,9 @@ code used, and (2) cite their paper:
 License Information
 -------------------
 
-This codebase is licensed under the 3-clause BSD license.
-The full license can be found in the `LICENSE <https://github.com/rmarkello/
-abagen/blob/master/LICENSE>`_ file in the ``abagen`` distribution.
+This codebase is licensed under the 3-clause BSD license. The full license can
+be found in the `LICENSE <https://github.com/rmarkello/abagen/blob/master/
+LICENSE>`_ file in the ``abagen`` distribution.
 
 All trademarks referenced herein are property of their respective holders.
 
