@@ -21,6 +21,7 @@ INSTALL_REQUIRES = [
     'nilearn',
     'numpy',
     'pandas',
+    'requests',
     'scikit-learn',
     'scipy',
 ]
@@ -30,9 +31,9 @@ EXTRAS_REQUIRE = {
 }
 
 TESTS_REQUIRE = [
-    'pytest',
+    'pytest'
 ]
 
 PACKAGE_DATA = {
-    'abagen': ['abagen/data/*']
+    'abagen': ['data/*']
 }

@@ -1,8 +1,7 @@
-fastparquet
 nibabel
 nilearn
 numpy
 pandas
-python-snappy
+requests
 scipy
 scikit-learn
