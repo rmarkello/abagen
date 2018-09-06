@@ -50,11 +50,6 @@ def _make_parquet(fname, convert_only=False):
         if convert_only:
             return
 
-    # do some cleaning up of the data
-    data = data.set_index('0')
-    data.index.name = 'probe_id'
-    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-
     return data
 
 
@@ -86,9 +81,14 @@ def read_microarray(fname, parquet=True):
                             .format(fname))
 
     if use_parq and parquet:
-        return _make_parquet(fname, convert_only=False)
+        data = _make_parquet(fname, convert_only=False).set_index('0')
+    else:
+        data = pd.read_csv(fname, header=None, index_col=0)
 
-    return pd.read_csv(fname, header=None, index_col=0)
+    data.index.name = 'probe_id'
+    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+
+    return data
 
 
 def read_ontology(fname, parquet=True):
@@ -146,9 +146,14 @@ def read_pacall(fname, parquet=True):
                             .format(fname))
 
     if use_parq and parquet:
-        return _make_parquet(fname, convert_only=False)
+        data = _make_parquet(fname, convert_only=False).set_index('0')
+    else:
+        data = pd.read_csv(fname, header=None, index_col=0)
 
-    return pd.read_csv(fname, header=None, index_col=0)
+    data.index.name = 'probe_id'
+    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+
+    return data
 
 
 def read_probes(fname, parquet=True):
