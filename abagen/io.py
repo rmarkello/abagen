@@ -11,9 +11,10 @@ loading times
 import os.path as op
 import pandas as pd
 try:
-    pd.io.parquet.get_engine('fastparquet')
+    eng = pd.io.parquet.get_engine('fastparquet')
+    assert 'SNAPPY' in eng.api.compression.compressions
     use_parq = True
-except ImportError:
+except (ImportError, AssertionError):
     use_parq = False
 
 
@@ -24,7 +25,7 @@ def _make_parquet(fname, convert_only=False):
     Parameters
     ----------
     fname : str
-        Path to large data file
+        Path to data file
     convert_only : bool, optional
         Check if parquet version of `fname` exists and convert if it doesn't;
         if it does, just return. Default: False
@@ -55,23 +56,30 @@ def _make_parquet(fname, convert_only=False):
 
 def read_microarray(fname, parquet=True):
     """
-    Reads in Allen Brain Institute microarray file found at `fname`
+    Loads MicroarrayExpression.csv file found at `fname`
+
+    Microarray files contain raw expression data for all the tissue samples
+    taken from a single donor across all genetic probes.
 
     Parameters
     ----------
     fname : str
-        Path to microarray expression file
+        Path to MicroarrayExpression.csv file
     parquet : bool, optional
-        Whether, if available, to load data from parquet file instead of CSV.
-        Data will be saved as a parquet file for faster loading in the future
-        if such a file does not already exist
+        Whether to load data from parquet file instead of CSV. If a parquet
+        file does not already exist then one will be created for faster loading
+        in the future. Only available if ``fastparquet`` and ``python-snappy``
+        module are installed. Default: True
 
     Returns
     -------
-    microarray : (P, S) pandas.DataFrame
+    microarray : (P, S) :class:`pandas.DataFrame`
         Dataframe containing microarray expression data, where `P` is probes
-        and `S` is samples. Therow index is the unique probe ID assigned during
-        processing
+        and `S` is samples. The row index is the unique probe ID assigned
+        during processing, which can be used to match data to the information
+        obtained with :func:`read_probes`. The column index is the unique
+        sample ID (integer, beginning at 1) which can be used to match data to
+        the information obtained with :func:`read_annotation`.
     """
     if not isinstance(fname, str):
         if isinstance(fname, pd.DataFrame):
@@ -93,20 +101,30 @@ def read_microarray(fname, parquet=True):
 
 def read_ontology(fname, parquet=True):
     """
-    Reads in Allen Brain Institute ontology file found at `fname`
+    Loads Ontology.csv file found at `fname`
+
+    Ontology files contain information on the anatomical delineations used by
+    the Allen Institute when obtaining samples from donor brains, and are used
+    in their online Brain Viewer to colorize regions. These files should be the
+    same for every donors.
+
+    This information can be used to ensure that microarray samples are
+    appropriately matched to anatomical regions.
 
     Parameters
     ----------
     fname : str
-        Path to ontology file
+        Path to Ontology.csv file
     parquet : bool, optional
-        Does nothing; here simply for compatibility with other io functionality
+        Does nothing; here for compatibility with other ``abagen.io`` functions
 
     Returns
     -------
-    ontology : (R, 8) pandas.DataFrame
-        Dataframe containing ontology information for all labelled brain
-        structures used during sample collection
+    ontology : (R, 8) :class:`pandas.DataFrame`
+        Dataframe containing ontology information for `R` anatomical regions
+        used by the Allen Institute. Columns include: 'id', 'acronym', 'name',
+        'parent_structure_id', 'hemisphere', 'graph_order',
+        'structure_id_path', and 'color_hex_triplet'.
     """
     if not isinstance(fname, str):
         if isinstance(fname, pd.DataFrame):
@@ -120,23 +138,41 @@ def read_ontology(fname, parquet=True):
 
 def read_pacall(fname, parquet=True):
     """
-    Reads in Allen Brain Institute PA call file found at `fname`
+    Loads PACall.csv file found at `fname`
+
+    PA files contain a present/absent flag indicating whether the corresponding
+    probe's expression is above background noise. It is set to 1 when both of
+    the following conditions are met:
+
+        1. The mean signal of the probe's expression is significantly different
+           from the corresponding background, as assessed by a 2-sided t-test
+           where p < 0.01, and
+        2. The difference between the background subtracted signal and the
+           background is significant (> 2.6 * background standard deviation).
+
+    This information can be used to discard "noisy" probes that might not be
+    contributing high-quality expression information.
 
     Parameters
     ----------
     fname : str
-        Path to PA call file
+        Path to PACall.csv file
     parquet : bool, optional
-        Whether, if available, to load data from parquet file instead of CSV.
-        Data will be saved as a parquet file for faster loading in the future
-        if such a file does not already exist
+        Whether to load data from parquet file instead of CSV. If a parquet
+        file does not already exist then one will be created for faster loading
+        in the future. Only available if ``fastparquet`` and ``python-snappy``
+        module are installed. Default: True
 
     Returns
     -------
-    pacall : (P, S) pandas.DataFrame
+    pacall : (P, S) :class:`pandas.DataFrame`
         Dataframe containing a binary indicator determining whether expression
         information for each probe exceeded background noise in a given sample,
-        where `P` is probes and `S` is samples
+        where `P` is probes and `S` is samples. The row index is the unique
+        probe ID assigned during processing, which can be used to match data to
+        the information obtained with :func:`read_probes`. The column index is
+        the unique sample ID (integer, beginning at 1) which can be used to
+        match data to the information obtained with :func:`read_annotation`.
     """
     if not isinstance(fname, str):
         if isinstance(fname, pd.DataFrame):
@@ -158,19 +194,29 @@ def read_pacall(fname, parquet=True):
 
 def read_probes(fname, parquet=True):
     """
-    Reads in Allen Brain Institute probes file found at `fname`
+    Loads Probes.csv file found at `fname`
+
+    Probe files contain metadata on all genetic probes used in the AHBA data.
+    These files should be the same for every donor.
+
+    This information can be used to e.g., query expression data for certain
+    genes, collapse data across probes from the same gene, etc.
 
     Parameters
     ----------
     fname : str
-        Path to probes file
+        Path to Probes.csv file
     parquet : bool, optional
-        Does nothing; here simply for compatibility with other io functionality
+        Does nothing; here for compatibility with other ``abagen.io`` functions
 
     Returns
     -------
-    probes : (P, 6) pandas.DataFrame
-        Dataframe containing genetic information for `P` probes
+    probes : (P, 6) :class:`pandas.DataFrame`
+        Dataframe containing information for `P` genetic probes. The row index
+        is the unique probe ID assigned during processing, which can be used to
+        match metadata to information obtained with :func:`read_microarray` and
+        :func:`read_pacall`. Columns include 'probe_name', 'gene_id',
+        'gene_symbol', 'gene_name', 'entrez_id', and 'chromosome'.
     """
     if not isinstance(fname, str):
         if isinstance(fname, pd.DataFrame):
@@ -184,19 +230,31 @@ def read_probes(fname, parquet=True):
 
 def read_annotation(fname, parquet=True):
     """
-    Reads in Allen Brain Institute annotation file found at `fname`
+    Loads SampleAnnot.csv file found at `fname`
+
+    Sample annotation files contain metadata on all the tissue samples taken
+    from a single donor brain, including the spatial location of the samples.
+
+    This information can be used to combine samples within the same anatomical
+    region across donors.
 
     Parameters
     ----------
     fname : str
-        Path to annotation file
+        Path to SampleAnnot.csv file
     parquet : bool, optional
-        Does nothing; here simply for compatibility with other io functionality
+        Does nothing; here for compatibility with other ``abagen.io`` functions
 
     Returns
     -------
-    annotation : (S, 13) pandas.DataFrame
-        Dataframe containing structural information on `S` samples
+    annotation : (S, 13) :class:`pandas.DataFrame`
+        Dataframe containing structural information on `S` samples. The row
+        index is the unique sample ID (integer, beginning with 1) which can be
+        used to match data to the information obtained with
+        :func:`read_microarray` and :func:`read_pacall`. Columns include
+        'structure_id', 'slab_num', 'well_id', 'slab_type',
+        'structure_acronym', 'structure_name', 'polygon_id', 'mri_voxel_x',
+        'mri_voxel_y', 'mri_voxel_z', 'mni_x', 'mni_y', 'mni_z'.
     """
     if not isinstance(fname, str):
         if isinstance(fname, pd.DataFrame):
