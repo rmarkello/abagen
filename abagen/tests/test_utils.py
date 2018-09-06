@@ -2,10 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from abagen import utils
-from abagen.tests.utils import get_resource
+from abagen.datasets import fetch_desikan_killiany
 
-ATLAS = get_resource('atlas-desikankilliany.nii.gz')
-ATLAS_INFO = get_resource('atlas-desikankilliany.csv')
+ATLAS = fetch_desikan_killiany()
 EXAMPLE_COORDS = dict(
     affine=np.array([[1, 0, 0, -90],
                      [0, 1, 0, -150],
@@ -56,20 +55,20 @@ def test_coords_transform():
 
 def test_check_atlas_info():
     # check appropriate usage
-    out = utils.check_atlas_info(ATLAS, ATLAS_INFO)
+    out = utils.check_atlas_info(ATLAS.image, ATLAS.info)
     assert isinstance(out, pd.DataFrame)
-    atlas_df = pd.read_csv(ATLAS_INFO)
-    out = utils.check_atlas_info(ATLAS, atlas_df)
+    atlas_df = pd.read_csv(ATLAS.info)
+    out = utils.check_atlas_info(ATLAS.image, atlas_df)
     atlas_df = atlas_df.set_index('id')
-    out = utils.check_atlas_info(ATLAS, atlas_df)
+    out = utils.check_atlas_info(ATLAS.image, atlas_df)
 
     # check bad usage
     with pytest.raises(ValueError):
-        utils.check_atlas_info(ATLAS, [1, 2, 3])
+        utils.check_atlas_info(ATLAS.image, [1, 2, 3])
 
     bad_df = pd.DataFrame(columns=['id', 'hemisphere', 'structure'])
     with pytest.raises(ValueError):
-        utils.check_atlas_info(ATLAS, bad_df)
+        utils.check_atlas_info(ATLAS.image, bad_df)
 
 
 def test_check_metric():
