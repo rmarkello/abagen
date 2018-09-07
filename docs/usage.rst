@@ -1,7 +1,7 @@
 .. _usage:
 
-Example usage
-=============
+Using abagen
+============
 
 Downloading the AHBA data
 -------------------------
@@ -139,7 +139,7 @@ we can process the data. This is as simple as:
 
     Wrangling all the raw microarray data can be quite time-consuming! If you'd
     like to speed up this step you can make sure you've performed the
-    :ref:`full_installation`.
+    :ref:`io_installation`.
 
 The ``expression`` object returned is a ``pandas.DataFrame``, where rows
 correspond to region labels as defined in our atlas image, columns correspond
