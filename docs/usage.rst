@@ -1,7 +1,7 @@
 .. _usage:
 
-Example usage
-=============
+Using abagen
+============
 
 Downloading the AHBA data
 -------------------------
@@ -65,14 +65,14 @@ return ``pandas.DataFrame`` objects for ease-of-use:
 
     [5 rows x 6 columns]
 
-Once you've downloaded the data you can start working with it!
+Once you've downloaded the data you'll need to parcellate it.
 
 Defining a parcellation
 -----------------------
 
 In order to process the microarray expression data, you'll need a parcellation.
 A parcellation is an atlas image that contains regions or parcels denoted by
-unique integer IDs. You can use whatever atlas you'd like, as long as it is a
+unique integer IDs. You can use whatever atlas you'd like as long as it is a
 volumetric atlas in MNI space.
 
 For demonstration purposes, ``abagen`` has a copy of the `Desikan-Killiany
@@ -97,7 +97,7 @@ parcellation:
     >>> atlas.info
     '/local/path/to/atlas-desikankilliany.csv'
 
-While only the atlas image (i.e., Nifti) is required for processing the
+While only the atlas image (i.e., Nifti file) is required for processing the
 microarray data, the CSV can also be very useful; we can use the CSV file to
 constrain the matching of tissue samples to anatomical regions in our atlas.
 
@@ -139,7 +139,7 @@ we can process the data. This is as simple as:
 
     Wrangling all the raw microarray data can be quite time-consuming! If you'd
     like to speed up this step you can make sure you've performed the
-    :ref:`full_installation`.
+    :ref:`io_installation`.
 
 The ``expression`` object returned is a ``pandas.DataFrame``, where rows
 correspond to region labels as defined in our atlas image, columns correspond
