@@ -1,5 +1,5 @@
-abagen: Wrangling the Allen Human Brain Atlas in Python
-=======================================================
+abagen: A toolbox for the Allen Brain Atlas genetics data
+=========================================================
 
 This package provides a Python interface for working with the `Allen Human
 Brain Atlas <http://human.brain-map.org/>`_ (AHBA) microarray expression data.
