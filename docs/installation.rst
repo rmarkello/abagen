@@ -19,6 +19,12 @@ the following:
    python setup.py install
 
 
+Alternatively, you can install from PyPi with:
+
+.. code-block:: bash
+
+    pip install abagen
+
 .. _full_installation:
 
 Full installation
@@ -46,3 +52,9 @@ additional dependencies, which can be done using ``pip``:
     If you are using a Linux OS, you will need to install the ``libsnappy-dev``
     (Debian) or ``snappy-devel`` (Fedora) package before running the above
     installation command!
+
+You can also perform the full installation directly from PyPi with:
+
+.. code-block:: bash
+
+    pip install abagen[io]
