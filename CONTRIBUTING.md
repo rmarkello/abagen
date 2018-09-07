@@ -10,16 +10,16 @@ Before you start you'll need to set up a free [GitHub][link_github] account and 
 
 The current list of labels are [here][link_labels] and include:
 
-* [![Help Wanted](https://img.shields.io/badge/-help%20wanted-159818.svg)][link_helpwanted] *These issues contain a task that a member of the team has determined we need additional help with.*
+* [![Help Wanted](https://img.shields.io/badge/-help%20wanted-008672.svg)][link_helpwanted] *These issues contain a task that a member of the team has determined we need additional help with.*
 
     If you feel that you can contribute to one of these issues, we especially encourage you to do so!
 
-* [![Bug](https://img.shields.io/badge/-bug-fc2929.svg)][link_bugs] *These issues point to problems in the project.*
+* [![Bug](https://img.shields.io/badge/-bug-d73a4a.svg)][link_bugs] *These issues point to problems in the project.*
 
     If you find new a bug, please give as much detail as possible in your issue, including steps to recreate the error.
     If you experience the same bug as one already listed, please add any additional information that you have as a comment.
 
-* [![Enhancement](https://img.shields.io/badge/-enhancement-84b6eb.svg)][link_feature] *These issues are asking for enhancements to be added to the project.*
+* [![Enhancement](https://img.shields.io/badge/-enhancement-a2eeef.svg)][link_feature] *These issues are asking for enhancements to be added to the project.*
 
     Please try to make sure that your requested feature is distinct from any others that have already been requested or implemented.
     If you find one that's similar but there are subtle differences please reference the other request in your issue.
