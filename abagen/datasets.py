@@ -188,9 +188,12 @@ def _fetch_alleninf_coords(*args, **kwargs):
     url = ("https://raw.githubusercontent.com/chrisfilo/alleninf/"
            "e48cd817849be4195b1569b7ac1eaf2c3e5a1085/alleninf/data/"
            "corrected_mni_coordinates.csv")
-
-    with requests.get(url, stream=True) as r:
-        coords = StringIO(r.content.decode('utf-8'))
+    try:
+        with requests.get(url, stream=True) as r:
+            coords = StringIO(r.content.decode('utf-8'))
+    except requests.exceptions.ConnectionError:
+        coords = resource_filename('abagen',
+                                   'data/corrected_mni_coordinates.csv')
 
     coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
                                              corrected_mni_y='mni_y',
