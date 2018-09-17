@@ -252,7 +252,7 @@ def get_expression_data(files, atlas, atlas_info=None, *,
         Euclidean distance to the parcel centroid). Default: True
     tolerance : int, optional
         Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. Default: 3
+        matched to that parcel. Default: 2
     metric : str or func, optional
         Mechanism by which to collapse across donors, if input `files` provides
         multiple donor datasets. If a str, should be in ['mean', 'median']; if
