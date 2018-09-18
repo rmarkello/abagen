@@ -46,6 +46,6 @@ script:
       fi
 
 after_success:
-    - if [ "${TESTING}" == "1" ]; then
+    - if [ "${EXTRAS}" == "1" ] && [ "${TESTING}" == "1" ]; then
           coveralls; codecov;
       fi
