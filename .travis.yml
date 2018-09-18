@@ -39,14 +39,10 @@ install:
       fi
 
 script:
-    - |
-      if [ "${LINTING}" == "1" ]; then
-          flake8 abagen
+    - if [ "${LINTING}" == "1" ]; then
+          flake8 abagen;
       else
-          if [ "${TESTING}" == "1" ]; then
-              TEST_ARGS="--cov-report term-missing --cov=abagen";
-          fi
-          py.test ${TEST_ARGS} abagen;
+          travis_wait py.test --cov-report term-missing --cov=abagen abagen;
       fi
 
 after_success:
