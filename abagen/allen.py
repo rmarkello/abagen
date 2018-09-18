@@ -13,26 +13,33 @@ from abagen import io, process, utils
 
 
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
-                   tolerance=3):
+                   tolerance=2):
     """
-    Determines what ROI `sample` belongs to in `atlas`
+    Determines which parcel `sample` belongs to in `atlas`
 
     Parameters
     ----------
     sample : (1, 3) array_like
-        Coordinates (ijk) of microarray probe in `atlas` space
+        Coordinates (ijk) of microarray sample in `atlas` space
     atlas : niimg-like object
         ROI image, where each ROI should be identified with a unique
         integer ID
+    sample_info : pandas.DataFrame
+        A single row of an `annotation` file, corresponding to the given sample
+    atlas_info : pandas.DataFrame,
+        Dataframe containing information about the specified `atlas`. Must have
+        _at least_ columns 'id', 'hemisphere', and 'structure' containing
+        information mapping atlas IDs to hemisphere and broad structural class
+        (i.e., "cortex", "subcortex", "cerebellum"). Default: None
     tolerance : int, optional
-        Distance that sample must be from ROI for it to be considered within
-        that ROI. This is only used if the sample is not directly inside a ROI.
-        Default: 3mm
+        Distance (in mm) that a sample must be from a parcel for it to be
+        matched to that parcel. This is only considered if the sample is not
+        directly within a parcel. Default: 2
 
     Returns
     -------
     label : int
-        ROI label of `sample`
+        Parcel label of `sample`
     """
 
     # pull relevant info from atlas
@@ -81,14 +88,19 @@ def _check_label(label, sample_info, atlas_info):
     Parameters
     ----------
     label : int
-        Tenative label for sample in `sample_info`
+        Tenative label for sample described by `sample_info`
     sample_info : pandas.DataFrame
-    atlas_info : pandas.DataFrame
+        A single row of an `annotation` file, corresponding to the given sample
+    atlas_info : pandas.DataFrame,
+        Dataframe containing information about the atlas of interest. Must have
+        _at least_ columns 'id', 'hemisphere', and 'structure' containing
+        information mapping atlas IDs to hemisphere and broad structural class
+        (i.e., "cortex", "subcortex", "cerebellum"). Default: None
 
     Returns
     -------
     label : int
-        New tentative label
+        New label for sample
     """
 
     cols = ['hemisphere', 'structure']
@@ -104,28 +116,33 @@ def _check_label(label, sample_info, atlas_info):
 
 def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
     """
-    Matches all samples in `annotation` to closest ROIs in `atlas_info`
+    Matches all microarray samples in `annotation` to parcels in `atlas`
 
-    Attempts to place each sample provided in `annotation` into a labelled ROI
-    in `atlas_info`, where the latter is a 3D niimg-like object that contains
-    ROI data, each with a unique integer ID.
+    Attempts to place each sample provided in `annotation` into a parcel in
+    `atlas`, where the latter is a 3D niimg-like object that contains parcels
+    each idnetified by a unique integer ID.
 
-    The function tries to best match the microarray sample to the ROIs by:
-    1. Determining if the sample falls directly within a ROI.
-    2. Checking to see if there are nearby ROIs by slowly expanding radius
-       around sample (up to radius = `tolerance`); if there are multiple nearby
-       ROIs, determining which ROI is closer (i.e., by centroid of the ROI).
-    3. If `user_centroids` is set, find the ROI with the closest centroid
+    The function tries to best match samples in `annotation` to parcels defined
+    in `atlas` by:
 
-    If there is still no ROI for a given sample, it is assigned as "NA" and
-    should likely be ignored in further analyses.
+        1. Determining if the sample falls directly within a parcel,
+        2. Checking to see if there are nearby parcels by slowly expanding the
+           search space to include nearby voxels, up to a specified distance
+           (specified via the `tolerance` parameter),
+        3. Assigning the sample to the closest parcel if there are multiple
+           nearby parcels, where closest is determined by the parcel centroid.
+
+    If at any step a sample can be assigned to a parcel the matching process is
+    terminated. If there is still no parcel for a given sample after this
+    process the sample is provided a label of 0.
 
     Parameters
     ----------
     annotation : (S, 13) pandas.DataFrame
-        Annotation information, where `S` is samples
+        Pre-loaded annotation information for a given AHBA donor
     atlas : niimg-like object
-        ROI image, where each ROI should be identified with a unique integer ID
+        A parcellation image in MNI space, where each parcel is identified by a
+        unique integer ID
     atlas_info : pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have _at least_ columns 'id', 'hemisphere', and
@@ -133,14 +150,14 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
         broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
     tolerance : int, optional
-        Distance (in mm) that a sample must be from an ROI boundary for it to
-        be considered within that ROI. This is only used if the sample is not
-        directly within a ROI. Default: 2
+        Distance (in mm) that a sample must be from a parcel for it to be
+        matched to that parcel. This is only considered if the sample is not
+        directly within a parcel. Default: 2
 
     Returns
     -------
     labels : (S, 1) pandas.DataFrame
-        Dataframe with ROI labels
+        Dataframe with parcel labels for each of `S` samples
     """
 
     # get annotation and atlas data
@@ -182,13 +199,15 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     microarray : (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples and `G` is genes
     sample_labels : (S, 1) pandas.DataFrame
-        ROI labels for `S` samples, as returned by e.g., `label_samples()`
-    labels : (L,) array_like, optional
-        All possible labels for parcellation scheme (to account for possibility
-        that some parcels have NO expression data). Default: None
-    metric : str or func
-        Mechanism by which to collapse across samples within an ROI. If str,
-        should be in ['mean', 'median'].
+        Parcel labels for `S` samples, as returned by e.g., `label_samples()`
+    labels : (L,) array_like, optionalacross
+        All possible labels for parcelacrosscheme (to account for possibility
+        that some parcels have NO expracrossata). Default: None
+    metric : str or func, optional
+        Mechanism by which to collapseacrosssamples within a parcel. If a
+        str, should be in ['mean', 'median']; if a function, should be able to
+        accept an `N`-dimensional input and the `axis` keyword argument and
+        return an `N-1`-dimensional output. Default: 'mean'
 
     Returns
     -------
@@ -206,7 +225,8 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
                               index=pd.Series(missing, name='label'))
 
     gene_by_label = (microarray.merge(sample_labels,
-                                      left_index=True, right_index=True)
+                                      left_index=True,
+                                      right_index=True)
                                .groupby('label')
                                .aggregate(metric)
                                .append(labels)
@@ -223,6 +243,46 @@ def get_expression_data(files, atlas, atlas_info=None, *,
                         return_counts=False):
     """
     Assigns microarray expression data in `files` to ROIs defined in `atlas`
+
+    This function aims to provide a workflow for generating pre-processed,
+    microarray expression data for abitrary `atlas` designations. First, some
+    basic filtering of genetic probes is performed, including:
+
+        1. Intensity-based filtering of microarray probes to remove probes that
+           do not exceed a certain level of background noise (specified via the
+           `ibf_threshold` parameter), and
+        2. Selection of a single, representative probe for each gene via a
+           differential stability metric, wherein the probe that has the most
+           consistent regional variation across donors is retained.
+
+    Tissue samples are then matched to parcels in the defined `atlas` for each
+    donor. If `atlas_info` is provided then this matching is constrained by
+    both hemisphere and tissue class designation (e.g., cortical samples from
+    the left hemisphere are only matched to ROIs in the left cortex,
+    subcortical samples from the right hemisphere are only matched to ROIs in
+    the left subcortex); see the `atlas_info` parameter description for more
+    information.
+
+    Matching of microarray samples to parcels in `atlas` is done via a multi-
+    step process:
+
+        1. Determine if the sample falls directly within a parcel,
+        2. Check to see if there are nearby parcels by slowly expanding the
+           search space to include nearby voxels, up to a specified distance
+           (specified via the `tolerance` parameter),
+        3. If there are multiple nearby parcels, the sample is assigned to the
+           closest parcel, as determined by the parcel centroid.
+
+    If at any step a sample can be assigned to a parcel the matching process is
+    terminated. If multiple sample are assigned to the same parcel they are
+    aggregated with the metric specified via the `metric` parameter. More
+    control over the sample matching can be obtained by setting the `exact`
+    parameter; see the parameter description for more information.
+
+    Once all samples have been matched to parcels for all supplied donors, the
+    microarray expression data are normalized within-donor via a scaled robust
+    sigmoid (SRS) procedure before being combined across donors via the
+    supplied `metric`.
 
     Parameters
     ----------
@@ -252,7 +312,8 @@ def get_expression_data(files, atlas, atlas_info=None, *,
         Euclidean distance to the parcel centroid). Default: True
     tolerance : int, optional
         Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. Default: 2
+        matched to that parcel. This is only considered if the sample is not
+        directly within a parcel. Default: 2
     metric : str or func, optional
         Mechanism by which to collapse across donors, if input `files` provides
         multiple donor datasets. If a str, should be in ['mean', 'median']; if
@@ -275,11 +336,12 @@ def get_expression_data(files, atlas, atlas_info=None, *,
     Returns
     -------
     expression : (R x G) :class:`pandas.DataFrame`
-        Microarray expression for `R` regions in `atlas` across `G` genes,
-        averaged across donors.
-    counts : :class:`pandas.DataFrame`
-        Number of samples assigned to each parcel in `atlas` (by donor, if
-        multiple donors provided); only provided if `return_counts=True`
+        Microarray expression for `R` regions in `atlas` for `G` genes,
+        aggregated across donors.
+    counts : (R x D) :class:`pandas.DataFrame`
+        Number of samples assigned to each of `R` regions in `atlas` for each
+        of `D` donors (if multiple donors provided); only returned if
+        `return_counts=True`.
     """
 
     # coerce to Bunch in case a simple dictionary was provided
@@ -303,6 +365,8 @@ def get_expression_data(files, atlas, atlas_info=None, *,
     if not exact:
         centroids = utils.get_centroids(atlas, labels_of_interest=all_labels)
 
+    # perform intensity-based filter of probes and select probe with highest
+    # differential stability for each gene amongst remaining probes
     probes = process.filter_probes(files.pacall, files.probes,
                                    threshold=ibf_threshold)
     probes = process.get_stable_probes(files.microarray, files.annotation,
@@ -316,7 +380,7 @@ def get_expression_data(files, atlas, atlas_info=None, *,
                                                    files.ontology[subj],
                                                    corrected=corrected_mni)
 
-        # get representative probes + samples from microarray data
+        # subset representative probes + samples from microarray data
         microarray = io.read_microarray(files.microarray[subj])
         samples = microarray.loc[probes.index, annotation.index].T
         samples.columns = probes.gene_symbol
@@ -332,6 +396,9 @@ def get_expression_data(files, atlas, atlas_info=None, *,
         labs, num = np.unique(sample_labels, return_counts=True)
         counts[labs, subj] = num
 
+        # if we don't want to do exact matching then cache which parcels are
+        # missing data and the expression data for the closest sample to that
+        # parcel; we'll use this once we've iterated through all donors
         if not exact:
             coords = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
                                       atlas.affine)
@@ -344,13 +411,16 @@ def get_expression_data(files, atlas, atlas_info=None, *,
 
     # check for missing ROIs and fill in, as needed
     if not exact:
+        # find labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
         for roi in empty:
+            # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([d.get(roi) for f, d in missing])
+            # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts[roi, ind] += 1
 
-    # normalize data and aggregate across donors
+    # normalize data with SRS and aggregate across donors
     expression = [process.normalize_expression(e) for e in expression]
     expression = pd.concat(expression).groupby('label').aggregate(metric)
 

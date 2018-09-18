@@ -170,6 +170,14 @@ def _reduce_micro(micro, annot, probes):
 
 def drop_mismatch_samples(annotation, ontology, corrected=True):
     """
+    Removes samples from `annotation` whose coordinates do not match `ontology`
+
+    Checks MNI coordinates specified in `annotation` and matches them to L/R
+    hemisphere designation in `ontology`; samples who do not match (e.g., L
+    hemisphere designation in `ontology` but X coordinate < 0) are removed.
+
+    Optionally updates MNI coordinates in `annotation` (see `corrected`).
+
     Parameters
     ----------
     annotation : str
