@@ -42,7 +42,7 @@ script:
     - if [ "${LINTING}" == "1" ]; then
           flake8 abagen;
       else
-          travis_wait py.test --cov-report term-missing --cov=abagen abagen;
+          py.test -s --cov-report term-missing --cov=abagen abagen;
       fi
 
 after_success:
