@@ -15,6 +15,11 @@ def remove_distance(expression, atlas, atlas_info=None):
     """
     Corrects for distance-dependent correlation effects in `expression`
 
+    Regresses Euclidean distance between regions in `atlas` from correlated
+    gene expression array generated from `expression`. If `atlas_info` is
+    provided different connection types (e.g., cortex-cortex, cortex-subcortex,
+    subcortex-subcortex) will be residualized independently.
+
     Parameters
     ----------
     expression : (R x G) :class:`pandas.DataFrame`
@@ -63,6 +68,7 @@ def remove_distance(expression, atlas, atlas_info=None):
     else:
         triu_inds = np.ravel_multi_index(triu_inds, genecorr.shape)
         genecorr, dist = genecorr.ravel(), dist.ravel()
+        # FIXME: residualizing cortex/subcortex and subcortex/cortex separately
         for src, tar in itertools.product(['cortex', 'subcortex'], repeat=2):
             # get indices of sources and targets
             sources = atlas_info.query('structure == "{}"'.format(src)).index
