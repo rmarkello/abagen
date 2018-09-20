@@ -200,11 +200,11 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
         Microarray expression data, where `S` is samples and `G` is genes
     sample_labels : (S, 1) pandas.DataFrame
         Parcel labels for `S` samples, as returned by e.g., `label_samples()`
-    labels : (L,) array_like, optionalacross
-        All possible labels for parcelacrosscheme (to account for possibility
-        that some parcels have NO expracrossata). Default: None
+    labels : (L,) array_like, optional
+        All possible labels for parcellation (to account for possibility that
+        some parcels have NO expression data). Default: None
     metric : str or func, optional
-        Mechanism by which to collapseacrosssamples within a parcel. If a
+        Mechanism by which to collapse across samples within a parcel. If a
         str, should be in ['mean', 'median']; if a function, should be able to
         accept an `N`-dimensional input and the `axis` keyword argument and
         return an `N-1`-dimensional output. Default: 'mean'
@@ -240,7 +240,7 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 def get_expression_data(files, atlas, atlas_info=None, *,
                         exact=True, tolerance=2, metric='mean',
                         ibf_threshold=0.5, corrected_mni=True,
-                        return_counts=False):
+                        return_counts=False, return_donors=False):
     """
     Assigns microarray expression data in `files` to ROIs defined in `atlas`
 
@@ -332,6 +332,9 @@ def get_expression_data(files, atlas, atlas_info=None, *,
     return_counts : bool, optional
         Whether to return how many samples were assigned to each parcel in
         `atlas` for each donor. Default: False
+    return_donors : bool, optional
+        Whether to return donor-level expression arrays instead of aggregating
+        expression across donors with provided `metric`. Default: False
 
     Returns
     -------
@@ -422,7 +425,8 @@ def get_expression_data(files, atlas, atlas_info=None, *,
 
     # normalize data with SRS and aggregate across donors
     expression = [process.normalize_expression(e) for e in expression]
-    expression = pd.concat(expression).groupby('label').aggregate(metric)
+    if not return_donors:
+        expression = pd.concat(expression).groupby('label').aggregate(metric)
 
     if return_counts:
         return expression, counts[1:]
