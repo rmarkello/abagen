@@ -75,8 +75,9 @@ def get_stable_probes(microarray, annotation, probes):
     If there are multiple probes with expression data for the same gene, this
     function will calculate the similarity of each probes' expression across
     donors and select the probe with the most consistent pattern of regional
-    variation (i.e., "differential stability" or DS). Regions are
-    operationalized by the "structure_id" column in `annotation`.
+    variation (i.e., "differential stability" or DS). Regions are defined by
+    the "structure_id" column in `annotation`; similarity is calculated by the
+    Spearman correlation coefficient.
 
     Parameters
     ----------
