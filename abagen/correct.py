@@ -66,18 +66,21 @@ def remove_distance(expression, atlas, atlas_info=None):
                                             dist[triu_inds])
     # otherwise, we can residualize the different connection types separately
     else:
-        triu_inds = np.ravel_multi_index(triu_inds, genecorr.shape)
+        triu_inds = np.ravel_multi_index(triu_inds, corr_resid.shape)
         genecorr, dist = genecorr.ravel(), dist.ravel()
-        # FIXME: residualizing cortex/subcortex and subcortex/cortex separately
-        for src, tar in itertools.product(['cortex', 'subcortex'], repeat=2):
+        types = ['cortex', 'subcortex']
+        for src, tar in itertools.combinations_with_replacement(types, 2):
             # get indices of sources and targets
-            sources = atlas_info.query('structure == "{}"'.format(src)).index
-            targets = atlas_info.query('structure == "{}"'.format(tar)).index
-            inds = np.ix_(np.where(expression.index.isin(sources))[0],
-                          np.where(expression.index.isin(targets))[0])
+            sources = np.where(atlas_info.structure == src)[0]
+            targets = np.where(atlas_info.structure == tar)[0]
+            inds = np.ravel_multi_index(np.ix_(sources, targets),
+                                        corr_resid.shape)
+            if src != tar:
+                rev = np.ravel_multi_index(np.ix_(targets, sources),
+                                           corr_resid.shape)
+                inds = np.append(inds.ravel(), rev.ravel())
             # find intersection of source / target indices + upper triangle
-            inds = np.intersect1d(triu_inds,
-                                  np.ravel_multi_index(inds, corr_resid.shape))
+            inds = np.intersect1d(triu_inds, inds)
             back = np.unravel_index(inds, corr_resid.shape)
             corr_resid[back] = _resid_dist(genecorr[inds], dist[inds])
 
@@ -109,7 +112,7 @@ def _resid_dist(dv, iv):
     return residuals.squeeze()
 
 
-def gene_stability(expression, threshold=0.9, percentile=True, rank=True):
+def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
     """
     Removes genes with differential stability < `threshold` across donors
 
