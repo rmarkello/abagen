@@ -109,18 +109,31 @@ def _resid_dist(dv, iv):
     return residuals.squeeze()
 
 
-def gene_stability(expression, threshold=0.8):
+def gene_stability(expression, threshold=0.9, percentile=True, rank=True):
     """
     Removes genes with differential stability < `threshold` across donors
+
+    Calculates the similarity of gene expression across brain regions for every
+    pair of donors in `expression`. Similarity is averaged across donor pairs
+    and genes whose mean similarity falls below `threshold` are removed.
 
     Parameters
     ----------
     expression : list of (R x G) :class:`pandas.DataFrame`
-        Microarray expression for `R` regions in across `G` genes for each
-        donor
+        Where each entry is the microarray expression of `R` regions across `G`
+        genes for a given donor
     threshold : [0, 1] float, optional
-        Minimum required correlation of gene expression across regions averaged
-        across donors for a gene to be retained
+        Minimum required average similarity (e.g, correlation) across donors
+        for a gene to be retained. Default: 0.1
+    percentile : bool, optional
+        Whether to treat `threshold` as a percentile instead of an absolute
+        cutoff. For example, `threshold=0.9` and `percentile=True` would
+        retain only those genes with a differential stability in the top 10% of
+        all genes, whereas `percentile=False` would retain only those genes
+        who differential stability was > 0.9. Default: True
+    rank : bool, optional
+        Whether to calculate similarity as Spearman correlation instead of
+        Pearson correlation. Default: True
 
     Returns
     -------
@@ -133,16 +146,23 @@ def gene_stability(expression, threshold=0.8):
     num_subj = len(expression)
     num_gene = expression[0].shape[-1]
 
-    # rank data for all subjects
-    ranked = [e.rank() for e in expression]
+    # rank data, if necessary
+    for_corr = expression if not rank else [e.rank() for e in expression]
 
     # get correlation of gene expression across regions for all donor pairs
     gene_corrs = np.zeros((num_gene, sum(range(num_subj))))
     for n, (s1, s2) in enumerate(itertools.combinations(range(num_subj), 2)):
-        gene_corrs[:, n] = utils.efficient_corr(ranked[s1], ranked[s2])
+        regions = np.intersect1d(for_corr[s1].dropna(axis=0, how='all').index,
+                                 for_corr[s2].dropna(axis=0, how='all').index)
+        gene_corrs[:, n] = utils.efficient_corr(for_corr[s1].loc[regions],
+                                                for_corr[s2].loc[regions])
 
-    # calculate mean correlation for each gene across donor pairs and threshold
-    keep_genes = gene_corrs.mean(axis=1) > threshold
+    # average similarity across donors
+    gene_corrs = gene_corrs.mean(axis=1)
+    # calculate absolute threshold if percentile is desired
+    if percentile:
+        threshold = np.percentile(gene_corrs, 100 - (threshold * 100))
+    keep_genes = gene_corrs > threshold
     expression = [e.iloc[:, keep_genes] for e in expression]
 
     return expression
