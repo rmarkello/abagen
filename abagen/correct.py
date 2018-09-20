@@ -107,3 +107,42 @@ def _resid_dist(dv, iv):
     residuals = iv[:, np.newaxis] - (distance @ betas)
 
     return residuals.squeeze()
+
+
+def gene_stability(expression, threshold=0.8):
+    """
+    Removes genes with differential stability < `threshold` across donors
+
+    Parameters
+    ----------
+    expression : list of (R x G) :class:`pandas.DataFrame`
+        Microarray expression for `R` regions in across `G` genes for each
+        donor
+    threshold : [0, 1] float, optional
+        Minimum required correlation of gene expression across regions averaged
+        across donors for a gene to be retained
+
+    Returns
+    -------
+    expression : list of (R x Gr) :class:`pandas.DataFrame`
+        Microarray expression for `R` regions across `Gr` genes, where `Gr` is
+        the number of retained genes
+    """
+
+    # get number of donors and number of genes
+    num_subj = len(expression)
+    num_gene = expression[0].shape[-1]
+
+    # rank data for all subjects
+    ranked = [e.rank() for e in expression]
+
+    # get correlation of gene expression across regions for all donor pairs
+    gene_corrs = np.zeros((num_gene, sum(range(num_subj))))
+    for n, (s1, s2) in enumerate(itertools.combinations(range(num_subj), 2)):
+        gene_corrs[:, n] = utils.efficient_corr(ranked[s1], ranked[s2])
+
+    # calculate mean correlation for each gene across donor pairs and threshold
+    keep_genes = gene_corrs.mean(axis=1) > threshold
+    expression = [e.iloc[:, keep_genes] for e in expression]
+
+    return expression
