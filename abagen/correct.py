@@ -105,9 +105,10 @@ def _resid_dist(dv, iv):
     residuals : array_like
         Residuals of `dv` after controlling for `iv`
     """
+    dv = dv.squeeze()
     distance = np.column_stack((iv, np.ones_like(iv)))
-    betas, *rest = np.linalg.lstsq(distance, dv[:, np.newaxis], rcond=None)
-    residuals = dv[:, np.newaxis] - (distance @ betas)
+    betas, *rest = np.linalg.lstsq(distance, dv, rcond=None)
+    residuals = dv - (distance @ betas)
 
     return residuals.squeeze()
 
