@@ -19,7 +19,7 @@ DOWNLOAD_URL = ('http://github.com/rmarkello/{name}/archive/{ver}.tar.gz'
 INSTALL_REQUIRES = [
     'nibabel',
     'nilearn',
-    'numpy',
+    'numpy>=1.14.0',
     'pandas',
     'requests',
     'scikit-learn',

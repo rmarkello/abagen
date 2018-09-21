@@ -1,6 +1,6 @@
 nibabel
 nilearn
-numpy
+numpy>=1.14.0
 pandas
 requests
 scipy
