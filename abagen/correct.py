@@ -133,7 +133,7 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
         cutoff. For example, `threshold=0.9` and `percentile=True` would
         retain only those genes with a differential stability in the top 10% of
         all genes, whereas `percentile=False` would retain only those genes
-        who differential stability was > 0.9. Default: True
+        with differential stability > 0.9. Default: True
     rank : bool, optional
         Whether to calculate similarity as Spearman correlation instead of
         Pearson correlation. Default: True
@@ -164,7 +164,7 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
     gene_corrs = gene_corrs.mean(axis=1)
     # calculate absolute threshold if percentile is desired
     if percentile:
-        threshold = np.percentile(gene_corrs, 100 - (threshold * 100))
+        threshold = np.percentile(gene_corrs, threshold * 100)
     keep_genes = gene_corrs > threshold
     expression = [e.iloc[:, keep_genes] for e in expression]
 
