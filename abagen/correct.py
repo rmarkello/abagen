@@ -105,16 +105,16 @@ def _resid_dist(dv, iv):
     residuals : array_like
         Residuals of `dv` after controlling for `iv`
     """
-    distance = np.column_stack((dv, np.ones_like(dv)))
-    betas, *rest = np.linalg.lstsq(distance, iv[:, np.newaxis], rcond=None)
-    residuals = iv[:, np.newaxis] - (distance @ betas)
+    distance = np.column_stack((iv, np.ones_like(iv)))
+    betas, *rest = np.linalg.lstsq(distance, dv[:, np.newaxis], rcond=None)
+    residuals = dv[:, np.newaxis] - (distance @ betas)
 
     return residuals.squeeze()
 
 
 def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
     """
-    Removes genes with differential stability < `threshold` across donors
+    Removes genes in `expression` with differential stability < `threshold`
 
     Calculates the similarity of gene expression across brain regions for every
     pair of donors in `expression`. Similarity is averaged across donor pairs
