@@ -41,5 +41,6 @@ def test_keep_stable_genes(donor_expression):
                                             [True, False]):
         out = correct.keep_stable_genes(donor_expression, threshold=thr,
                                         percentile=per, rank=rank)
-        assert isinstance(out, pd.DataFrame)
-        assert len(out) == 83
+        assert all([isinstance(f, pd.DataFrame) for f in out])
+        for df1, df2 in itertools.product(out):
+            assert df1.shape == df2.shape
