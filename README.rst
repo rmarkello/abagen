@@ -88,6 +88,11 @@ This codebase is licensed under the 3-clause BSD license. The full license can
 be found in the `LICENSE <https://github.com/rmarkello/abagen/blob/master/
 LICENSE>`_ file in the ``abagen`` distribution.
 
+Reannotated gene information located at `abagen/data/reannotated.csv.gz` is
+taken from [1]_ and is separately licensed under the `CC BY 4.0 <https://
+creativecommons.org/licenses/by/4.0/legalcode>`_; these data can also be found
+on `figshare <https://figshare.com/s/441295fe494375aa0c13>`_.
+
 All trademarks referenced herein are property of their respective holders.
 
 .. |sparkles| replace:: ✨
