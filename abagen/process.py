@@ -30,15 +30,20 @@ def reannotate_probes(probes):
     Replaces gene symbols in `probes` with reannotated data
 
     Uses annotations from [1]_ to replace probe annotations shipped with AHBA
-    data. Any probes that were unable to be matched to a gene are not dropped.
+    data. Any probes that were unable to be matched to a gene in reannotation
+    procedure are not retained.
 
     Parameters
     ----------
-    probes : :class:`pandas.DataFrame`
+    probes : str or pandas.DataFrame
+        Probe file or loaded probe dataframe from Allen Brain Institute.
+        Optimally obtained by calling `abagen.fetch_microarray()` and accessing
+        the `probes` attribute on the resulting object
 
     Returns
     -------
-    reannotated : :class:`pandas.DataFrame`
+    reannotated : pandas.DataFrame
+
 
     References
     ----------
@@ -77,10 +82,9 @@ def filter_probes(pacall, probes, threshold=0.5):
         List of PACall files from Allen Brain Institute. Optimally obtained by
         calling `abagen.fetch_microarray()` and accessing the `pacall`
         attribute on the resulting object
-    probes : list
-        List of probes files from Allen Brain Institute. Optimally obtained by
-        calling `abagen.fetch_microarray()` and accessing the `probes`
-        attribute on the resulting object
+    probes : pandas.DataFrame
+        Dataframe containing information on genetic probes that should be
+        considered in filtering
     threshold : (0, 1) float, optional
         Threshold for filtering probes. Specifies the proportion of samples for
         which a given probe must have expression levels above background noise.
@@ -93,9 +97,10 @@ def filter_probes(pacall, probes, threshold=0.5):
         according to intensity-based filtering
     """
 
+    probes = io.read_probes(probes)
     signal, samples = [], 0
     for fname in pacall:
-        data = io.read_pacall(fname)
+        data = io.read_pacall(fname).loc[probes.index]
         samples += data.shape[-1]
         # sum binary expression indicator across samples for current subject
         signal.append(data.sum(axis=1).values)
@@ -103,8 +108,8 @@ def filter_probes(pacall, probes, threshold=0.5):
     # calculate proportion of signal to noise for given probe across samples
     keep = (np.sum(signal, axis=0) / samples) > threshold
 
-    # read in probe file (they're all the same) and drop "bad" probes
-    filtered = io.read_probes(probes[0])[keep]
+    # drop "bad" probes
+    filtered = probes[keep]
 
     return filtered
 
