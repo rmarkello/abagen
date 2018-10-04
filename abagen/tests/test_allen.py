@@ -26,6 +26,7 @@ def test_vanilla_get_expression_data(testfiles):
 def test_extra_get_expression_data(testfiles):
     for opts in [{'atlas_info': ATLAS.info},
                  {'exact': False},
+                 {'reannotated': False},
                  {'atlas_info': ATLAS.info, 'exact': False}]:
         out = allen.get_expression_data(testfiles, ATLAS.image, **opts)
         assert isinstance(out, pd.DataFrame)

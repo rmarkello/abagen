@@ -237,9 +237,9 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     return gene_by_label
 
 
-def get_expression_data(files, atlas, atlas_info=None, *,
-                        exact=True, tolerance=2, metric='mean',
-                        ibf_threshold=0.5, corrected_mni=True,
+def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
+                        tolerance=2, metric='mean', ibf_threshold=0.5,
+                        corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False):
     """
     Assigns microarray expression data in `files` to ROIs defined in `atlas`
@@ -329,6 +329,11 @@ def get_expression_data(files, atlas, atlas_info=None, *,
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
         data when matching tissue samples to anatomical regions. Default: True
+    reannotated : bool, optional
+        Whether to use reannotated probe information provided by [1]_ instead
+        of the default probe information from the AHBA dataset. Using
+        reannotated information will discard probes that could not be reliably
+        matched to genes. Default: True
     return_counts : bool, optional
         Whether to return how many samples were assigned to each parcel in
         `atlas` for each donor. Default: False
@@ -345,6 +350,12 @@ def get_expression_data(files, atlas, atlas_info=None, *,
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors provided); only returned if
         `return_counts=True`.
+
+    References
+    ----------
+    .. [1] Arnatkeviciute, A., Fulcher, B. D., & Fornito, A. (2018). A
+       practical guide to linking brain-wide gene expression and neuroimaging
+       data. bioRxiv, 380089.
     """
 
     # coerce to Bunch in case a simple dictionary was provided
@@ -368,9 +379,14 @@ def get_expression_data(files, atlas, atlas_info=None, *,
     if not exact:
         centroids = utils.get_centroids(atlas, labels_of_interest=all_labels)
 
+    # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
     # perform intensity-based filter of probes and select probe with highest
     # differential stability for each gene amongst remaining probes
-    probes = process.filter_probes(files.pacall, files.probes,
+    if reannotated:
+        probes = process.reannotate_probes(files.probes[0])
+    else:
+        probes = io.read_probes(files.probes[0])
+    probes = process.filter_probes(files.pacall, probes,
                                    threshold=ibf_threshold)
     probes = process.get_stable_probes(files.microarray, files.annotation,
                                        probes)

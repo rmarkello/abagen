@@ -2,7 +2,10 @@
 """
 Functions for cleaning and processing the AHBA microarray dataset
 """
+import gzip
+from io import StringIO
 import itertools
+from pkg_resources import resource_filename
 from nibabel.volumeutils import Recoder
 import numpy as np
 import pandas as pd
@@ -22,6 +25,49 @@ ONTOLOGY = Recoder(
 )
 
 
+def reannotate_probes(probes):
+    """
+    Replaces gene symbols in `probes` with reannotated data
+
+    Uses annotations from [1]_ to replace probe annotations shipped with AHBA
+    data. Any probes that were unable to be matched to a gene in reannotation
+    procedure are not retained.
+
+    Parameters
+    ----------
+    probes : str or pandas.DataFrame
+        Probe file or loaded probe dataframe from Allen Brain Institute.
+        Optimally obtained by calling `abagen.fetch_microarray()` and accessing
+        the `probes` attribute on the resulting object
+
+    Returns
+    -------
+    reannotated : pandas.DataFrame
+
+
+    References
+    ----------
+    .. [1] Arnatkeviciute, A., Fulcher, B. D., & Fornito, A. (2018). A
+       practical guide to linking brain-wide gene expression and neuroimaging
+       data. bioRxiv, 380089.
+    """
+
+    # load in reannotated probes
+    reannot = resource_filename('abagen', 'data/reannotated.csv.gz')
+    with gzip.open(reannot, 'r') as src:
+        reannot = pd.read_csv(StringIO(src.read().decode('utf-8'))).iloc[:-1]
+    reannot = reannot[['probe_name', 'gene_symbol', 'entrez_id']]
+
+    # merge reannotated with original, keeping only reannotated
+    probes = io.read_probes(probes).reset_index()[['probe_name', 'probe_id']]
+    merged = pd.merge(reannot, probes, on='probe_name', how='left')
+
+    # reset index as probe_id and sort
+    reannotated = merged.set_index('probe_id').sort_index()
+
+    return reannotated
+
+
 def filter_probes(pacall, probes, threshold=0.5):
     """
     Performs intensity based filtering (IBF) of expression probes
@@ -36,10 +82,9 @@ def filter_probes(pacall, probes, threshold=0.5):
         List of PACall files from Allen Brain Institute. Optimally obtained by
         calling `abagen.fetch_microarray()` and accessing the `pacall`
         attribute on the resulting object
-    probes : list
-        List of probes files from Allen Brain Institute. Optimally obtained by
-        calling `abagen.fetch_microarray()` and accessing the `probes`
-        attribute on the resulting object
+    probes : pandas.DataFrame
+        Dataframe containing information on genetic probes that should be
+        considered in filtering
     threshold : (0, 1) float, optional
         Threshold for filtering probes. Specifies the proportion of samples for
         which a given probe must have expression levels above background noise.
@@ -52,9 +97,10 @@ def filter_probes(pacall, probes, threshold=0.5):
         according to intensity-based filtering
     """
 
+    probes = io.read_probes(probes)
     signal, samples = [], 0
     for fname in pacall:
-        data = io.read_pacall(fname)
+        data = io.read_pacall(fname).loc[probes.index]
         samples += data.shape[-1]
         # sum binary expression indicator across samples for current subject
         signal.append(data.sum(axis=1).values)
@@ -62,8 +108,8 @@ def filter_probes(pacall, probes, threshold=0.5):
     # calculate proportion of signal to noise for given probe across samples
     keep = (np.sum(signal, axis=0) / samples) > threshold
 
-    # read in probe file (they're all the same) and drop "bad" probes
-    filtered = io.read_probes(probes[0])[keep]
+    # drop "bad" probes
+    filtered = probes[keep]
 
     return filtered
 
