@@ -16,10 +16,14 @@ def donor_expression(testfiles):
 
 def test_remove_distance(donor_expression):
     expr = pd.concat(donor_expression).groupby('label').aggregate(np.mean)
+    coexpr = np.corrcoef(expr)
     for atlas_info in [None, ATLAS.info]:
-        out = correct.remove_distance(expr, ATLAS.image, atlas_info=atlas_info)
+        out = correct.remove_distance(coexpr, ATLAS.image, atlas_info)
         assert np.allclose(out, out.T)
         assert isinstance(out, np.ndarray)
+
+    with pytest.raises(ValueError):
+        correct.remove_distance(expr, ATLAS.image, ATLAS.info)
 
 
 def test_resid_dist():

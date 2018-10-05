@@ -6,25 +6,25 @@ Functions for post-processing region x gene expression data
 import itertools
 from nilearn._utils import check_niimg_3d
 import numpy as np
-import pandas as pd
 from scipy.spatial.distance import cdist
+from sklearn.utils.validation import check_symmetric
 from abagen import utils
 
 
-def remove_distance(expression, atlas, atlas_info=None):
+def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     """
-    Corrects for distance-dependent correlation effects in `expression`
+    Corrects for distance-dependent correlation effects in `coexpression`
 
     Regresses Euclidean distance between regions in `atlas` from correlated
-    gene expression array generated from `expression`. If `atlas_info` is
-    provided different connection types (e.g., cortex-cortex, cortex-subcortex,
-    subcortex-subcortex) will be residualized independently.
+    gene expression array `coexpression`. If `atlas_info` is provided different
+    connection types (e.g., cortex-cortex, cortex-subcortex, subcortex-
+    subcortex) will be residualized independently.
 
     Parameters
     ----------
-    expression : (R x G) :class:`pandas.DataFrame`
-        Microarray expression for `R` regions in `atlas` for `G` genes,
-        aggregated across donors.
+    coexpression : (R x R) array_like
+        Correlate gene expression array, where `R` is the number of regions, as
+        generated with e.g., `numpy.corrcoef(expression)`.
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
@@ -34,12 +34,15 @@ def remove_distance(expression, atlas, atlas_info=None):
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
         and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
+    labels : (N,) array_like, optional
+        If only a subset `N` of the ROIs in `atlas` were used to generate the
+        `coexpression` array this array should specify which. Default: None
 
     Returns
     -------
-    corrgene : (R x R) :class:`numpy.ndarray`
-        Correlated gene `expression` data for `R` regions in `atlas`,
-        residualized against the spatial distances between region pairs
+    residualized : (R x R) :class:`numpy.ndarray`
+        Provided `coexpression` data residualized against spatial distance
+         between region pairs
     """
 
     # load atlas_info, if provided
@@ -47,27 +50,24 @@ def remove_distance(expression, atlas, atlas_info=None):
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
-    # check expression data and make correlation matrix
-    if not isinstance(expression, pd.DataFrame):
-        raise TypeError('Provided `expression` data must be type pd.DataFrame '
-                        'not {}'.format(type(expression)))
-    genecorr = np.corrcoef(expression.get_values())
+    # check that provided coexpression array is symmetric
+    check_symmetric(coexpression, raise_exception=True)
 
     # we'll do basic Euclidean distance correction for now
     # TODO: implement gray matter volume / cortical surface path distance
-    centroids = utils.get_centroids(atlas, labels_of_interest=expression.index)
+    centroids = utils.get_centroids(atlas, labels_of_interest=labels)
     dist = cdist(centroids, centroids, metric='euclidean')
 
-    corr_resid = np.zeros_like(genecorr)
-    triu_inds = np.triu_indices_from(genecorr, k=1)
+    corr_resid = np.zeros_like(coexpression)
+    triu_inds = np.triu_indices_from(coexpression, k=1)
     # if no atlas_info, just residualize all correlations against distance
     if atlas_info is None:
-        corr_resid[triu_inds] = _resid_dist(genecorr[triu_inds],
+        corr_resid[triu_inds] = _resid_dist(coexpression[triu_inds],
                                             dist[triu_inds])
     # otherwise, we can residualize the different connection types separately
     else:
         triu_inds = np.ravel_multi_index(triu_inds, corr_resid.shape)
-        genecorr, dist = genecorr.ravel(), dist.ravel()
+        coexpression, dist = coexpression.ravel(), dist.ravel()
         types = ['cortex', 'subcortex']
         for src, tar in itertools.combinations_with_replacement(types, 2):
             # get indices of sources and targets
@@ -75,14 +75,15 @@ def remove_distance(expression, atlas, atlas_info=None):
             targets = np.where(atlas_info.structure == tar)[0]
             inds = np.ravel_multi_index(np.ix_(sources, targets),
                                         corr_resid.shape)
-            if src != tar:
+            if src != tar:  # e.g., cortex + subcortex
                 rev = np.ravel_multi_index(np.ix_(targets, sources),
                                            corr_resid.shape)
                 inds = np.append(inds.ravel(), rev.ravel())
             # find intersection of source / target indices + upper triangle
             inds = np.intersect1d(triu_inds, inds)
             back = np.unravel_index(inds, corr_resid.shape)
-            corr_resid[back] = _resid_dist(genecorr[inds], dist[inds])
+            # residualize
+            corr_resid[back] = _resid_dist(coexpression[inds], dist[inds])
 
     corr_resid = (corr_resid + corr_resid.T + np.eye(len(corr_resid)))
 
