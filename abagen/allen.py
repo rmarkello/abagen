@@ -442,7 +442,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
     # normalize data with SRS and aggregate across donors
     expression = [process.normalize_expression(e) for e in expression]
     if not return_donors:
-        expression = pd.concat(expression).groupby('label').aggregate(metric)
+        expression = process.aggregate_donors(expression, metric)
 
     if return_counts:
         return expression, counts[1:]
