@@ -355,3 +355,31 @@ def normalize_expression(expression):
     normalized.loc[inds] = scaled
 
     return normalized
+
+
+def aggregate_donors(expression, metric='mean'):
+    """
+    Aggregates microarray `expression` across donors using `metric`
+
+    Parameters
+    ----------
+    expression : list of (R x G) :class:`pandas.DataFrame`
+        Where each entry is the microarray expression of `R` regions across `G`
+        genes for a given donor
+    metric : str or func, optional
+        Mechanism by which to collapse across donors, if input `files` provides
+        multiple donor datasets. If a str, should be in ['mean', 'median']; if
+        a function, should be able to accept an `N`-dimensional input and the
+        `axis` keyword argument and return an `N-1`-dimensional output.
+        Default: 'mean'
+
+    Returns
+    -------
+    expression : (R x G) :class:`pandas.DataFrame`
+        Microarray expression for `R` regions in `atlas` for `G` genes,
+        aggregated across donors.
+    """
+
+    metric = utils.check_metric(metric)
+
+    return pd.concat(expression).groupby('label').aggregate(np.mean)
