@@ -22,6 +22,15 @@ def test_remove_distance(donor_expression):
         assert np.allclose(out, out.T)
         assert isinstance(out, np.ndarray)
 
+    # subset expression data + and atlas_info
+    coexpr = np.corrcoef(expr.iloc[:-1])
+    removed_label = pd.read_csv(atlas_info).iloc[:-1]
+    out = correct.remove_distance(coexpr, ATLAS.image, removed_label,
+                                  labels=removed_label.id)
+    assert np.allclose(out, out.T)
+    assert isinstance(out, np.ndarray)
+    assert len(out) == len(removed_label)
+
     with pytest.raises(ValueError):
         correct.remove_distance(expr, ATLAS.image, ATLAS.info)
 
