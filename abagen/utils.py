@@ -14,7 +14,7 @@ AGG_FUNCS = dict(
 )
 
 
-def check_atlas_info(atlas, atlas_info):
+def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
     """
     Checks whether provided `info` on `atlas` is sufficient for processing
 
@@ -29,6 +29,9 @@ def check_atlas_info(atlas, atlas_info):
         'structure' containing information mapping atlas IDs to hemisphere and
         broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
+    labels_of_interest : array_like, optional
+        List of values containing labels to compare between `atlas` and
+        `atlas_info`, if they don't all match. Default: None
 
     Returns
     -------
@@ -54,7 +57,11 @@ def check_atlas_info(atlas, atlas_info):
     if 'id' in atlas_info.columns:
         atlas_info = atlas_info.set_index('id')
 
-    ids = get_unique_labels(atlas)
+    if labels_of_interest is None:
+        ids = get_unique_labels(atlas)
+    else:
+        ids = labels_of_interest
+
     cols = ['hemisphere', 'structure']
     try:
         assert all(c in atlas_info.columns for c in cols)

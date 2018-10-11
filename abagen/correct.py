@@ -48,7 +48,8 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     # load atlas_info, if provided
     atlas = check_niimg_3d(atlas)
     if atlas_info is not None:
-        atlas_info = utils.check_atlas_info(atlas, atlas_info)
+        atlas_info = utils.check_atlas_info(atlas, atlas_info,
+                                            labels_of_interest=labels)
 
     # check that provided coexpression array is symmetric
     check_symmetric(coexpression, raise_exception=True)
