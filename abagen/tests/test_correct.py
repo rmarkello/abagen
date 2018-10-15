@@ -32,6 +32,10 @@ def test_remove_distance(donor_expression):
     assert len(out) == len(removed_label)
 
     with pytest.raises(ValueError):
+        correct.remove_distance(np.corrcoef(expr), ATLAS.image, removed_label,
+                                labels=removed_label.id)
+
+    with pytest.raises(ValueError):
         correct.remove_distance(expr, ATLAS.image, ATLAS.info)
 
 

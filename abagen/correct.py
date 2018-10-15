@@ -23,8 +23,8 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     Parameters
     ----------
     coexpression : (R x R) array_like
-        Correlate gene expression array, where `R` is the number of regions, as
-        generated with e.g., `numpy.corrcoef(expression)`.
+        Correlated gene expression array, where `R` is the number of regions,
+        as generated with e.g., `numpy.corrcoef(expression)`.
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
@@ -36,7 +36,9 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
         Default: None
     labels : (N,) array_like, optional
         If only a subset `N` of the ROIs in `atlas` were used to generate the
-        `coexpression` array this array should specify which. Default: None
+        `coexpression` array this array should specify which to consider. Not
+        specifying this may cause a ValueError if `atlas` and `atlas_info` do
+        not match. Default: None
 
     Returns
     -------
@@ -50,6 +52,11 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info,
                                             labels_of_interest=labels)
+        if labels is not None and len(labels) != len(coexpression):
+            raise ValueError('Provided labels {} are a different length than '
+                             'provided coexpression matrix of size {}. Please '
+                             'confirm inputs and try again.'
+                             .format(labels, coexpression.shape))
 
     # check that provided coexpression array is symmetric
     check_symmetric(coexpression, raise_exception=True)
