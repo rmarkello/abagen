@@ -413,7 +413,8 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(sample_labels, return_counts=True)
-        counts[labs, subj] = num
+        for n, l in enumerate(labs):
+            counts[all_labels == l, subj] = num[n]
 
         # if we don't want to do exact matching then cache which parcels are
         # missing data and the expression data for the closest sample to that
@@ -437,7 +438,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
             ind = np.argmin([d.get(roi) for f, d in missing])
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
-            counts[roi, ind] += 1
+            counts[roi == all_labels, ind] += 1
 
     # normalize data with SRS and aggregate across donors
     expression = [process.normalize_expression(e) for e in expression]
