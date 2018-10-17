@@ -311,7 +311,7 @@ def _get_path_structure(structure_path):
         One of ['cortex', 'subcortex', 'cerebellum'] or None
     """
     structure_path = set(structure_path.split('/'))
-    ids = list(ONTOLOGY.value_set('id').intersection(structure_path))
+    ids = list(set(ONTOLOGY.value_set('id')).intersection(structure_path))
 
     try:
         return ONTOLOGY.structure[ids[0]]

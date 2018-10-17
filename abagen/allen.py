@@ -391,8 +391,10 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
     probes = process.get_stable_probes(files.microarray, files.annotation,
                                        probes)
 
-    expression, counts = [], np.zeros((len(all_labels) + 1, num_subj))
+    expression = []
     missing = []
+    counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
+                          index=np.append([0], all_labels))
     for subj in range(num_subj):
         # get rid of samples whose coordinates don't match ontological profile
         annotation = process.drop_mismatch_samples(files.annotation[subj],
@@ -413,7 +415,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(sample_labels, return_counts=True)
-        counts[labs, subj] = num
+        counts.loc[labs, subj] = num
 
         # if we don't want to do exact matching then cache which parcels are
         # missing data and the expression data for the closest sample to that
@@ -437,7 +439,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
             ind = np.argmin([d.get(roi) for f, d in missing])
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
-            counts[roi, ind] += 1
+            counts.loc[roi, ind] += 1
 
     # normalize data with SRS and aggregate across donors
     expression = [process.normalize_expression(e) for e in expression]
@@ -445,6 +447,6 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
         expression = process.aggregate_donors(expression, metric)
 
     if return_counts:
-        return expression, counts[1:]
+        return expression, counts.iloc[1:]
 
     return expression

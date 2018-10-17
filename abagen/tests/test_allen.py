@@ -1,4 +1,6 @@
 import pandas as pd
+from nilearn._utils import check_niimg
+from nilearn.image import new_img_like
 import pytest
 from abagen import allen
 from abagen.datasets import fetch_desikan_killiany
@@ -32,3 +34,22 @@ def test_extra_get_expression_data(testfiles):
         assert isinstance(out, pd.DataFrame)
         assert out.index.name == 'label'
         assert out.columns.name == 'gene_symbol'
+
+
+def test_missing_labels(testfiles):
+    # remove some labels from atlas image so numbers are non-sequential
+    remove = [10, 20, 60]
+    # subset atlas image
+    atlas = check_niimg(ATLAS.image).get_data()
+    for i in remove:
+        atlas[atlas == i] = 0
+    atlas = new_img_like(ATLAS.image, atlas)
+    # subset atlas info
+    atlas_info = pd.read_csv(ATLAS.info)
+    atlas_info = atlas_info[~atlas_info.id.isin(remove)]
+    # test get expression
+    out = allen.get_expression_data(testfiles, atlas, atlas_info)
+    assert isinstance(out, pd.DataFrame)
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
+    assert len(out) == len(atlas_info)
