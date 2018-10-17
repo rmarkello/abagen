@@ -48,8 +48,12 @@ def test_missing_labels(testfiles):
     atlas_info = pd.read_csv(ATLAS.info)
     atlas_info = atlas_info[~atlas_info.id.isin(remove)]
     # test get expression
-    out = allen.get_expression_data(testfiles, atlas, atlas_info)
+    out, counts = allen.get_expression_data(testfiles, atlas, atlas_info,
+                                            exact=False, return_counts=True)
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
     assert len(out) == len(atlas_info)
+
+    assert isinstance(counts, pd.DataFrame)
+    assert counts.shape == (len(atlas_info), len(testfiles.probes))
