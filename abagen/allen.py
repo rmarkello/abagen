@@ -423,10 +423,11 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
         if not exact:
             coords = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
                                       atlas.affine)
-            empty = np.setdiff1d(all_labels, labs)
+            empty = ~np.in1d(all_labels, labs)
             closest, dist = utils.closest_centroid(coords, centroids[empty],
                                                    return_dist=True)
             closest = samples.loc[annotation.iloc[closest].index]
+            empty = all_labels[empty]
             closest.index = pd.Series(empty, name='label')
             missing += [(closest, dict(zip(empty, np.diag(dist))))]
 
