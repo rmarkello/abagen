@@ -7,8 +7,8 @@ import sys
 def main():
     from setuptools import setup, find_packages
 
-    if sys.version_info < (3, 6):
-        raise SystemError('You need Python >=3.6 or above to use abagen.')
+    if sys.version_info < (3, 5):
+        raise SystemError('You need Python >=3.5 or above to use abagen.')
 
     # get package information
     ldict = locals()
