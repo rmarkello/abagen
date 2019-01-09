@@ -1,113 +1,57 @@
-roiacronyms,roinames
-PTLp,Posterior parietal association areas
-ACA,Anterior cingulate area
-ILA,Infralimbic area
-AI,Agranular insular area
-AOB,Accessory olfactory bulb
-AON,Anterior olfactory nucleus
-RSP,Retrosplenial area
-SSp,Primary somatosensory area
-CA,Ammon's horn
-SSs,Supplemental somatosensory area
-VISp,Primary visual area
-VISam,Anteromedial visual area
-VISal,Anterolateral visual area
-VISl,Lateral visual area
-VISpl,Posterolateral visual area
-MOB,Main olfactory bulb
-VISpm,posteromedial visual area
-TEa,Temporal association areas
-TR,Postpiriform transition area
-TT,Taenia tecta
-COA,Cortical amygdalar area
-VISC,Visceral area
-CTXsp,Cortical subplate
-ORB,Orbital area
-DG,Dentate gyrus
-RHP,Retrohippocampal region
-ECT,Ectorhinal area
-PIR,Piriform area
-MOp,Primary motor area
-MOs,Secondary motor area
-AUDp,Primary auditory area
-AUDd,Dorsal auditory area
-AUDv,Ventral auditory area
-GU,Gustatory areas
-POTel,preoptic telencephalon
-THy,terminal hypothalamus (rostral hypothalamus)
-SeSPall,subpallial septum
-PaSe,paraseptal subpallium
-Dg,diagonal domain
-Pal,pallidum (globus pallidus complex)
-Strp,periventricular stratum of Str
-Stri,intermediate stratum of Str
-ASPall,subpallial amygdala
-PHy,peduncular (caudal) hypothalamus
-p3,prosomere 3
-p2,prosomere 2
-p1,prosomere 1
-m1,mesomere 1
-is,isthmus
-CbV,cerebellar vermis
-r1,rhombomere 1
-CbH,cerebellar hemisphere
-r2,rhombomere 2
-PH,pontine hindbrain
-PMH,pontomedullary hindbrain
-MH,medullary hindbrain (medulla)
-PTLp,Posterior parietal association areas
-ACA,Anterior cingulate area
-ILA,Infralimbic area
-AI,Agranular insular area
-AOB,Accessory olfactory bulb
-AON,Anterior olfactory nucleus
-RSP,Retrosplenial area
-SSp,Primary somatosensory area
-CA,Ammon's horn
-SSs,Supplemental somatosensory area
-VISp,Primary visual area
-VISam,Anteromedial visual area
-VISal,Anterolateral visual area
-VISl,Lateral visual area
-VISpl,Posterolateral visual area
-MOB,Main olfactory bulb
-VISpm,posteromedial visual area
-TEa,Temporal association areas
-TR,Postpiriform transition area
-TT,Taenia tecta
-COA,Cortical amygdalar area
-VISC,Visceral area
-CTXsp,Cortical subplate
-ORB,Orbital area
-DG,Dentate gyrus
-RHP,Retrohippocampal region
-ECT,Ectorhinal area
-PIR,Piriform area
-MOp,Primary motor area
-MOs,Secondary motor area
-AUDp,Primary auditory area
-AUDd,Dorsal auditory area
-AUDv,Ventral auditory area
-GU,Gustatory areas
-POTel,preoptic telencephalon
-THy,terminal hypothalamus (rostral hypothalamus)
-SeSPall,subpallial septum
-PaSe,paraseptal subpallium
-Dg,diagonal domain
-Pal,pallidum (globus pallidus complex)
-Strp,periventricular stratum of Str
-Stri,intermediate stratum of Str
-ASPall,subpallial amygdala
-PHy,peduncular (caudal) hypothalamus
-p3,prosomere 3
-p2,prosomere 2
-p1,prosomere 1
-m1,mesomere 1
-is,isthmus
-CbV,cerebellar vermis
-r1,rhombomere 1
-CbH,cerebellar hemisphere
-r2,rhombomere 2
-PH,pontine hindbrain
-PMH,pontomedullary hindbrain
-MH,medullary hindbrain (medulla)
+,roiacronyms,roinames
+0,PTLp,Posterior parietal association areas
+1,ACA,Anterior cingulate area
+2,ILA,Infralimbic area
+3,AI,Agranular insular area
+4,AOB,Accessory olfactory bulb
+5,AON,Anterior olfactory nucleus
+6,RSP,Retrosplenial area
+7,SSp,Primary somatosensory area
+8,CA,Ammon's horn
+9,SSs,Supplemental somatosensory area
+10,VISp,Primary visual area
+11,VISam,Anteromedial visual area
+12,VISal,Anterolateral visual area
+13,VISl,Lateral visual area
+14,VISpl,Posterolateral visual area
+15,MOB,Main olfactory bulb
+16,VISpm,posteromedial visual area
+17,TEa,Temporal association areas
+18,TR,Postpiriform transition area
+19,TT,Taenia tecta
+20,COA,Cortical amygdalar area
+21,VISC,Visceral area
+22,CTXsp,Cortical subplate
+23,ORB,Orbital area
+24,DG,Dentate gyrus
+25,RHP,Retrohippocampal region
+26,ECT,Ectorhinal area
+27,PIR,Piriform area
+28,MOp,Primary motor area
+29,MOs,Secondary motor area
+30,AUDp,Primary auditory area
+31,AUDd,Dorsal auditory area
+32,AUDv,Ventral auditory area
+33,GU,Gustatory areas
+34,POTel,preoptic telencephalon
+35,THy,terminal hypothalamus (rostral hypothalamus)
+36,SeSPall,subpallial septum
+37,PaSe,paraseptal subpallium
+38,Dg,diagonal domain
+39,Pal,pallidum (globus pallidus complex)
+40,Strp,periventricular stratum of Str
+41,Stri,intermediate stratum of Str
+42,ASPall,subpallial amygdala
+43,PHy,peduncular (caudal) hypothalamus
+44,p3,prosomere 3
+45,p2,prosomere 2
+46,p1,prosomere 1
+47,m1,mesomere 1
+48,is,isthmus
+49,CbV,cerebellar vermis
+50,r1,rhombomere 1
+51,CbH,cerebellar hemisphere
+52,r2,rhombomere 2
+53,PH,pontine hindbrain
+54,PMH,pontomedullary hindbrain
+55,MH,medullary hindbrain (medulla)
