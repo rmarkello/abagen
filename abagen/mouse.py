@@ -26,37 +26,62 @@ GENE_ATTRIBUTES = [
     'version-status'
 ]
 
+UNIONIZATION_ATTRIBUTES = [
+    'expression-density',
+    'expression-energy',
+    'id',
+    'section-data-set-id',
+    'structure-id',
+    'sum-expressing-pixel-intensity',
+    'sum-expressing-pixels',
+    'sum-pixel-intensity',
+    'sum-pixels',
+    'voxel-energy-cv',
+    'voxel-energy-mean'
+]
 
-def get_expression_from_experiment(
+
+def get_unionization_from_experiment(
         experiment_id,
         roi_list=None,
+        attributes='all'
 ):
     """
-    fetches mouse gene expression data of a single experiment,
+    fetches mouse Unionization data of a single experiment,
     either saggital or coronal, according to the experiment id
 
     Parameters
     ----------
-    experiment_id: an integer, specifying the experiment id
+    experiment_id: int, specifying the experiment id
     roi_list: a list of strings, optional
         the list of ROIs in the form of acronyms.
         default: ROIs as included in Rubinov et al, 2015
+    attributes: list, optional
+        specify the unionization data attributes to include
+        default: 'all'
+        available attributes:
+            'expression-density',
+            'expression-energy', (gene expression)
+            'id',
+            'section-data-set-id',
+            'structure-id',
+            'sum-expressing-pixel-intensity',
+            'sum-expressing-pixels',
+            'sum-pixel-intensity',
+            'sum-pixels',
+            'voxel-energy-cv',
+            'voxel-energy-mean'
 
     Returns
     -------
-    gene_epr: (N,) numpy.array
-        regional gene expressions corresponding to
-        the ROIs in structure_list
+    unionization: dict
+        unionization data attributes and the values {attribute:value}
 
     Raises
     ------
     ValueError:
-        If experiment_id is valid
+        If experiment_id is invalid
     """
-    if not isinstance(experiment_id, int):
-        raise ValueError(
-            '{} is not a valid experiment ID'.format(experiment_id)
-        )
 
     if roi_list is None:
         # read default ROI list
@@ -65,15 +90,12 @@ def get_expression_from_experiment(
         roilabels = pd.read_csv(
             "abagen/data/roilabels-rubinov2015pnas.csv"
         )
-        roi_list = roilabels['roiacronyms']
+        roi_list = roilabels['roiacronyms'].values
 
     roi_count = len(roi_list)
 
-    all_structure = []
-    all_epr = np.empty((0, 1))
-
     # make the query
-    api_query_criteria = 'id=' + str(experiment_id)
+    api_query_criteria = 'id={}'.format(experiment_id)
     api_query_include = '&include=structure_unionizes%28structure%29'
     query_url = API_QUERY_STRING + \
         api_query_criteria + \
@@ -83,53 +105,102 @@ def get_expression_from_experiment(
 
     if not root.text:  # check if any expressions are found
         raise ValueError(
-            'No gene expression values are found in experiment {}. '
-            'Try another experiment ID'
+            'No gene expression values are found '
+            'associated experiment {}. '
+            'Try another valid experiment ID'
             .format(experiment_id)
         )
 
-    for item in root.findall('section-data-sets/section-data-set/'
-                             'structure-unionizes/structure-unionize'):
-        # append new epr value
-        for subitem in item.findall('expression-energy'):
-            all_epr = np.append(all_epr, float(subitem.text))
-        # append new structure label
-        for subitem in item.findall('structure/acronym'):
-            all_structure.append(subitem.text)
+    unionization = dict()
+    path_prefix = 'section-data-sets/section-data-set/' \
+                  'structure-unionizes/structure-unionize/'
 
-    # extract the regions in roi_list
-    data_in_the_list = [
-        (item, all_epr[k])
-        for k, item
-        in enumerate(all_structure)
-        if item in roi_list
+    if attributes == 'all':  # find all expression-relevant values
+        for attr in GENE_ATTRIBUTES:
+            # find all items included in roi_list
+
+            unionization[attr] = _get_single_unionization_attribute(
+                root, attr, path_prefix, roi_list
+            )
+            
+    # only one attribute is specified
+    elif isinstance(attributes, str):
+        return _get_single_unionization_attribute(
+                root, attributes, path_prefix, roi_list
+            )
+    else:  # if multiple attributes are specified
+        for attr in attributes:
+            try:
+                unionization[attr] = _get_single_unionization_attribute(
+                root, attr, path_prefix, roi_list
+            )
+
+            except AttributeError:
+                print('There is no attribute called {}. '
+                      'Ignored.'.format(attr))
+                continue
+
+    return unionization
+
+
+def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
+    """
+    return values of a single unionization attribute
+    :param root:
+        Element 'Response' to parse
+    :param attr: str,
+        the attribute to return
+    :param path_prefix: str,
+        specifying the path to find the attribute
+    :param roi_list:
+        list of structures to include
+    :return: numpy_array
+        the values of attr corresponding to the
+        structures in roi_list
+    """
+    roi_count = len(roi_list)
+    # if the attribute exists
+    if not root.findall(path_prefix + attr):
+        raise AttributeError(
+            'There is no attribute called {}.'.format(attr)
+        )
+    all_items = [
+        (float(val_item.text), structure_item.text)
+        for val_item, structure_item in zip(
+            root.findall(path_prefix + attr),
+            root.findall(path_prefix + 'structure/acronym')
+        ) if structure_item.text in roi_list
     ]
-    structure_in_the_list = [item[0] for item in data_in_the_list]
-    epr_in_the_list = np.array(
-        [item[1] for item in data_in_the_list]
+
+    structures_in_the_list = [item[1] for item in all_items]
+    vals_in_the_list = np.array(
+        [item[0] for item in all_items],
+        dtype=np.float
     )
 
-    gene_epr = np.empty((roi_count, ))
-    gene_epr[:] = np.nan
+    vals = np.empty((roi_count,))
+    vals[:] = np.nan
     # average duplicate expressions
     for k in range(roi_count):
         index = [
             idx
             for idx, item
-            in enumerate(structure_in_the_list)
+            in enumerate(structures_in_the_list)
             if item == roi_list[k]
         ]
-        if not index:  # if no gene expressions are found, leave it to NaN
-            print('No gene expression values are found for region {}. '
+        # if gene expressions are found in kth region
+        if index:
+            vals[k] = vals_in_the_list[index].mean()
+        else:
+            print('No {0} values '
+                  'are found for region {1}. '
                   'Set to NaN.'
-                  .format(roi_list[k]))
-            continue
-        gene_epr[k] = epr_in_the_list[index].mean()
+                  .format(attr, roi_list[k]))
 
-    return gene_epr
+    return vals
 
 
-def get_experiment_id_from_gene(gene, direction='sagittal'):
+def get_experiment_id_from_gene(gene, slicing_direction='sagittal'):
     """
     fetches mouse gene expression data of a single experiment,
     either saggital or coronal, according to the experiment id
@@ -137,8 +208,8 @@ def get_experiment_id_from_gene(gene, direction='sagittal'):
     Parameters
     ----------
     gene: str or int
-        specifying the acronym or ID of the gene
-    direction: str, optional
+        specifying the acronym (capitalized) or ID of the gene
+    slicing_direction: str, optional
         slicing scheme of the samples, 'sagittal' or 'coronal'.
         default: 'sagittal'
 
@@ -147,10 +218,10 @@ def get_experiment_id_from_gene(gene, direction='sagittal'):
     experiment_id_list: list
         integers (experiment IDs) of the gene specified by gene_acronym
     """
-    if direction not in ['sagittal', 'coronal']:
-        raise ValueError('Slicing direction {} is invalid. '
+    if slicing_direction not in ['sagittal', 'coronal']:
+        raise ValueError('Slicing slicing_direction {} is invalid. '
                          'Try sagittal or coronal instead'
-                         .format(direction))
+                         .format(slicing_direction))
 
     if check_gene_validity(gene) is False:
         raise ValueError('Gene {} is invalid'.format(gene))
@@ -158,14 +229,17 @@ def get_experiment_id_from_gene(gene, direction='sagittal'):
     # find the experiment IDs associated with this gene
     if isinstance(gene, int):  # if gene id is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bid$eq%27' + str(gene)
+                             'genes%5Bid$eq%27{}%27%5D,' \
+                             'plane_of_section[name$eq%27{}%27]'\
+            .format(gene, slicing_direction)
     else:  # if gene acronym is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bacronym$eq%27' + gene
+                             'genes%5Bacronym$eq%27{}%27%5D,' \
+                             'plane_of_section[name$eq%27{}%27]' \
+            .format(gene, slicing_direction)
     # extra conditions
-    api_query_include = '%27%5D,plane_of_section[name$eq%27' + \
-                        direction + \
-                        '%27]&include=genes,section_images'
+    api_query_include = '&include=genes,section_images'
+    
     # make the query
     query_url = API_QUERY_STRING + \
         api_query_criteria + \
@@ -179,16 +253,17 @@ def get_experiment_id_from_gene(gene, direction='sagittal'):
 
     if not experiment_id_list:
         print('No {0} experiments are found for gene {1}, '
-              'return an empty list'
-              .format(direction, gene))
+              'return an empty experiment ID list'
+              .format(slicing_direction, gene))
 
     return experiment_id_list
 
 
-def get_expression_from_gene(
+def get_unionization_from_gene(
         gene,
-        direction='sagittal',
+        slicing_direction='sagittal',
         roi_list=None,
+        attributes='all'
 ):
     """
     fetches mouse gene expression data
@@ -198,27 +273,46 @@ def get_expression_from_gene(
     Parameters
     ----------
     gene: string or int
-        specifying the acronym or ID of the gene
-    direction: string, optional
+        specifying the acronym (capitalized) or ID of the gene
+    slicing_direction: string, optional
         slicing scheme of the samples, 'sagittal' or 'coronal'.
         default: 'sagittal'
     roi_list: a list of strings, optional
         the list of ROIs in the form of acronyms.
         default: ROIs as included in Rubinov et al, 2015
+    attributes: list, optional
+        specify the unionization data attributes to include
+        default: 'all'
+        available attributes:
+            'expression-density',
+            'expression-energy', (gene expression)
+            'id',
+            'section-data-set-id',
+            'structure-id',
+            'sum-expressing-pixel-intensity',
+            'sum-expressing-pixels',
+            'sum-pixel-intensity',
+            'sum-pixels',
+            'voxel-energy-cv',
+            'voxel-energy-mean'
 
     Returns
     -------
-    gene_epr: (N,) numpy.array
-        regional gene expressions corresponding to
-        the ROIs in structure_list
-    valid_experiment_id_list: list or str
-        the list of integers (experiment ID)
-        corresponding to the rows of gene_epr
+    numpy_array or dict
+        if a single attribute is given, return a (N, ) numpy_array
+        corresponding to the structures in roi_list
+        if a list of attributes is given, return a dict
+
     """
-    if direction not in ['sagittal', 'coronal']:
-        raise ValueError('Slicing direction {} is invalid. '
+    if attributes == 'all':
+        attr_list = UNIONIZATION_ATTRIBUTES
+    elif isinstance(attributes, list):
+        attr_list = attributes
+
+    if slicing_direction not in ['sagittal', 'coronal']:
+        raise ValueError('Slicing slicing_direction {} is invalid. '
                          'Try sagittal or coronal instead'
-                         .format(direction))
+                         .format(slicing_direction))
 
     if roi_list is None:
         # read default ROI list
@@ -227,32 +321,56 @@ def get_expression_from_gene(
         roilabels = pd.read_csv(
             "abagen/data/roilabels-rubinov2015pnas.csv"
         )
-        roi_list = roilabels['roiacronyms']
+        roi_list = roilabels['roiacronyms'].values
     roi_count = len(roi_list)
 
     experiment_id_list = get_experiment_id_from_gene(
-        gene, direction=direction
+        gene, slicing_direction=slicing_direction
     )
 
-    gene_epr = np.empty((0, roi_count))
-    valid_experiment_id_list = []
-    for experiment_id in experiment_id_list:
-        try:
-            gene_epr = np.append(
-                gene_epr,
-                get_expression_from_experiment(
-                    experiment_id,
-                    roi_list,
-                ),
+    # initialize a dict to store attr values and valid experimentIDs
+    unionization = dict()
+
+    if attributes == 'all' \
+            or isinstance(attributes, list):
+        for attr in attr_list:
+            attr_vals = np.empty((0, roi_count))
+            for experiment_id in experiment_id_list:
+                # values of a single attr
+                try:
+                    vals = get_unionization_from_experiment(
+                            experiment_id,
+                            roi_list,
+                            attributes=attr
+                        )
+                except AttributeError:
+                    print('There is no attribute called {}. Skipped.'
+                          .format(attr))
+                    continue
+                attr_vals = np.append(
+                    attr_vals,
+                    vals.reshape((1, roi_count)),
+                    axis=0
+                )
+                #valid_experiment_id_list.append(experiment_id)
+            unionization[attr] = attr_vals
+
+    else:  # a single attribute is given
+        attr_vals = np.empty((0, roi_count))
+        for experiment_id in experiment_id_list:
+            vals = get_unionization_from_experiment(
+                experiment_id,
+                roi_list,
+                attributes=attributes
+            )
+            attr_vals = np.append(
+                attr_vals,
+                vals.reshape((1, roi_count)),
                 axis=0
             )
-            valid_experiment_id_list.append(experiment_id)
-        except ValueError:
-            print('No gene expression values are found in experiment {}'
-                  .format(experiment_id))
-            continue
+        return attr_vals
 
-    return gene_epr, valid_experiment_id_list
+    return unionization
 
 
 def check_gene_validity(gene):
@@ -264,12 +382,13 @@ def check_gene_validity(gene):
     """
     if isinstance(gene, int):  # if gene id is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bid$eq%27' + str(gene)
+                             'genes%5Bid$eq%27{}%27%5D'.format(gene)
     else:  # if gene acronym is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bacronym$eq%27' + gene
+                             'genes%5Bacronym$eq%27{}%27%5D'.format(gene)
     # extra conditions
-    api_query_include = '%27%5D&include=genes'
+    api_query_include = '&include=genes'
+
     # make the query
     query_url = API_QUERY_STRING + \
         api_query_criteria + \
@@ -280,7 +399,7 @@ def check_gene_validity(gene):
     return True if root.text else False
 
 
-def get_gene_info(gene):
+def get_gene_info(gene, attributes='all'):
     """
     get attributes associated with a gene
 
@@ -288,23 +407,49 @@ def get_gene_info(gene):
     ----------
     gene: string or int
         specifying the acronym or ID of the gene
+    attributes: list
+        specifying which attribute of the gene to return
+        default: 'all' (return all the attributes in a dict)
+        available attributes:
+            'acronym',
+            'alias-tags',
+            'chromosome-id',
+            'ensembl-id',
+            'entrez-id',
+            'genomic-reference-update-id',
+            'homologene-id',
+            'id',
+            'legacy-ensembl-gene-id',
+            'name',
+            'organism-id',
+            'original-name',
+            'original-symbol',
+            'reference-genome-id',
+            'sphinx-id',
+            'version-status'
 
     Returns
     -------
-    gene_info: dict
+    gene_info: dict {attribute:value}
 
     """
+    # how many attributes are specified
+    if attributes == 'all':
+        attr_list = GENE_ATTRIBUTES
+    elif isinstance(attributes, list):
+        attr_list = attributes
+
     if check_gene_validity(gene) is False:
         raise ValueError('Gene {} is invalid'.format(gene))
 
     if isinstance(gene, int):  # if gene id is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bid$eq%27' + str(gene)
+                             'genes%5Bid$eq%27{}%27%5D'.format(gene)
     else:  # if gene acronym is provided
         api_query_criteria = 'criteria=products%5Bid$eq1%5D,' \
-                         'genes%5Bacronym$eq%27' + gene
+                             'genes%5Bacronym$eq%27{}%27%5D'.format(gene)
     # extra conditions
-    api_query_include = '%27%5D&include=genes'
+    api_query_include = '&include=genes'
     # make the query
     query_url = API_QUERY_STRING + \
         api_query_criteria + \
@@ -312,18 +457,55 @@ def get_gene_info(gene):
     r = requests.get(query_url)
     root = ET.fromstring(r.content)
 
+    # initialize a dict to store the attributes
     gene_info = dict()
+    if attributes == 'all' or isinstance(attributes, list):
+        for attr in attr_list:
+            try:
+                gene_info[attr] = _get_single_gene_attribute(
+                    root, attr
+                )
+            except AttributeError:
+                print('There is no attribute called {}. '
+                      'Skipped.'.format(attr))
+                continue
 
-    for attr in GENE_ATTRIBUTES:
-        item = root.find(
-            'section-data-sets/section-data-set/genes/gene/{}'.format(attr)
-        )
-        # check data type
-        if 'type' in item.attrib and item.attrib['type'] == 'integer':
-            gene_info[attr] = int(item.text)
-        else:  # attribute is a string
-            gene_info[attr] = item.text
+    else:  # single attribute is given
+        return _get_single_gene_attribute(root, attributes)
 
     return gene_info
+
+
+def _get_single_gene_attribute(root, attr):
+    """
+    get the value of single gene attribute
+    :param root: Element 'Response' to parse
+    :param attr: str, attribute to return
+    :return: str or int, the value of the attribute
+    """
+    item = root.find(
+        'section-data-sets/section-data-set/'
+        'genes/gene/{}'.format(attr)
+    )
+    # check if attr is valid
+    if not item:
+        raise AttributeError(
+            'There is no attribute called {}'.format(attr)
+        )
+
+    # check data type
+    if 'type' in item.attrib \
+            and item.attrib['type'] == 'integer':
+        return int(item.text)
+    else:  # attribute is a string
+        return item.text
+
+
+def get_available_gene_list():
+    """
+    find all available genes, in the form of acronym
+    :return: list of str
+    """
+    pass
 
 
