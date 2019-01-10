@@ -6,6 +6,7 @@ import requests
 from xml.etree import ElementTree as ET
 
 # specify RMA query model, restrain the results to mouse
+# and to the genes that have section data sets available
 URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
              "SectionDataSet/query.xml?" \
              "criteria=products[id$eq1],"
@@ -17,6 +18,20 @@ URL_INCLUDE = "&include=genes"
 #             "query.xml?include=model::Gene"
 # restrain the queries to mouse (products ID=1)
 #URL_INCLUDE = ",products[id$eq1]"
+
+GENE_ENTRY_TYPES = [
+    'acronym',
+    'chromosome-id',
+    'ensembl-id',
+    'entrez-id',
+    'homologene-id',
+    'id',
+    'legacy-ensembl-gene-id',
+    'name',
+    'original-name',
+    'original-symbol',
+    'sphinx-id',
+]
 
 # the attributes of gene query
 GENE_ATTRIBUTES = [
@@ -52,26 +67,21 @@ def check_gene_validity(gene, entry_type='id'):
         the type of gene identifier. default: 'id'
         supported:
             'acronym',
-            'alias-tags',
             'chromosome-id',
             'ensembl-id',
             'entrez-id',
-            'genomic-reference-update-id',
             'homologene-id',
             'id',
             'legacy-ensembl-gene-id',
             'name',
-            'organism-id',
             'original-name',
             'original-symbol',
-            'reference-genome-id',
             'sphinx-id',
-            'version-status'
 
     :return: boolean
         whether the gene is valid
     """
-    if entry_type not in GENE_ATTRIBUTES:
+    if entry_type not in GENE_ENTRY_TYPES:
         raise ValueError('entry_type {} is invalid'
                          .format(entry_type))
 
@@ -111,21 +121,16 @@ def get_gene_info(gene, entry_type='id', attributes='all'):
         the type of gene identifier. default: 'id'
         supported:
             'acronym',
-            'alias-tags',
             'chromosome-id',
             'ensembl-id',
             'entrez-id',
-            'genomic-reference-update-id',
             'homologene-id',
             'id',
             'legacy-ensembl-gene-id',
             'name',
-            'organism-id',
             'original-name',
             'original-symbol',
-            'reference-genome-id',
             'sphinx-id',
-            'version-status'
 
     :param attributes: str, or list, optional
         the attributes of the gene to return.
