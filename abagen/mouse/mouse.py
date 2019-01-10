@@ -501,11 +501,17 @@ def _get_single_gene_attribute(root, attr):
         return item.text
 
 
-def get_available_gene_list():
+def read_all_mouse_genes():
     """
-    find all available genes, in the form of acronym
+    find all available genes in mouse atlas in the form of acronyms
     :return: list of str
     """
-    pass
+    all_gene_acronyms = pd.read_csv(
+        "abagen/data/all_genes_available.csv"
+    )
+    return all_gene_acronyms['acronym'].values
+
+
+
 
 
