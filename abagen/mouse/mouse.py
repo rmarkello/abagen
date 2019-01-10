@@ -4,27 +4,15 @@ import requests
 from xml.etree import ElementTree as ET
 import numpy as np
 import pandas as pd
+from .gene import (check_gene_validity, 
+                   get_gene_info, 
+                   GENE_ENTRY_TYPES, 
+                   GENE_ATTRIBUTES)
+from .io import read_all_structures
 
-API_QUERY_STRING = 'http://api.brain-map.org/' \
-                   'api/v2/data/SectionDataSet/query.xml?'
-GENE_ATTRIBUTES = [
-    'acronym',
-    'alias-tags',
-    'chromosome-id',
-    'ensembl-id',
-    'entrez-id',
-    'genomic-reference-update-id',
-    'homologene-id',
-    'id',
-    'legacy-ensembl-gene-id',
-    'name',
-    'organism-id',
-    'original-name',
-    'original-symbol',
-    'reference-genome-id',
-    'sphinx-id',
-    'version-status'
-]
+API_QUERY_STRING = 'http://api.brain-map.org/api/v2/data/' \
+                   'SectionDataSet/query.xml?'
+
 
 UNIONIZATION_ATTRIBUTES = [
     'expression-density',
@@ -43,7 +31,7 @@ UNIONIZATION_ATTRIBUTES = [
 
 def get_unionization_from_experiment(
         experiment_id,
-        roi_list=None,
+        structure_list=None,
         attributes='all'
 ):
     """
@@ -53,9 +41,9 @@ def get_unionization_from_experiment(
     Parameters
     ----------
     experiment_id: int, specifying the experiment id
-    roi_list: a list of strings, optional
-        the list of ROIs in the form of acronyms.
-        default: ROIs as included in Rubinov et al, 2015
+    structure_list: a list of strings, optional
+        the list of structures in the form of acronyms.
+        default: structures as documented in Rubinov et al, 2015
     attributes: list, optional
         specify the unionization data attributes to include
         default: 'all'
@@ -83,16 +71,10 @@ def get_unionization_from_experiment(
         If experiment_id is invalid
     """
 
-    if roi_list is None:
-        # read default ROI list
-        # (see Rubinov et al, 2015 for the criteria of
-        # choosing the ROIs)
-        roilabels = pd.read_csv(
-            "abagen/data/roilabels-rubinov2015pnas.csv"
-        )
-        roi_list = roilabels['roiacronyms'].values
-
-    roi_count = len(roi_list)
+    if structure_list is None:
+        # read default structure list
+        # see Rubinov et al 2015 for more information
+        structure_list = read_all_structures()
 
     # make the query
     api_query_criteria = 'id={}'.format(experiment_id)
@@ -117,22 +99,22 @@ def get_unionization_from_experiment(
 
     if attributes == 'all':  # find all expression-relevant values
         for attr in GENE_ATTRIBUTES:
-            # find all items included in roi_list
+            # find all items included in structure_list
 
             unionization[attr] = _get_single_unionization_attribute(
-                root, attr, path_prefix, roi_list
+                root, attr, path_prefix, structure_list
             )
             
     # only one attribute is specified
     elif isinstance(attributes, str):
         return _get_single_unionization_attribute(
-                root, attributes, path_prefix, roi_list
+                root, attributes, path_prefix, structure_list
             )
     else:  # if multiple attributes are specified
         for attr in attributes:
             try:
                 unionization[attr] = _get_single_unionization_attribute(
-                root, attr, path_prefix, roi_list
+                root, attr, path_prefix, structure_list
             )
 
             except AttributeError:
@@ -143,7 +125,7 @@ def get_unionization_from_experiment(
     return unionization
 
 
-def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
+def _get_single_unionization_attribute(root, attr, path_prefix, structure_list):
     """
     return values of a single unionization attribute
     :param root:
@@ -152,13 +134,13 @@ def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
         the attribute to return
     :param path_prefix: str,
         specifying the path to find the attribute
-    :param roi_list:
+    :param structure_list:
         list of structures to include
     :return: numpy_array
         the values of attr corresponding to the
-        structures in roi_list
+        structures in structure_list
     """
-    roi_count = len(roi_list)
+    roi_count = len(structure_list)
     # if the attribute exists
     if not root.findall(path_prefix + attr):
         raise AttributeError(
@@ -169,7 +151,7 @@ def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
         for val_item, structure_item in zip(
             root.findall(path_prefix + attr),
             root.findall(path_prefix + 'structure/acronym')
-        ) if structure_item.text in roi_list
+        ) if structure_item.text in structure_list
     ]
 
     structures_in_the_list = [item[1] for item in all_items]
@@ -186,7 +168,7 @@ def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
             idx
             for idx, item
             in enumerate(structures_in_the_list)
-            if item == roi_list[k]
+            if item == structure_list[k]
         ]
         # if gene expressions are found in kth region
         if index:
@@ -195,7 +177,7 @@ def _get_single_unionization_attribute(root, attr, path_prefix, roi_list):
             print('No {0} values '
                   'are found for region {1}. '
                   'Set to NaN.'
-                  .format(attr, roi_list[k]))
+                  .format(attr, structure_list[k]))
 
     return vals
 
@@ -262,7 +244,7 @@ def get_experiment_id_from_gene(gene, slicing_direction='sagittal'):
 def get_unionization_from_gene(
         gene,
         slicing_direction='sagittal',
-        roi_list=None,
+        structure_list=None,
         attributes='all'
 ):
     """
@@ -277,7 +259,7 @@ def get_unionization_from_gene(
     slicing_direction: string, optional
         slicing scheme of the samples, 'sagittal' or 'coronal'.
         default: 'sagittal'
-    roi_list: a list of strings, optional
+    structure_list: a list of strings, optional
         the list of ROIs in the form of acronyms.
         default: ROIs as included in Rubinov et al, 2015
     attributes: list, optional
@@ -300,7 +282,7 @@ def get_unionization_from_gene(
     -------
     numpy_array or dict
         if a single attribute is given, return a (N, ) numpy_array
-        corresponding to the structures in roi_list
+        corresponding to the structures in structure_list
         if a list of attributes is given, return a dict
 
     """
@@ -314,15 +296,15 @@ def get_unionization_from_gene(
                          'Try sagittal or coronal instead'
                          .format(slicing_direction))
 
-    if roi_list is None:
+    if structure_list is None:
         # read default ROI list
         # (see Rubinov et al, 2015 for the criteria of
         # choosing the ROIs)
         roilabels = pd.read_csv(
             "abagen/data/roilabels-rubinov2015pnas.csv"
         )
-        roi_list = roilabels['roiacronyms'].values
-    roi_count = len(roi_list)
+        structure_list = roilabels['roiacronyms'].values
+    roi_count = len(structure_list)
 
     experiment_id_list = get_experiment_id_from_gene(
         gene, slicing_direction=slicing_direction
@@ -340,7 +322,7 @@ def get_unionization_from_gene(
                 try:
                     vals = get_unionization_from_experiment(
                             experiment_id,
-                            roi_list,
+                            structure_list,
                             attributes=attr
                         )
                 except AttributeError:
@@ -360,7 +342,7 @@ def get_unionization_from_gene(
         for experiment_id in experiment_id_list:
             vals = get_unionization_from_experiment(
                 experiment_id,
-                roi_list,
+                structure_list,
                 attributes=attributes
             )
             attr_vals = np.append(
@@ -500,16 +482,6 @@ def _get_single_gene_attribute(root, attr):
     else:  # attribute is a string
         return item.text
 
-
-def read_all_mouse_genes():
-    """
-    find all available genes in mouse atlas in the form of acronyms
-    :return: list of str
-    """
-    all_gene_acronyms = pd.read_csv(
-        "abagen/data/all_genes_available.csv"
-    )
-    return all_gene_acronyms['acronym'].values
 
 
 
