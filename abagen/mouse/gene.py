@@ -12,7 +12,7 @@ URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
 # information to include
 URL_INCLUDE = "&include=genes"
 
-# an alternative to make the query
+# an alternative to make the query, but has no type info
 #URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
 #             "query.xml?include=model::Gene"
 # restrain the queries to mouse (products ID=1)
@@ -196,12 +196,13 @@ def _get_single_gene_attribute(root, attr):
         the value of the attribute
     """
     item = root.find(
-        'ncbi-genes/ncbi-gene/{}'.format(attr)
+        'section-data-sets/section-data-set/'
+        'genes/gene/{}'.format(attr)
     )
     # check if attr is valid (if any information is found)
     if not item:
         raise AttributeError(
-            'There is no attribute called {}'.format(attr)
+            'There is no gene attribute called {}'.format(attr)
         )
 
     # check data type
