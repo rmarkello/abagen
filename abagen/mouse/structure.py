@@ -258,6 +258,9 @@ def _get_single_structure_attribute(root, attr):
         return int(item[0].text)
     except ValueError:
         return item[0].text
+    except AttributeError:
+        # has this attribute, but no value in the database
+        return None
 
 
 def get_structure_coordinates(
