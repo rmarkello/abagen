@@ -66,7 +66,7 @@ def test_get_structure_info():
             attributes='acronym'
         )
         # structure_info is str
-        assert structure_info == STRUCTURES_LIST_ACRONYM[sample]
+        assert structure_info[0] == STRUCTURES_LIST_ACRONYM[sample]
         structure_info = get_structure_info(
             acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes='id'
@@ -78,7 +78,7 @@ def test_get_structure_info():
             attributes='name'
         )
         # structure_info is str
-        assert structure_info == STRUCTURES_LIST_NAME[sample]
+        assert structure_info[0] == STRUCTURES_LIST_NAME[sample]
         # no such attribute, return an empty structure_info
         structure_info = get_structure_info(
             structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
@@ -97,15 +97,15 @@ def test_get_structure_info():
         structure_info = get_structure_info(
             structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
         )
-        assert structure_info['acronym'] == STRUCTURES_LIST_ACRONYM[sample]
-        assert structure_info['name'] == STRUCTURES_LIST_NAME[sample]
+        assert structure_info['acronym'][0] == STRUCTURES_LIST_ACRONYM[sample]
+        assert structure_info['name'][0] == STRUCTURES_LIST_NAME[sample]
         structure_info = get_structure_info(
             acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes=['id', 'name', RANDOM_STRING]
         )
         assert RANDOM_STRING not in structure_info
         assert structure_info['id'] == STRUCTURES_LIST_ID[sample]
-        assert structure_info['name'] == STRUCTURES_LIST_NAME[sample]
+        assert structure_info['name'][0] == STRUCTURES_LIST_NAME[sample]
 
     # exceptions: structure is invalid
     with pytest.raises(ValueError):
