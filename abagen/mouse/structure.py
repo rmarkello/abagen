@@ -20,9 +20,7 @@ URL_INCLUDE = ",structure_centers," \
 STRUCTURE_ENTRY_TYPES = [
     'acronym',
     'id',
-    'name',
-    'safe-name',
-    'sphinx-id',
+    'name'
 ]
 
 STRUCTURE_ATTRIBUTES = [
@@ -46,77 +44,88 @@ STRUCTURE_ATTRIBUTES = [
 ]
 
 
-def check_structure_validity(structure, entry_type='id'):
+def check_structure_validity(
+    structure_id=None,
+    acronym=None,
+    name=None,
+):
     """
-    check if a structure id or acronym is valid
-    :param structure: str or int
-        structure identifier, either an int (id, sphinx-id),
-        or a str (acronym, name, safe-name, etc.), specified
-        in entry_type.
-        recommend to use structure ID (int) or
-        acronym (str, case sensitive).
-    :param entry_type: str, optional
-        the type of structure identifier. default: 'id'
-        supported:
-            'acronym',
-            'id',
-            'name',
-            'safe-name',
-            'sphinx-id'
+    check if a structure is valid or has records in the database
+    Example
+    -------
+    # check if structure ID 1018 is valid
+    validity, root = check_structure_validity(id=1018)
+    # check if structure SSp is valid
+    validity, root = check_structure_validity(acronym='SSp')
 
-    :return: tuple or boolean
-        if the structure is invalid, return False
-        else return a tuple (True, obj)
-        where obj is the ET 'response' object to parse
+    Parameters
+    ----------
+    structure_id: int, optional
+        structure ID
+    acronym: str, optional
+        structure acronym (case sensitive)
+    name: str, optional
+        structure name (case sensitive)
+
+    Returns
+    -------
+    validity: boolean
+        if the structure has records in the database
+    root: obj,
+        ElementTree 'Response' object
+
+    Raises
+    ------
+    TypeError:
+        missing parameters
     """
-    if entry_type not in STRUCTURE_ENTRY_TYPES:
-        raise ValueError('entry_type {} is invalid'
-                         .format(entry_type))
-
-    # URL
-    if isinstance(structure, int):
+    # if structure ID is given
+    if structure_id is not None:
         query_url = URL_PREFIX + \
-                    "[{0}$eq{1}]".format(entry_type, structure) + \
-                    URL_INCLUDE
-    elif isinstance(structure, str):
+            "[id$eq{}]".format(structure_id) + \
+            URL_INCLUDE
+    elif acronym is not None:
         query_url = URL_PREFIX + \
-                    "[{0}$eq'{1}']".format(entry_type, structure) + \
-                    URL_INCLUDE
+            "[acronym$eq'{}']".format(acronym) + \
+            URL_INCLUDE
+    elif name is not None:
+        query_url = URL_PREFIX + \
+            "[name$eq'{}']".format(name) + \
+            URL_INCLUDE
     else:
-        raise ValueError('{} is an invalid structure identifier'
-                         .format(structure))
+        # if no input
+        raise TypeError(
+            "at least one structure identifier should be specified"
+        )
 
     print('accessing {}...'.format(query_url))
 
-    # make the query
     r = requests.get(query_url)
     root = ET.fromstring(r.content)
 
-    return (True, root) if root.text else False
+    return True, root if root.text else False, root
 
 
-def get_structure_info(structure, entry_type='id', attributes='all'):
+def get_structure_info(
+    structure_id=None,
+    acronym=None,
+    name=None,
+    attributes='all'
+):
     """
-    get structure attributes according to the identifier
-    (e.g., gene id or acronym)
-    :param structure: str or int
-        structure identifier, either an int (id, sphinx-id),
-        or a str (acronym, name, safe-name, etc.), specified
-        in entry_type.
-        recommend to use structure ID (int) or
-        acronym (str, case sensitive).
-    :param entry_type: str, optional
-        the type of structure identifier. default: 'id'
-        supported:
-            'acronym',
-            'id',
-            'name',
-            'safe-name',
-            'sphinx-id'
-    :param attributes: str, or list, optional
-        the attributes of the structure to return.
-        default:'all', returning the values of all structure attributes.
-        supported:
+    get attributes of a structure
+    Parameters
+    ----------
+    structure_id: int, optional
+        structure ID
+    acronym: str, optional
+        structure acronym (case sensitive)
+    name: str, optional
+        structure name (case sensitive)
+    attributes: str or list, optional
+        a single attribute or a list of attributes
+        default: 'all', returning all the attributes
+        available attributes:
             'acronym',
             'atlas-id',
             'color-hex-triplet',
@@ -135,32 +144,42 @@ def get_structure_info(structure, entry_type='id', attributes='all'):
             'structure-id-path',
             'weight'
 
-    :return: int, str or dict
-        can be integer (id, hemisphere-id, parent-structure-id,
-        etc.), or str (name, acronym, etc.) if only one attribute
-        is specified, or dict {attribute:value} if multiple attributes
-        are given
+    Returns
+    -------
+    structure_info: int, str, or dict
+        if a single attribute is given, return int or str
+        if multiple attributes are given, return a dict
 
+    Raises
+    ------
+    ValueError:
+        the structure given is invalid
     """
-    check_structure = check_structure_validity(
-        structure, entry_type
+    validity, root = check_structure_validity(
+        structure_id=structure_id, acronym=acronym, name=name
     )
 
-    if len(check_structure) == 1:
-        raise ValueError('{0} {1} is invalid'
-                         .format(entry_type, structure))
-
-    # the object to parse
-    root = check_structure[1]
+    if validity is False:
+        raise ValueError('the structure given is invalid')
 
     if attributes == 'all':
         attr_list = STRUCTURE_ATTRIBUTES
-    elif isinstance(attributes, list):
+    else:
         attr_list = attributes
 
     structure_info = dict()
 
-    if attributes == 'all' or isinstance(attributes, list):
+    if isinstance(attr_list, str):
+        # attr_list is a str (single attribute)
+        # return the single attr value, or AttributeError
+        try:
+            return _get_single_structure_attribute(root, attr_list)
+        except AttributeError:
+            print('There is no attribute called {}. '
+                  .format(attr_list))
+            # then return an empty dict...
+    else:
+        # iterate through the attributes
         for attr in attr_list:
             try:
                 # extract the info of attr
@@ -172,14 +191,23 @@ def get_structure_info(structure, entry_type='id', attributes='all'):
                       'Skipped.'.format(attr))
                 continue
 
-    else:  # single attribute is given
-        # return the single attr value, or AttributeError
-        return _get_single_structure_attribute(root, attributes)
-
     return structure_info
 
 
 def _get_single_structure_attribute(root, attr):
+    """
+    return single attribute of a structure.
+
+    Parameters
+    ----------
+    root: obj, ElementTree obj
+    attr: str
+        the attribute to return
+
+    Returns
+    -------
+    int or str, the value of structure's attr
+    """
     item = root.find(
         'structures/structure/{}'
         .format(attr)
@@ -198,36 +226,47 @@ def _get_single_structure_attribute(root, attr):
         return item.text
 
 
-def get_structure_coordinates(structure, entry_type=id):
+def get_structure_coordinates(
+    structure_id=None,
+    acronym=None,
+    name=None
+):
     """
-    get structure coordinates in reference atlas
-    :param structure: str or int
-        structure identifier, either an int (id, sphinx-id),
-        or a str (acronym, name, safe-name, etc.), specified
-        in entry_type.
-        recommend to use structure ID (int) or
-        acronym (str, case sensitive).
-    :param entry_type: str, optional
-        the type of structure identifier. default: 'id'
-        supported:
-            'acronym',
-            'id',
-            'name',
-            'safe-name',
-            'sphinx-id'
-    :return: coor: list of (3, ) tuples
-        left and right hemisphere coordinates [(x, y, z), (x, y, z)]
+    get structure coordinates in reference atlas.
+
+    Examples
+    --------
+    # get the coordinates of structure ID 1018
+    coor = get_structure_coordinates(structure_id=1018)
+    # get the coordinates of structure acronym SSp
+    coor = get_structure_coordinates(acronym='SSp')
+
+    Parameters
+    ----------
+    structure_id: int, optional
+        structure ID
+    acronym: str, optional
+        structure acronym (case sensitive)
+    name: str, optional
+        structure name (case sensitive)
+
+    Returns
+    -------
+    coor: list
+        a list of (3, ) tuples specifying (x, y, z) position
+        if len(list) == 2, coor[0] is left hemisphere
+        and coor[1] is right hemisphere
+
     """
-    check_structure = check_structure_validity(
-        structure, entry_type
+
+    validity, root = check_structure = check_structure_validity(
+        structure_id=structure_id,
+        acronym=acronym,
+        name=name
     )
 
-    if len(check_structure) == 1:
-        raise ValueError('{0} {1} is invalid'
-                         .format(entry_type, structure))
-
-    # the object to parse
-    root = check_structure[1]
+    if validity is False:
+        raise ValueError('the structure given is invalid')
 
     coor = []
     for item in root.findall(
@@ -241,5 +280,8 @@ def get_structure_coordinates(structure, entry_type=id):
                 int(item.find('z').text)
             )
         )
+
+    if len(coor) == 0:
+        print('No coordinates information is found')
 
     return coor
