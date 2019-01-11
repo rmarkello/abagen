@@ -258,7 +258,7 @@ def _get_single_structure_attribute(root, attr):
         return int(item[0].text)
     except ValueError:
         return item[0].text
-    except AttributeError:
+    except TypeError:
         # has this attribute, but no value in the database
         return None
 
