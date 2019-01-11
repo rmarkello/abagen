@@ -9,10 +9,13 @@ import requests
 from xml.etree import ElementTree as ET
 
 URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
-             "query.xml?include=model::Structure"
-
-URL_INCLUDE = ",structure_centers," \
-              "ontology[abbreviation$eq'Mouse']"
+    "query.xml?include=model::Structure"
+# Allen mouse atlas
+URL_INCLUDE_MOUSE = ",structure_centers," \
+    "ontology[id$eq1]"
+# Allen developing mouse atlas
+URL_INCLUDE_DEV_MOUSE = ",structure_centers," \
+    "ontology[id$eq12]"
 # for more available attributes, see
 # http://api.brain-map.org/doc/Structure.html
 # more attributes to be incorporated
@@ -71,8 +74,10 @@ def check_structure_validity(
     -------
     validity: boolean
         if the structure has records in the database
-    root: obj,
-        ElementTree 'Response' object
+    root_mouse: obj,
+        Element 'Response' object, empty if query fails
+    root_dev_mouse: obj
+        Element 'Response' object, empty if query fails
 
     Raises
     ------
@@ -80,30 +85,48 @@ def check_structure_validity(
         missing parameters
     """
     # if structure ID is given
+    # preferred: id > acronym > name
     if structure_id is not None:
-        query_url = URL_PREFIX + \
+        query_url_mouse = URL_PREFIX + \
             "[id$eq{}]".format(structure_id) + \
-            URL_INCLUDE
+            URL_INCLUDE_MOUSE
+        query_url_dev_mouse = URL_PREFIX + \
+            "[id$eq{}]".format(structure_id) + \
+            URL_INCLUDE_DEV_MOUSE
+    # then if acronym is given
     elif acronym is not None:
-        query_url = URL_PREFIX + \
+        query_url_mouse = URL_PREFIX + \
             "[acronym$eq'{}']".format(acronym) + \
-            URL_INCLUDE
+            URL_INCLUDE_MOUSE
+        query_url_dev_mouse = URL_PREFIX + \
+            "[acronym$eq'{}']".format(acronym) + \
+            URL_INCLUDE_DEV_MOUSE
+    # then if name is given
     elif name is not None:
-        query_url = URL_PREFIX + \
+        query_url_mouse = URL_PREFIX + \
             "[name$eq'{}']".format(name) + \
-            URL_INCLUDE
+            URL_INCLUDE_MOUSE
+        query_url_dev_mouse = URL_PREFIX + \
+            "[name$eq'{}']".format(name) + \
+            URL_INCLUDE_DEV_MOUSE
     else:
         # if no input
         raise TypeError(
             "at least one structure identifier should be specified"
         )
 
-    print('accessing {}...'.format(query_url))
+    print('accessing {}...'.format(query_url_mouse))
 
-    r = requests.get(query_url)
-    root = ET.fromstring(r.content)
+    r_mouse = requests.get(query_url_mouse)
+    root_mouse = ET.fromstring(r_mouse.content)
 
-    return True, root if root.text else False, root
+    r_dev_mouse = requests.get(query_url_dev_mouse)
+    root_dev_mouse = ET.fromstring(r_dev_mouse.content)
+
+    if root_mouse.text or root_dev_mouse.text:
+        return True, root_mouse, root_dev_mouse
+    else:
+        return False, root_mouse, root_dev_mouse
 
 
 def get_structure_info(
@@ -146,16 +169,19 @@ def get_structure_info(
 
     Returns
     -------
-    structure_info: int, str, or dict
-        if a single attribute is given, return int or str
+    structure_info: list or dict
+        if a single attribute is given, return a list of values
+        (int or str) of that attribute acquired from mouse atlas and
+        developing mouse atlas
         if multiple attributes are given, return a dict
+        {attr:values}. attr is str (attribute) and values is list
 
     Raises
     ------
     ValueError:
         the structure given is invalid
     """
-    validity, root = check_structure_validity(
+    validity, root1, root2 = check_structure_validity(
         structure_id=structure_id, acronym=acronym, name=name
     )
 
@@ -167,25 +193,31 @@ def get_structure_info(
     else:
         attr_list = attributes
 
-    structure_info = dict()
-
     if isinstance(attr_list, str):
         # attr_list is a str (single attribute)
         # return the single attr value, or AttributeError
         try:
-            return _get_single_structure_attribute(root, attr_list)
+            structure_info = [
+                _get_single_structure_attribute(root, attr_list)
+                for root in [root1, root2]
+                if root.text
+            ]
+            return structure_info
         except AttributeError:
             print('There is no attribute called {}. '
                   .format(attr_list))
             # then return an empty dict...
     else:
+        structure_info = dict()
         # iterate through the attributes
         for attr in attr_list:
             try:
                 # extract the info of attr
-                structure_info[attr] = _get_single_structure_attribute(
-                    root, attr
-                )
+                structure_info[attr] = [
+                    _get_single_structure_attribute(root, attr_list)
+                    for root in [root1, root2]
+                    if root.text
+                ]
             except AttributeError:
                 print('There is no attribute called {}. '
                       'Skipped.'.format(attr))
@@ -200,7 +232,7 @@ def _get_single_structure_attribute(root, attr):
 
     Parameters
     ----------
-    root: obj, ElementTree obj
+    root: obj, Element 'Response'
     attr: str
         the attribute to return
 
@@ -238,8 +270,16 @@ def get_structure_coordinates(
     --------
     # get the coordinates of structure ID 1018
     coor = get_structure_coordinates(structure_id=1018)
+    # if the structure has records in mouse brain atlas
+    # coordinates in space with reference id 10
+    # (Mouse brain atlas left hemisphere)
+    coordinates = coor[10]
+    # coordinates in space with reference id 9
+    # (Mouse brain atlas right hemisphere)
+    coordinates = coor[9]
     # get the coordinates of structure acronym SSp
-    coor = get_structure_coordinates(acronym='SSp')
+    coor = get_structure_coordinates(acronym='CA')
+    coor
 
     Parameters
     ----------
@@ -252,14 +292,11 @@ def get_structure_coordinates(
 
     Returns
     -------
-    coor: list
-        a list of (3, ) tuples specifying (x, y, z) position
-        if len(list) == 2, coor[0] is left hemisphere
-        and coor[1] is right hemisphere
-
+    coor: dict {int: list of (3, } tuple}
+        {reference-space-id:[(x, y, z)]}
     """
 
-    validity, root = check_structure = check_structure_validity(
+    validity, root1, root2 = check_structure_validity(
         structure_id=structure_id,
         acronym=acronym,
         name=name
@@ -268,18 +305,35 @@ def get_structure_coordinates(
     if validity is False:
         raise ValueError('the structure given is invalid')
 
-    coor = []
-    for item in root.findall(
-            'structures/structure/'
-            'structure-centers/structure-center'
-    ):
-        coor.append(
-            (
-                int(item.find('x').text),
-                int(item.find('y').text),
-                int(item.find('z').text)
-            )
-        )
+    coor = dict()
+    # find coor in mouse atlas and developing mouse atlas
+    # in the form {reference-space-id:(x, y, z)}
+    for root in [root1, root2]:
+        if root.text:  # if root is not empty
+            for item in root.findall(
+                    'structures/structure/'
+                    'structure-centers/structure-center'
+            ):
+                reference_atlas_id = int(
+                    item.find('reference-space-id').text
+                )
+                if reference_atlas_id in coor:
+                    # append a tuple (x, y, z)
+                    coor[reference_atlas_id].append(
+                        (
+                            int(item.find('x').text),
+                            int(item.find('y').text),
+                            int(item.find('z').text)
+                        )
+                    )
+                else:  # create a new list for reference_atlas_id
+                    coor[reference_atlas_id] = [
+                        (
+                            int(item.find('x').text),
+                            int(item.find('y').text),
+                            int(item.find('z').text)
+                        )
+                    ]
 
     if len(coor) == 0:
         print('No coordinates information is found')
