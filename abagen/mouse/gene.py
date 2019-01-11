@@ -11,7 +11,7 @@ URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
              "SectionDataSet/query.xml?" \
              "criteria=products[id$eq1],"
 # information to include
-URL_INCLUDE = "&include=genes"
+URL_INCLUDE = "&include=genes,plane_of_section"
 
 # #an alternative to make the query, but has no type info
 # URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
