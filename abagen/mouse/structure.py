@@ -116,17 +116,19 @@ def check_structure_validity(
         )
 
     print('accessing {}...'.format(query_url_mouse))
-
     r_mouse = requests.get(query_url_mouse)
     root_mouse = ET.fromstring(r_mouse.content)
 
+    print('accessing {}...'.format(query_url_dev_mouse))
     r_dev_mouse = requests.get(query_url_dev_mouse)
     root_dev_mouse = ET.fromstring(r_dev_mouse.content)
 
-    if root_mouse.text or root_dev_mouse.text:
-        return True, root_mouse, root_dev_mouse
-    else:
+    # both are empty
+    if root_mouse.attrib['total_rows'] == '0' \
+            and root_dev_mouse.attrib['total_rows'] == '0':
         return False, root_mouse, root_dev_mouse
+    else:  # at least one success
+        return True, root_mouse, root_dev_mouse
 
 
 def get_structure_info(
@@ -200,7 +202,7 @@ def get_structure_info(
             structure_info = [
                 _get_single_structure_attribute(root, attr_list)
                 for root in [root1, root2]
-                if root.text
+                if root.attrib['total_rows'] != '0'
             ]
             return structure_info
         except AttributeError:
@@ -216,7 +218,7 @@ def get_structure_info(
                 structure_info[attr] = [
                     _get_single_structure_attribute(root, attr)
                     for root in [root1, root2]
-                    if root.text
+                    if root.attrib['total_rows'] != '0'
                 ]
             except AttributeError:
                 print('There is no attribute called {}. '
