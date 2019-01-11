@@ -43,15 +43,15 @@ def test_check_structure_validity():
         )
         assert validity is True
 
-    # exceptions: structure id is invalid
-    with pytest.raises(ValueError):
-        check_structure_validity(structure_id=RANDOM_ID)
-    # exceptions: structure acronym is invalid
-    with pytest.raises(ValueError):
-        check_structure_validity(acronym=RANDOM_STRING)
-    # exceptions: structure id is invalid
-    with pytest.raises(ValueError):
-        check_structure_validity(name=RANDOM_STRING)
+    # structure id is invalid
+    validity, _, _ = check_structure_validity(
+        structure_id=RANDOM_ID
+    )
+    assert validity is False
+    validity, _, _ = check_structure_validity(
+        acronym=RANDOM_STRING
+    )
+    assert validity is False
 
 
 def test_get_structure_info():
