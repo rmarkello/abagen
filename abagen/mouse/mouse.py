@@ -279,7 +279,7 @@ def get_experiment_id_from_gene(
             root.findall(
                 'section-data-sets/section-data-set/id'
             ), root.findall(
-                'section-data-sets/section-data-set/plane_of_section/name'
+                'section-data-sets/section-data-set/plane-of-section/name'
             )
         ) if plane_of_section.text == slicing_direction
     ]
