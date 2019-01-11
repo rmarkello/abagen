@@ -311,7 +311,7 @@ def get_structure_coordinates(
     # find coor in mouse atlas and developing mouse atlas
     # in the form {reference-space-id:(x, y, z)}
     for root in [root1, root2]:
-        if root.text:  # if root is not empty
+        if root.attrib['total_rows'] != '0':  # if root is not empty
             for item in root.findall(
                     'structures/structure/'
                     'structure-centers/structure-center'
