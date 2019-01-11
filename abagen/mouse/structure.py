@@ -206,7 +206,7 @@ def get_structure_info(
         except AttributeError:
             print('There is no attribute called {}. '
                   .format(attr_list))
-            # then return an empty dict...
+            return []
     else:
         structure_info = dict()
         # iterate through the attributes
@@ -214,7 +214,7 @@ def get_structure_info(
             try:
                 # extract the info of attr
                 structure_info[attr] = [
-                    _get_single_structure_attribute(root, attr_list)
+                    _get_single_structure_attribute(root, attr)
                     for root in [root1, root2]
                     if root.text
                 ]
