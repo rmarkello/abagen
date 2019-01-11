@@ -13,11 +13,11 @@ URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
 # information to include
 URL_INCLUDE = "&include=genes"
 
-# an alternative to make the query, but has no type info
-#URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
+# #an alternative to make the query, but has no type info
+# URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
 #             "query.xml?include=model::Gene"
-# restrain the queries to mouse (products ID=1)
-#URL_INCLUDE = ",products[id$eq1]"
+# #restrain the queries to mouse (products ID=1)
+# URL_INCLUDE = ",products[id$eq1]"
 
 GENE_ENTRY_TYPES = [
     'acronym',
@@ -54,88 +54,96 @@ GENE_ATTRIBUTES = [
 ]
 
 
-def check_gene_validity(gene, entry_type='id'):
+def check_gene_validity(gene_id=None, acronym=None, name=None):
     """
-    check if a gene is valid.
-    :param gene: str or int
-        gene identifier, either an int (id, entrez-id, chromosome-id,
-        etc.), or a str (acronym, name, alias-tags, etc.), specified
-        in entry_type.
-        if acronym is given, it should be capitalized.
-        recommend to use gene ID (int) or gene acronym (str).
-    :param entry_type: str, optional
-        the type of gene identifier. default: 'id'
-        supported:
-            'acronym',
-            'chromosome-id',
-            'ensembl-id',
-            'entrez-id',
-            'homologene-id',
-            'id',
-            'legacy-ensembl-gene-id',
-            'name',
-            'original-name',
-            'original-symbol',
-            'sphinx-id',
+    check if a structure is valid or has records in the database
+    Example
+    -------
+    # check if gene ID 18376 is valid
+    validity, root = check_structure_validity(gene_id=18376)
+    # check if structure Pdyn is valid
+    validity, root = check_structure_validity(acronym='Pdyn')
 
-    :return: boolean
-        whether the gene is valid
+    Parameters
+    ----------
+    gene_id: int, optional
+        gene ID
+    acronym: str, optional
+        gene acronym (case sensitive)
+    name: str, optional
+        gene name (case sensitive)
+
+    Returns
+    -------
+    validity: boolean
+        if the gene has records in the database
+    root: obj,
+        Element 'Response' object, empty if query fails
+
+    Raises
+    ------
+    TypeError:
+        missing parameters
     """
-    if entry_type not in GENE_ENTRY_TYPES:
-        raise ValueError('entry_type {} is invalid'
-                         .format(entry_type))
-
-    # URL
-    if isinstance(gene, int):
+    # if gene ID is given
+    # preferred: id > acronym > name
+    if gene_id is not None:
         query_url = URL_PREFIX + \
-            "genes[{0}$eq{1}]".format(entry_type, gene) + \
+            "genes[id$eq{}]".format(gene_id) + \
             URL_INCLUDE
-    elif isinstance(gene, str):
+    elif acronym is not None:
         query_url = URL_PREFIX + \
-            "genes[{0}$eq'{1}']".format(entry_type, gene) + \
+            "genes[acronym$eq'{}']".format(acronym) + \
+            URL_INCLUDE
+    elif name is not None:
+        query_url = URL_PREFIX + \
+            "genes[name$eq'{}']".format(name) + \
             URL_INCLUDE
     else:
-        raise ValueError('{} is an invalid gene identifier'
-                         .format(gene))
-
-    print('accessing {}...'.format(query_url))
-
+        raise TypeError(
+            "at least one gene identifier should be specified"
+        )
     # make the query
+    print("access {}...".format(query_url))
     r = requests.get(query_url)
     root = ET.fromstring(r.content)
 
-    return (True, root) if root.text else False
+    if root.attrib['total_rows'] != '0':  # successful
+        return True, root
+    else:
+        return False, root
 
 
-def get_gene_info(gene, entry_type='id', attributes='all'):
+def get_gene_info(gene_id=None, acronym=None, name=None, attributes='all'):
     """
-    get gene attributes according to the identifier
-    (e.g., gene id or acronym)
+    get attributes of a gene
 
-    :param gene: int or str
-        gene identifier, either an ID (id, entrez-id, chromosome-id,
-        etc.), or a name (acronym, name, alias-tags, etc.), specified
-        in entry_type.
-        if acronym is given, it should be capitalized.
-    :param entry_type: str, optional
-        the type of gene identifier. default: 'id'
-        supported:
-            'acronym',
-            'chromosome-id',
-            'ensembl-id',
-            'entrez-id',
-            'homologene-id',
-            'id',
-            'legacy-ensembl-gene-id',
-            'name',
-            'original-name',
-            'original-symbol',
-            'sphinx-id',
+    Examples
+    --------
+    # get gene name according to gene name 'Pdyn'
+    gene_name = get_gene_info(acronym='Pdyn', attributes='name')
+    # get gene acronym according to gene id 18376
+    gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
 
-    :param attributes: str, or list, optional
-        the attributes of the gene to return.
-        default:'all', returning the value of all gene attributes.
-        supported:
+    # multiple attributes
+    gene_info = get_gene_info(
+        gene_id=18376, attributes=['acronym', 'name']
+    )
+    # gene name
+    gene_info['name']
+
+    Parameters
+    ----------
+    gene_id: int, optional
+        gene ID
+    acronym: str, optional
+        gene acronym (case sensitive)
+    name: str, optional
+        gene name (case sensitive)
+    attributes: str or list, optional
+        a single attribute or a list of attributes
+        default: 'all', returning all the attributes
+        available attributes:
             'acronym',
             'alias-tags',
             'chromosome-id',
@@ -153,26 +161,35 @@ def get_gene_info(gene, entry_type='id', attributes='all'):
             'sphinx-id',
             'version-status'
 
-    :return: int, str or dict
-        can be integer (id, entrez-id, chromosome-id, etc.), or
-        str (name, acronym, etc.), if only one attribute is specified
-        or dict {attribute:value} if multiple attributes are given
-    """
-    if check_gene_validity(gene, entry_type) is False:
-        raise ValueError('{0} {1} is invalid'
-                         .format(entry_type, gene))
+    Returns
+    -------
+    gene_info: int, str or dict
+        if a single attribute is given, return an int or str
+        if multiple attributes are given, return a dict
+        {attr:value}. attr is str (attribute) and value is str or int
 
-    else:
-        _, root = check_gene_validity(gene, entry_type)
+    Raises
+    ------
+    ValueError:
+        the gene given is invalid
+    AttributeError:
+        only one attribute is given, and it is invalid
+    """
+    validity, root = check_gene_validity(
+        gene_id=gene_id, acronym=acronym, name=name
+    )
+    if validity is False:
+        raise ValueError('The gene is invalid. '
+                         'Try another gene.')
 
     # if the query was successful
     if attributes == 'all':
         attr_list = GENE_ATTRIBUTES
-    elif isinstance(attributes, list):
+    else:
         attr_list = attributes
 
-    gene_info = dict()
-    if attributes == 'all' or isinstance(attributes, list):
+    if isinstance(attr_list, list):
+        gene_info = dict()
         for attr in attr_list:
             try:
                 # extract the info of attr
@@ -185,7 +202,7 @@ def get_gene_info(gene, entry_type='id', attributes='all'):
                 continue
 
     else:  # single attribute is given
-        # return the single attr value, or AttributeError
+        # return the single attr value, or raise AttributeError
         return _get_single_gene_attribute(root, attributes)
 
     return gene_info
@@ -200,21 +217,24 @@ def _get_single_gene_attribute(root, attr):
     :return: str or int,
         the value of the attribute
     """
-    item = root.find(
+    item = root.findall(
         'section-data-sets/section-data-set/'
         'genes/gene/{}'.format(attr)
     )
     # check if attr is valid (if any information is found)
-    if not item:
+    if len(item) == 0:
         raise AttributeError(
             'There is no gene attribute called {}'.format(attr)
         )
 
     # check data type
     # attr is an integer
-    if 'type' in item.attrib \
-            and item.attrib['type'] == 'integer':
-        return int(item.text)
-    else:
-        # attr is a string
-        return item.text
+    try:
+        return int(item[0].text)
+    except ValueError:
+        return item[0].text
+    except TypeError:
+        # the attribute exists, but has no value
+        return None
+
+
