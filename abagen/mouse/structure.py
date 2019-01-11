@@ -57,9 +57,9 @@ def check_structure_validity(
     Example
     -------
     # check if structure ID 1018 is valid
-    validity, root = check_structure_validity(id=1018)
+    validity, _, _ = check_structure_validity(structure_id=1018)
     # check if structure SSp is valid
-    validity, root = check_structure_validity(acronym='SSp')
+    validity, _, _ = check_structure_validity(acronym='SSp')
 
     Parameters
     ----------
