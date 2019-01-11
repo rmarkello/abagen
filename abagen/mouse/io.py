@@ -42,4 +42,8 @@ def read_all_structures(entry_type='acronym'):
     roilabels = pd.read_csv(
         "abagen/data/roilabels-rubinov2015pnas.csv"
     )
+    if entry_type == 'id':  # turn string to list
+        return [
+            eval(item) for item in roilabels[entry_type].values
+        ]
     return roilabels[entry_type].values
