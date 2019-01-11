@@ -123,13 +123,13 @@ def test_get_structure_center():
     coor = get_structure_coordinates(
         structure_id=TEST_COOR_STRUCTURE_ID
     )
-    # coor is a list
-    assert coor[0] == COOR_ID[0] and coor[1] == COOR_ID[1]
+    # coor is a dict, coor[10] (right) or coor[9] (left) is a list
+    assert coor[10][0] == COOR_ID[0] and coor[9][0] == COOR_ID[1]
 
     coor = get_structure_coordinates(
         acronym='SSp',
     )
-    assert coor[0] == COOR_ACRONYM[0] and coor[1] == COOR_ACRONYM[1]
+    assert coor[10][0] == COOR_ACRONYM[0] and coor[9][0] == COOR_ACRONYM[1]
 
     # exception: structure is invalid
     with pytest.raises(ValueError):
