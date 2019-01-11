@@ -28,17 +28,17 @@ TEST_SAMPLES = random.sample(
 def test_check_structure_validity():
     for sample in TEST_SAMPLES:
         # acronym is given
-        validity, root = check_structure_validity(
+        validity, root1, roo2 = check_structure_validity(
             acronym=STRUCTURES_LIST_ACRONYM[sample]
         )
         assert validity is True
         # structure id is given
-        validity, root = check_structure_validity(
+        validity, root1, root2 = check_structure_validity(
             structure_id=STRUCTURES_LIST_ID[sample]
         )
         assert validity is True
         # structure name is given
-        validity, root = check_structure_validity(
+        validity, root1, root2 = check_structure_validity(
             name=STRUCTURES_LIST_NAME[sample]
         )
         assert validity is True
@@ -117,7 +117,7 @@ def test_get_structure_info():
 
 def test_get_structure_center():
     coor = get_structure_coordinates(
-        structure_id=TEST_COOR_STRUCTURE_ID,
+        structure_id=TEST_COOR_STRUCTURE_ID
     )
     # coor is a list
     assert coor[0] == COOR_ID[0] and coor[1] == COOR_ID[1]
