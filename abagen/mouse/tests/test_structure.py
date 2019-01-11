@@ -28,13 +28,13 @@ TEST_SAMPLES = random.sample(
 def test_check_structure_validity():
     for sample in TEST_SAMPLES:
         # acronym is given
-        validity, root1, roo2 = check_structure_validity(
+        validity, root1, root2 = check_structure_validity(
             acronym=STRUCTURES_LIST_ACRONYM[sample]
         )
         assert validity is True
         # structure id is given
         validity, root1, root2 = check_structure_validity(
-            structure_id=STRUCTURES_LIST_ID[sample]
+            structure_id=random.choice(STRUCTURES_LIST_ID[sample])
         )
         assert validity is True
         # structure name is given
