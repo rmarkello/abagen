@@ -5,7 +5,7 @@ functions to read default mouse gene list and structure list
 import pandas as pd
 
 
-def read_all_genes(entry_type='acronym'):
+def read_all_genes(entry_type='id'):
     """
     read all available gene acronyms
     that have section data sets available
@@ -25,7 +25,7 @@ def read_all_genes(entry_type='acronym'):
     return all_gene_acronyms[entry_type].values
 
 
-def read_all_structures(entry_type='acronym'):
+def read_all_structures(entry_type='id'):
     """
     read default structure (ROI) acronyms as documented in
     Rubinov et al, 2015
