@@ -6,7 +6,7 @@ import random
 from ..io import read_all_structures
 
 # number of tests to make
-TEST_COUNT = 3
+TEST_COUNT = 10
 STRUCTURES_LIST_ACRONYM = read_all_structures(entry_type='acronym')
 STRUCTURES_LIST_ID = read_all_structures(entry_type='id')
 STRUCTURES_LIST_NAME = read_all_structures(entry_type='name')
@@ -34,10 +34,12 @@ def test_check_structure_validity():
         assert validity is True
         # structure id is given
         validity, root1, root2 = check_structure_validity(
-            structure_id=random.choice(STRUCTURES_LIST_ID[sample])
+            structure_id=STRUCTURES_LIST_ID[sample]
         )
         assert validity is True
         # structure name is given
+        # sometimes may fail as the string may contain white spaces
+        # ... not recommended
         validity, root1, root2 = check_structure_validity(
             name=STRUCTURES_LIST_NAME[sample]
         )
@@ -62,7 +64,7 @@ def test_get_structure_info():
     for sample in TEST_SAMPLES:
         # single attribute
         structure_info = get_structure_info(
-            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
+            structure_id=STRUCTURES_LIST_ID[sample],
             attributes='acronym'
         )
         # structure_info is str
@@ -72,16 +74,17 @@ def test_get_structure_info():
             attributes='id'
         )
         # structure_info is list of int
-        assert structure_info == STRUCTURES_LIST_ID[sample]
+        # acronym is not unique
+        assert STRUCTURES_LIST_ID[sample] in structure_info
         structure_info = get_structure_info(
-            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
+            structure_id=STRUCTURES_LIST_ID[sample],
             attributes='name'
         )
         # structure_info is str
         assert structure_info[0] == STRUCTURES_LIST_NAME[sample]
         # no such attribute, return an empty structure_info
         structure_info = get_structure_info(
-            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
+            structure_id=STRUCTURES_LIST_ID[sample],
             attributes=RANDOM_STRING
         )
         # structure_info is str
@@ -95,17 +98,15 @@ def test_get_structure_info():
         # multiple attributes
         # attributes = 'all'
         structure_info = get_structure_info(
-            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
+            structure_id=STRUCTURES_LIST_ID[sample],
         )
         assert structure_info['acronym'][0] == STRUCTURES_LIST_ACRONYM[sample]
-        assert structure_info['name'][0] == STRUCTURES_LIST_NAME[sample]
         structure_info = get_structure_info(
             acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes=['id', 'name', RANDOM_STRING]
         )
         assert RANDOM_STRING not in structure_info
-        assert structure_info['id'] == STRUCTURES_LIST_ID[sample]
-        assert structure_info['name'][0] == STRUCTURES_LIST_NAME[sample]
+        assert STRUCTURES_LIST_ID[sample] in structure_info['id']
 
     # exceptions: structure is invalid
     with pytest.raises(ValueError):
