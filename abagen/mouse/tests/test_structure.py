@@ -6,7 +6,7 @@ import random
 from ..io import read_all_structures
 
 # number of tests to make
-TEST_COUNT = 10
+TEST_COUNT = 3
 STRUCTURES_LIST_ACRONYM = read_all_structures(entry_type='acronym')
 STRUCTURES_LIST_ID = read_all_structures(entry_type='id')
 STRUCTURES_LIST_NAME = read_all_structures(entry_type='name')
@@ -62,7 +62,7 @@ def test_get_structure_info():
     for sample in TEST_SAMPLES:
         # single attribute
         structure_info = get_structure_info(
-            structure_id=STRUCTURES_LIST_ID[sample],
+            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
             attributes='acronym'
         )
         # structure_info is str
@@ -71,17 +71,17 @@ def test_get_structure_info():
             acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes='id'
         )
-        # structure_infor is int
+        # structure_info is list of int
         assert structure_info == STRUCTURES_LIST_ID[sample]
         structure_info = get_structure_info(
-            structure_id=STRUCTURES_LIST_ID[sample],
+            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
             attributes='name'
         )
         # structure_info is str
         assert structure_info == STRUCTURES_LIST_NAME[sample]
         # no such attribute, return an empty structure_info
         structure_info = get_structure_info(
-            structure_id=STRUCTURES_LIST_ID[sample],
+            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
             attributes=RANDOM_STRING
         )
         # structure_info is str
@@ -95,7 +95,7 @@ def test_get_structure_info():
         # multiple attributes
         # attributes = 'all'
         structure_info = get_structure_info(
-            structure_id=STRUCTURES_LIST_ID[sample],
+            structure_id=random.choice(STRUCTURES_LIST_ID[sample]),
         )
         assert structure_info['acronym'] == STRUCTURES_LIST_ACRONYM[sample]
         assert structure_info['name'] == STRUCTURES_LIST_NAME[sample]
