@@ -3,11 +3,11 @@ PTLp,Posterior parietal association areas,[22]
 ACA,Anterior cingulate area,[31]
 ILA,Infralimbic area,[44]
 AI,Agranular insular area,[95]
-AOB,Accessory olfactory bulb,[  151 15957]
+AOB,Accessory olfactory bulb,"[151, 15957]"
 AON,Anterior olfactory nucleus,[159]
-RSP,Retrosplenial area,[  254 15568]
+RSP,Retrosplenial area,"[254, 15568]"
 SSp,Primary somatosensory area,[322]
-CA,Ammon's horn,[  375 16124]
+CA,Ammon's horn,"[375, 16124]"
 SSs,Supplemental somatosensory area,[378]
 VISp,Primary visual area,[385]
 VISam,Anteromedial visual area,[394]
@@ -23,7 +23,7 @@ COA,Cortical amygdalar area,[631]
 VISC,Visceral area,[677]
 CTXsp,Cortical subplate,[703]
 ORB,Orbital area,[714]
-DG,Dentate gyrus,[  726 16115]
+DG,Dentate gyrus,"[726, 16115]"
 RHP,Retrohippocampal region,[822]
 ECT,Ectorhinal area,[895]
 PIR,Piriform area,[961]
@@ -52,6 +52,6 @@ CbV,cerebellar vermis,[16814]
 r1,rhombomere 1,[16915]
 CbH,cerebellar hemisphere,[16920]
 r2,rhombomere 2,[17023]
-PH,pontine hindbrain,[  946 17092]
+PH,pontine hindbrain,"[946, 17092]"
 PMH,pontomedullary hindbrain,[17220]
-MH,medullary hindbrain (medulla),[  483 17352]
+MH,medullary hindbrain (medulla),"[483, 17352]"
