@@ -53,6 +53,10 @@ def test_check_structure_validity():
     )
     assert validity is False
 
+    # exceptions
+    with pytest.raises(TypeError):
+        check_structure_validity()
+
 
 def test_get_structure_info():
     for sample in TEST_SAMPLES:
