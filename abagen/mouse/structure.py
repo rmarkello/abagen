@@ -242,12 +242,12 @@ def _get_single_structure_attribute(root, attr):
     -------
     int or str, the value of structure's attr
     """
-    item = root.find(
+    item = root.findall(
         'structures/structure/{}'
         .format(attr)
     )
     # check if attr is valid (if any information is found)
-    if not item:
+    if len(item) == 0:
         raise AttributeError(
             'There is no gene attribute called {}'.format(attr)
         )
@@ -255,9 +255,9 @@ def _get_single_structure_attribute(root, attr):
     # check data type
     # attr is an integer
     try:
-        return int(item.text)
+        return int(item[0].text)
     except ValueError:
-        return item.text
+        return item[0].text
 
 
 def get_structure_coordinates(
