@@ -56,34 +56,35 @@ GENE_ATTRIBUTES = [
 
 def check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None):
     """
-    check if a structure is valid or has records in the database
+    check if a structure is valid or has records in the database.
+
+    Parameters
+    ----------
+    gene_id : int, optional
+        gene ID
+    gene_acronym : str, optional
+        gene acronym (case sensitive)
+    gene_name : str, optional
+        gene name (case sensitive)
+
+    Returns
+    -------
+    validity : boolean
+        if the gene has records in the database
+    root : :obj:`Response`
+        empty if query fails
+
+    Raises
+    ------
+    TypeError
+        if missing parameters
+
     Example
     -------
     # check if gene ID 18376 is valid
     validity, root = check_structure_validity(gene_id=18376)
     # check if structure Pdyn is valid
-    validity, root = check_structure_validity(acronym='Pdyn')
-
-    Parameters
-    ----------
-    gene_id: int, optional
-        gene ID
-    gene_acronym: str, optional
-        gene acronym (case sensitive)
-    gene_name: str, optional
-        gene name (case sensitive)
-
-    Returns
-    -------
-    validity: boolean
-        if the gene has records in the database
-    root: obj,
-        Element 'Response' object, empty if query fails
-
-    Raises
-    ------
-    TypeError:
-        missing parameters
+    validity, root = check_structure_validity(gene_acronym='Pdyn')
     """
     # if gene ID is given
     # preferred: id > acronym > name
@@ -116,14 +117,7 @@ def check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None):
 
 def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='all'):
     """
-    get attributes of a gene
-
-    Examples
-    --------
-    # get gene name according to gene name 'Pdyn'
-    gene_name = get_gene_info(gene_acronym='Pdyn', attributes='name')
-    # get gene acronym according to gene id 18376
-    gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
+    get attributes of a gene.
 
     # multiple attributes
     gene_info = get_gene_info(
@@ -134,13 +128,13 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='a
 
     Parameters
     ----------
-    gene_id: int, optional
+    gene_id : int, optional
         gene ID
-    gene_acronym: str, optional
+    gene_acronym : str, optional
         gene acronym (case sensitive)
-    gene_name: str, optional
+    gene_name : str, optional
         gene name (case sensitive)
-    attributes: str or list, optional
+    attributes : str or list, optional
         a single attribute or a list of attributes
         default: 'all', returning all the attributes
         available attributes:
@@ -163,17 +157,24 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='a
 
     Returns
     -------
-    gene_info: int, str or dict
+    gene_info : int, str or dict
         if a single attribute is given, return an int or str
         if multiple attributes are given, return a dict
         {attr:value}. attr is str (attribute) and value is str or int
 
     Raises
     ------
-    ValueError:
+    ValueError
         the gene given is invalid
-    AttributeError:
+    AttributeError
         only one attribute is given, and it is invalid
+
+    Examples
+    --------
+    # get gene name according to gene name 'Pdyn'
+    gene_name = get_gene_info(gene_acronym='Pdyn', attributes='name')
+    # get gene acronym according to gene id 18376
+    gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
     """
     validity, root = check_gene_validity(
         gene_id=gene_id,
@@ -219,12 +220,22 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='a
 
 def _get_single_gene_attribute(root, attr):
     """
-    return the value of a single gene attribute
-    :param root: object ElementTree 'Response'
-    :param attr: str,
-        attribute to return
-    :return: str or int,
-        the value of the attribute
+    return a single attribute.
+
+    Parameters
+    ----------
+    root : :obj:`Response`
+    attr : str
+
+    Returns
+    -------
+    int, str or None
+
+    Raises
+    ------
+    AttributeError
+        if attr doesn't exist
+
     """
     item = root.findall(
         'section-data-sets/section-data-set/'
