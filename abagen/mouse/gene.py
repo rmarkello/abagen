@@ -54,7 +54,7 @@ GENE_ATTRIBUTES = [
 ]
 
 
-def check_gene_validity(gene_id=None, acronym=None, name=None):
+def check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None):
     """
     check if a structure is valid or has records in the database
     Example
@@ -68,9 +68,9 @@ def check_gene_validity(gene_id=None, acronym=None, name=None):
     ----------
     gene_id: int, optional
         gene ID
-    acronym: str, optional
+    gene_acronym: str, optional
         gene acronym (case sensitive)
-    name: str, optional
+    gene_name: str, optional
         gene name (case sensitive)
 
     Returns
@@ -91,13 +91,13 @@ def check_gene_validity(gene_id=None, acronym=None, name=None):
         query_url = URL_PREFIX + \
             "genes[id$eq{}]".format(gene_id) + \
             URL_INCLUDE
-    elif acronym is not None:
+    elif gene_acronym is not None:
         query_url = URL_PREFIX + \
-            "genes[acronym$eq'{}']".format(acronym) + \
+            "genes[acronym$eq'{}']".format(gene_acronym) + \
             URL_INCLUDE
-    elif name is not None:
+    elif gene_name is not None:
         query_url = URL_PREFIX + \
-            "genes[name$eq'{}']".format(name) + \
+            "genes[name$eq'{}']".format(gene_name) + \
             URL_INCLUDE
     else:
         raise TypeError(
@@ -114,14 +114,14 @@ def check_gene_validity(gene_id=None, acronym=None, name=None):
         return False, root
 
 
-def get_gene_info(gene_id=None, acronym=None, name=None, attributes='all'):
+def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='all'):
     """
     get attributes of a gene
 
     Examples
     --------
     # get gene name according to gene name 'Pdyn'
-    gene_name = get_gene_info(acronym='Pdyn', attributes='name')
+    gene_name = get_gene_info(gene_acronym='Pdyn', attributes='name')
     # get gene acronym according to gene id 18376
     gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
 
@@ -136,9 +136,9 @@ def get_gene_info(gene_id=None, acronym=None, name=None, attributes='all'):
     ----------
     gene_id: int, optional
         gene ID
-    acronym: str, optional
+    gene_acronym: str, optional
         gene acronym (case sensitive)
-    name: str, optional
+    gene_name: str, optional
         gene name (case sensitive)
     attributes: str or list, optional
         a single attribute or a list of attributes
@@ -176,11 +176,20 @@ def get_gene_info(gene_id=None, acronym=None, name=None, attributes='all'):
         only one attribute is given, and it is invalid
     """
     validity, root = check_gene_validity(
-        gene_id=gene_id, acronym=acronym, name=name
+        gene_id=gene_id,
+        gene_acronym=gene_acronym,
+        gene_name=gene_name
     )
     if validity is False:
-        raise ValueError('The gene is invalid. '
-                         'Try another gene.')
+        raise ValueError(
+            'Gene {} is invalid. Try another gene.'
+            .format(
+                [
+                    item for item in [gene_id, gene_acronym, gene_name]
+                    if item is not None
+                ][0]
+            )
+        )
 
     # if the query was successful
     if attributes == 'all':
@@ -236,5 +245,3 @@ def _get_single_gene_attribute(root, attr):
     except TypeError:
         # the attribute exists, but has no value
         return None
-
-

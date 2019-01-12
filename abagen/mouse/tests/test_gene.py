@@ -21,7 +21,7 @@ def test_check_gene_validity():
     # iterate the samples
     for sample in TEST_SAMPLES:
         validity, _ = check_gene_validity(
-            acronym=GENES_LIST_ACRONYM[sample]
+            gene_acronym=GENES_LIST_ACRONYM[sample]
         )
         assert validity is True
         validity, _ = check_gene_validity(
@@ -36,7 +36,7 @@ def test_check_gene_validity():
         #assert validity is True
 
     # if the gene is invalid
-    validity, _ = check_gene_validity(acronym=RANDOM_STRING)
+    validity, _ = check_gene_validity(gene_acronym=RANDOM_STRING)
     assert validity is False
 
     validity, _ = check_gene_validity(gene_id=RANDOM_ID)
@@ -56,7 +56,7 @@ def test_get_gene_info():
         )
         assert gene_info == GENES_LIST_ACRONYM[sample]
         gene_info = get_gene_info(
-            acronym=GENES_LIST_ACRONYM[sample],
+            gene_acronym=GENES_LIST_ACRONYM[sample],
             attributes='name'
         )
         assert gene_info == GENES_LIST_NAME[sample]
@@ -69,7 +69,7 @@ def test_get_gene_info():
         # exceptions: attribute given is invalid
         with pytest.raises(AttributeError):
             get_gene_info(
-                acronym=GENES_LIST_ACRONYM[sample],
+                gene_acronym=GENES_LIST_ACRONYM[sample],
                 attributes=RANDOM_STRING
             )
         # multiple attributes
@@ -81,7 +81,7 @@ def test_get_gene_info():
         assert gene_info['acronym'] == GENES_LIST_ACRONYM[sample]
         # one attribute is invalid
         gene_info = get_gene_info(
-            acronym=GENES_LIST_ACRONYM[sample],
+            gene_acronym=GENES_LIST_ACRONYM[sample],
             attributes=[RANDOM_STRING, 'id']
         )
         assert RANDOM_STRING not in gene_info
@@ -96,7 +96,7 @@ def test_get_gene_info():
 
         # all atributes
         gene_info = get_gene_info(
-            acronym=GENES_LIST_ACRONYM[sample],
+            gene_acronym=GENES_LIST_ACRONYM[sample],
         )
         assert gene_info['id'] == GENES_LIST_ID[sample]
         assert 'entrez-id' in gene_info
@@ -108,5 +108,5 @@ def test_get_gene_info():
         )
     with pytest.raises(ValueError):
         get_gene_info(
-            acronym=RANDOM_STRING
+            gene_acronym=RANDOM_STRING
         )
