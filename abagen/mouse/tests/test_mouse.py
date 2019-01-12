@@ -6,14 +6,14 @@ RANDOM_ID = -1
 RANDOM_STRING = 'random_string'
 TEST_GENE_ACRONYM = {
     'Snca': {
-        'sagittal':[988, 990, 79904550],
-        'coronal':[986, 989, 79908848]
+        'sagittal': [988, 990, 79904550],
+        'coronal': [986, 989, 79908848]
     },  # mutiple experiment IDs found
     'Gba': {
-        'sagittal':[1612], 'coronal':[1611]
+        'sagittal': [1612], 'coronal': [1611]
     },  # one experiment ID found
     'Elf4': {
-        'sagittal':[73834415, 77464840], 'coronal':[]
+        'sagittal': [73834415, 77464840], 'coronal': []
     }  # no experiment ID found (while the gene is valid)
 }
 TEST_GENE_ID = {
@@ -28,7 +28,7 @@ TEST_GENE_ID = {
 # test single experiment ID
 TEST_ATTRIBUTE = ['expression-energy', 'expression-density', 'sum-pixels']
 TEST_EXPERIMENT = {
-    69782969:{'expression-energy': np.array([]), },
+    69782969: {'expression-energy': np.array([]), },
 
 }
 

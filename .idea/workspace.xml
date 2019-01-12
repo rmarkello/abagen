@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c53329d6-4676-4120-9690-d0d5ded036c2" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py" beforeDir="false" afterPath="$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/abagen/mouse/tests/test_gene.py" beforeDir="false" afterPath="$PROJECT_DIR$/abagen/mouse/tests/test_gene.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -54,12 +54,12 @@
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="Python Console" value="6639" />
-          <entry key="py" value="34334" />
+          <entry key="py" value="34367" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Python" value="40973" />
+          <entry key="Python" value="41006" />
         </counts>
       </usages-collector>
     </session>
@@ -69,8 +69,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/mouse.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-466">
-              <caret line="70" selection-start-line="70" selection-end-line="70" />
+            <state relative-caret-position="65">
+              <caret line="194" lean-forward="true" selection-start-line="194" selection-end-line="194" />
               <folding>
                 <element signature="e#78#93#0" expanded="true" />
               </folding>
@@ -78,11 +78,14 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <caret column="20" selection-start-column="20" selection-end-column="20" />
+            <state relative-caret-position="313">
+              <caret line="109" lean-forward="true" selection-start-line="109" selection-end-line="109" />
+              <folding>
+                <element signature="e#0#53#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -90,11 +93,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/structure.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4695">
-              <caret line="366" lean-forward="true" selection-start-line="366" selection-end-line="366" />
+            <state relative-caret-position="329">
+              <caret line="197" column="9" lean-forward="true" selection-start-line="197" selection-start-column="9" selection-end-line="197" selection-end-column="9" />
               <folding>
                 <element signature="e#208#223#0" expanded="true" />
-                <marker date="1547253291020" expanded="true" signature="3912:3914" ph="..." />
+                <marker date="1547254610194" expanded="true" signature="3912:3914" ph="..." />
               </folding>
             </state>
           </provider>
@@ -103,8 +106,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/gene.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1290">
-              <caret line="86" column="8" selection-start-line="86" selection-start-column="8" selection-end-line="86" selection-end-column="8" />
+            <state relative-caret-position="333">
+              <caret line="124" column="8" selection-start-line="124" selection-start-column="8" selection-end-line="124" selection-end-column="8" />
               <folding>
                 <element signature="e#98#113#0" expanded="true" />
               </folding>
@@ -137,14 +140,14 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_gene.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="283">
-              <caret line="111" column="9" lean-forward="true" selection-start-line="111" selection-start-column="9" selection-end-line="111" selection-end-column="9" />
+            <state relative-caret-position="188">
+              <caret line="34" column="10" selection-start-line="34" selection-start-column="10" selection-end-line="34" selection-end-column="10" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
-                <marker date="1547251399195" expanded="true" signature="557:562" ph="..." />
+                <marker date="1547255086479" expanded="true" signature="557:562" ph="..." />
               </folding>
             </state>
           </provider>
@@ -153,8 +156,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/abagen/__init__.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="11" column="10" lean-forward="true" selection-start-line="11" selection-start-column="10" selection-end-line="11" selection-end-column="10" />
+            <state relative-caret-position="180">
+              <caret line="12" lean-forward="true" selection-start-line="12" selection-end-line="12" />
+              <folding>
+                <element signature="e#195#224#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -204,19 +210,19 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/abagen/__init__.py" />
         <option value="$PROJECT_DIR$/abagen/mouse.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/__init__.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/tests/__init__.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/tests/my_own_test.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/my_own_test.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/io.py" />
-        <option value="$PROJECT_DIR$/abagen/mouse/tests/test_gene.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/tests/test_structure.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/structure.py" />
+        <option value="$PROJECT_DIR$/abagen/__init__.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/gene.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/mouse.py" />
         <option value="$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py" />
+        <option value="$PROJECT_DIR$/abagen/mouse/tests/test_gene.py" />
       </list>
     </option>
   </component>
@@ -504,17 +510,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_gene.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="283">
-          <caret line="111" column="9" lean-forward="true" selection-start-line="111" selection-start-column="9" selection-end-line="111" selection-end-column="9" />
-          <folding>
-            <element signature="e#0#13#0" expanded="true" />
-            <marker date="1547251399195" expanded="true" signature="557:562" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_structure.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="151">
@@ -522,37 +517,6 @@
           <folding>
             <element signature="e#0#13#0" expanded="true" />
             <marker date="1547251771934" expanded="true" signature="4088:4310" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/abagen/mouse/structure.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4695">
-          <caret line="366" lean-forward="true" selection-start-line="366" selection-end-line="366" />
-          <folding>
-            <element signature="e#208#223#0" expanded="true" />
-            <marker date="1547253291020" expanded="true" signature="3912:3914" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/abagen/mouse/gene.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1290">
-          <caret line="86" column="8" selection-start-line="86" selection-start-column="8" selection-end-line="86" selection-end-column="8" />
-          <folding>
-            <element signature="e#98#113#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/abagen/mouse/mouse.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-466">
-          <caret line="70" selection-start-line="70" selection-end-line="70" />
-          <folding>
-            <element signature="e#78#93#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -567,17 +531,65 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/abagen/mouse/structure.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="329">
+          <caret line="197" column="9" lean-forward="true" selection-start-line="197" selection-start-column="9" selection-end-line="197" selection-end-column="9" />
+          <folding>
+            <element signature="e#208#223#0" expanded="true" />
+            <marker date="1547254610194" expanded="true" signature="3912:3914" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/abagen/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="10" lean-forward="true" selection-start-line="11" selection-start-column="10" selection-end-line="11" selection-end-column="10" />
+        <state relative-caret-position="180">
+          <caret line="12" lean-forward="true" selection-start-line="12" selection-end-line="12" />
+          <folding>
+            <element signature="e#195#224#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/abagen/mouse/gene.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="333">
+          <caret line="124" column="8" selection-start-line="124" selection-start-column="8" selection-end-line="124" selection-end-column="8" />
+          <folding>
+            <element signature="e#98#113#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/abagen/mouse/mouse.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="65">
+          <caret line="194" lean-forward="true" selection-start-line="194" selection-end-line="194" />
+          <folding>
+            <element signature="e#78#93#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret column="20" selection-start-column="20" selection-end-column="20" />
+        <state relative-caret-position="313">
+          <caret line="109" lean-forward="true" selection-start-line="109" selection-end-line="109" />
+          <folding>
+            <element signature="e#0#53#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_gene.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="188">
+          <caret line="34" column="10" selection-start-line="34" selection-start-column="10" selection-end-line="34" selection-end-column="10" />
+          <folding>
+            <element signature="e#0#13#0" expanded="true" />
+            <marker date="1547255086479" expanded="true" signature="557:562" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>

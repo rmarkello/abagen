@@ -32,7 +32,7 @@ def test_check_gene_validity():
         # gene naming conventions are too complicated...
         # validity, _ = check_gene_validity(
         #    name=GENES_LIST_NAME[sample]
-        #)
+        # )
         # assert validity is True
 
     # if the gene is invalid
