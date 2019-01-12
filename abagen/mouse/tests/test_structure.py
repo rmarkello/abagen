@@ -29,7 +29,7 @@ def test_check_structure_validity():
     for sample in TEST_SAMPLES:
         # acronym is given
         validity, root1, root2 = check_structure_validity(
-            acronym=STRUCTURES_LIST_ACRONYM[sample]
+            structure_acronym=STRUCTURES_LIST_ACRONYM[sample]
         )
         assert validity is True
         # structure id is given
@@ -40,9 +40,9 @@ def test_check_structure_validity():
         # structure name is given
         # sometimes may fail as the string may contain white spaces
         # ... not recommended
-        validity, root1, root2 = check_structure_validity(
-            name=STRUCTURES_LIST_NAME[sample]
-        )
+        # validity, root1, root2 = check_structure_validity(
+        #    structure_name=STRUCTURES_LIST_NAME[sample]
+        # )
         assert validity is True
 
     # structure id is invalid
@@ -51,7 +51,7 @@ def test_check_structure_validity():
     )
     assert validity is False
     validity, _, _ = check_structure_validity(
-        acronym=RANDOM_STRING
+        structure_acronym=RANDOM_STRING
     )
     assert validity is False
 
@@ -70,7 +70,7 @@ def test_get_structure_info():
         # structure_info is str
         assert structure_info[0] == STRUCTURES_LIST_ACRONYM[sample]
         structure_info = get_structure_info(
-            acronym=STRUCTURES_LIST_ACRONYM[sample],
+            structure_acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes='id'
         )
         # structure_info is list of int
@@ -90,7 +90,7 @@ def test_get_structure_info():
         # structure_info is str
         assert not structure_info
         structure_info = get_structure_info(
-            acronym=STRUCTURES_LIST_ACRONYM[sample],
+            structure_acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes=RANDOM_STRING
         )
         # structure_info is str
@@ -102,7 +102,7 @@ def test_get_structure_info():
         )
         assert structure_info['acronym'][0] == STRUCTURES_LIST_ACRONYM[sample]
         structure_info = get_structure_info(
-            acronym=STRUCTURES_LIST_ACRONYM[sample],
+            structure_acronym=STRUCTURES_LIST_ACRONYM[sample],
             attributes=['id', 'name', RANDOM_STRING]
         )
         assert RANDOM_STRING not in structure_info
@@ -115,7 +115,7 @@ def test_get_structure_info():
         )
     with pytest.raises(ValueError):
         get_structure_info(
-            acronym=RANDOM_STRING,
+            structure_acronym=RANDOM_STRING,
             attributes=['id', 'name']
         )
 
@@ -128,7 +128,7 @@ def test_get_structure_center():
     assert coor[10][0] == COOR_ID[0] and coor[9][0] == COOR_ID[1]
 
     coor = get_structure_coordinates(
-        acronym='SSp',
+        structure_acronym='SSp',
     )
     assert coor[10][0] == COOR_ACRONYM[0] and coor[9][0] == COOR_ACRONYM[1]
 
@@ -139,5 +139,5 @@ def test_get_structure_center():
         )
     with pytest.raises(ValueError):
         get_structure_coordinates(
-            acronym=RANDOM_STRING
+            structure_acronym=RANDOM_STRING
         )

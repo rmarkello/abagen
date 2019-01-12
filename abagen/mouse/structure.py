@@ -49,8 +49,8 @@ STRUCTURE_ATTRIBUTES = [
 
 def check_structure_validity(
     structure_id=None,
-    acronym=None,
-    name=None,
+    structure_acronym=None,
+    structure_name=None,
 ):
     """
     check if a structure is valid or has records in the database
@@ -59,15 +59,15 @@ def check_structure_validity(
     # check if structure ID 1018 is valid
     validity, _, _ = check_structure_validity(structure_id=1018)
     # check if structure SSp is valid
-    validity, _, _ = check_structure_validity(acronym='SSp')
+    validity, _, _ = check_structure_validity(structure_acronym='SSp')
 
     Parameters
     ----------
     structure_id: int, optional
         structure ID
-    acronym: str, optional
+    structure_acronym: str, optional
         structure acronym (case sensitive)
-    name: str, optional
+    structure_name: str, optional
         structure name (case sensitive)
 
     Returns
@@ -94,20 +94,20 @@ def check_structure_validity(
             "[id$eq{}]".format(structure_id) + \
             URL_INCLUDE_DEV_MOUSE
     # then if acronym is given
-    elif acronym is not None:
+    elif structure_acronym is not None:
         query_url_mouse = URL_PREFIX + \
-            "[acronym$eq'{}']".format(acronym) + \
+            "[acronym$eq'{}']".format(structure_acronym) + \
             URL_INCLUDE_MOUSE
         query_url_dev_mouse = URL_PREFIX + \
-            "[acronym$eq'{}']".format(acronym) + \
+            "[acronym$eq'{}']".format(structure_acronym) + \
             URL_INCLUDE_DEV_MOUSE
     # then if name is given
-    elif name is not None:
+    elif structure_name is not None:
         query_url_mouse = URL_PREFIX + \
-            "[name$eq'{}']".format(name) + \
+            "[name$eq'{}']".format(structure_name) + \
             URL_INCLUDE_MOUSE
         query_url_dev_mouse = URL_PREFIX + \
-            "[name$eq'{}']".format(name) + \
+            "[name$eq'{}']".format(structure_name) + \
             URL_INCLUDE_DEV_MOUSE
     else:
         # if no input
@@ -133,8 +133,8 @@ def check_structure_validity(
 
 def get_structure_info(
     structure_id=None,
-    acronym=None,
-    name=None,
+    structure_acronym=None,
+    structure_name=None,
     attributes='all'
 ):
     """
@@ -143,9 +143,9 @@ def get_structure_info(
     ----------
     structure_id: int, optional
         structure ID
-    acronym: str, optional
+    structure_acronym: str, optional
         structure acronym (case sensitive)
-    name: str, optional
+    structure_name: str, optional
         structure name (case sensitive)
     attributes: str or list, optional
         a single attribute or a list of attributes
@@ -184,7 +184,9 @@ def get_structure_info(
         the structure given is invalid
     """
     validity, root1, root2 = check_structure_validity(
-        structure_id=structure_id, acronym=acronym, name=name
+        structure_id=structure_id,
+        structure_acronym=structure_acronym,
+        structure_name=structure_name
     )
 
     if validity is False:
@@ -265,8 +267,8 @@ def _get_single_structure_attribute(root, attr):
 
 def get_structure_coordinates(
     structure_id=None,
-    acronym=None,
-    name=None
+    structure_acronym=None,
+    structure_name=None
 ):
     """
     get structure coordinates in reference atlas.
@@ -283,16 +285,16 @@ def get_structure_coordinates(
     # (Mouse brain atlas right hemisphere)
     coordinates = coor[9]
     # get the coordinates of structure acronym SSp
-    coor = get_structure_coordinates(acronym='CA')
+    coor = get_structure_coordinates(structure_acronym='CA')
     coor
 
     Parameters
     ----------
     structure_id: int, optional
         structure ID
-    acronym: str, optional
+    structure_acronym: str, optional
         structure acronym (case sensitive)
-    name: str, optional
+    structure_name: str, optional
         structure name (case sensitive)
 
     Returns
@@ -303,8 +305,8 @@ def get_structure_coordinates(
 
     validity, root1, root2 = check_structure_validity(
         structure_id=structure_id,
-        acronym=acronym,
-        name=name
+        structure_acronym=structure_acronym,
+        structure_name=structure_name
     )
 
     if validity is False:
