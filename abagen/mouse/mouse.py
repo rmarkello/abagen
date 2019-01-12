@@ -31,6 +31,94 @@ UNIONIZATION_ATTRIBUTES = [
 ]
 
 
+def get_experiment_id_from_gene(
+    gene_id=None,
+    gene_acronym=None,
+    gene_name=None,
+    slicing_direction='sagittal'
+):
+    """
+    fetches mouse unionization data of a single experiment,
+    either saggital or coronal, according to the experiment id
+
+    Parameters
+    ----------
+    gene_id : int, optional
+    gene_acronym : str, optional
+    gene_name : str, optional
+        at least one gene identifier should be given.
+    slicing_direction : str, optional
+        slicing scheme of the samples, 'sagittal' or 'coronal'.
+        default: 'sagittal'
+
+    Returns
+    -------
+    experiment_id_list : list
+        list of integers (experiment IDs in slicing_direction) of the gene
+
+    Raises
+    ------
+    ValueError
+        slicing_direction is invalid, or
+        gene identifier is invalid
+
+    Examples
+    --------
+    >>> get_experiment_id_from_gene(
+    >>>     gene_id=84193, slicing_direction='coronal'
+    >>> )
+    [74047443]
+
+    """
+    if slicing_direction not in ['sagittal', 'coronal']:
+        raise ValueError('Slicing slicing_direction {} is invalid. '
+                         'Try sagittal or coronal instead'
+                         .format(slicing_direction))
+
+    validity, root = check_gene_validity(
+        gene_id=gene_id,
+        gene_acronym=gene_acronym,
+        gene_name=gene_name
+    )
+
+    if validity is False:
+        raise ValueError(
+            'the gene {} is invalid'
+            .format(
+                [
+                    item
+                    for item in [gene_id, gene_acronym, gene_name]
+                    if item is not None
+                ][0]
+            )
+        )
+    experiment_id_list = [
+        int(item.text)
+        for item, plane_of_section in zip(
+            root.findall(
+                'section-data-sets/section-data-set/id'
+            ), root.findall(
+                'section-data-sets/section-data-set/plane-of-section/name'
+            )
+        ) if plane_of_section.text == slicing_direction
+    ]
+
+    if len(experiment_id_list) == 0:  # no experiments are found
+        print(
+            'No {0} experiments are found for gene {1}, '
+            'return an empty experiment ID list.'
+            .format(
+                slicing_direction, [
+                    item for item in [gene_id, gene_acronym, gene_name]
+                    if item is not None
+                ]
+            )
+        )
+
+    return experiment_id_list
+
+
+# to be tested
 def get_unionization_from_experiment(
         experiment_id,
         structure_list=None,
@@ -42,15 +130,16 @@ def get_unionization_from_experiment(
 
     Parameters
     ----------
-    experiment_id: int, specifying the experiment id
-    structure_list: list, optional
+    experiment_id : int
+        specifying the experiment id
+    structure_list : list, optional
         the list of structures, either id (int) or acronym (str).
         default: structures as documented in Rubinov et al, 2015
         we recommend to use ID against acronym
         as acronyms may not be unique
         (e.g., 'PH' have names 'pontine hindbrain' in mouse atlas
         and 'pontine hindbrain (pons proper)' in developing mouse atlas)
-    attributes: list, optional
+    attributes : list, optional
         specify the unionization data attributes to include
         default: 'all'
         available attributes:
@@ -68,12 +157,12 @@ def get_unionization_from_experiment(
 
     Returns
     -------
-    unionization: dict or numpy_array
+    unionization : dict or numpy_array
         unionization data attributes and the values {attribute:value}
 
     Raises
     ------
-    ValueError:
+    ValueError
         If experiment_id is invalid
     """
 
@@ -221,84 +310,6 @@ def _get_single_unionization_attribute(root, attr, structure_list):
                   .format(attr, structure))
 
     return vals
-
-
-def get_experiment_id_from_gene(
-    gene_id=None,
-    gene_acronym=None,
-    gene_name=None,
-    slicing_direction='sagittal'
-):
-    """
-    fetches mouse unionization data of a single experiment,
-    either saggital or coronal, according to the experiment id
-
-    Parameters
-    ----------
-    gene_id: int, optional
-    gene_acronym: str, optional
-    gene_name: str, optional
-        at least one gene identifier should be given.
-    slicing_direction: str, optional
-        slicing scheme of the samples, 'sagittal' or 'coronal'.
-        default: 'sagittal'
-
-    Returns
-    -------
-    experiment_id_list: list
-        list of integers (experiment IDs in slicing_direction) of the gene
-
-    Raises
-    ValueError:
-        slicing_direction is invalid, or
-        gene identifier is invalid
-    """
-    if slicing_direction not in ['sagittal', 'coronal']:
-        raise ValueError('Slicing slicing_direction {} is invalid. '
-                         'Try sagittal or coronal instead'
-                         .format(slicing_direction))
-
-    validity, root = check_gene_validity(
-        gene_id=gene_id,
-        gene_acronym=gene_acronym,
-        gene_name=gene_name
-    )
-
-    if validity is False:
-        raise ValueError(
-            'the gene {} is invalid'
-            .format(
-                [
-                    item
-                    for item in [gene_id, gene_acronym, gene_name]
-                    if item is not None
-                ][0]
-            )
-        )
-    experiment_id_list = [
-        int(item.text)
-        for item, plane_of_section in zip(
-            root.findall(
-                'section-data-sets/section-data-set/id'
-            ), root.findall(
-                'section-data-sets/section-data-set/plane-of-section/name'
-            )
-        ) if plane_of_section.text == slicing_direction
-    ]
-
-    if len(experiment_id_list) == 0:  # no experiments are found
-        print(
-            'No {0} experiments are found for gene {1}, '
-            'return an empty experiment ID list.'
-            .format(
-                slicing_direction, [
-                    item for item in [gene_id, gene_acronym, gene_name]
-                    if item is not None
-                ]
-            )
-        )
-
-    return experiment_id_list
 
 
 def get_unionization_from_gene(

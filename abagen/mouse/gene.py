@@ -81,10 +81,13 @@ def check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None):
 
     Example
     -------
-    # check if gene ID 18376 is valid
-    validity, root = check_structure_validity(gene_id=18376)
-    # check if structure Pdyn is valid
-    validity, root = check_structure_validity(gene_acronym='Pdyn')
+    >>> # check if gene ID 18376 is valid
+    >>> validity, _ = check_structure_validity(gene_id=18376)
+    >>> validity
+    True
+    >>> # check if structure Pdyn is valid
+    >>> validity, root = check_structure_validity(gene_acronym='Pdyn')
+
     """
     # if gene ID is given
     # preferred: id > acronym > name
@@ -171,10 +174,13 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='a
 
     Examples
     --------
-    # get gene name according to gene name 'Pdyn'
-    gene_name = get_gene_info(gene_acronym='Pdyn', attributes='name')
-    # get gene acronym according to gene id 18376
-    gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
+    >>> # get gene name according to gene name 'Pdyn'
+    >>> get_gene_info(gene_acronym='Pdyn', attributes='name')
+    'prodynorphin'
+    >>> # get gene acronym according to gene id 18376
+    >>> gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
+    'Pdyn'
+
     """
     validity, root = check_gene_validity(
         gene_id=gene_id,

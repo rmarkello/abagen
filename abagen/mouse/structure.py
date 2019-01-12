@@ -54,35 +54,41 @@ def check_structure_validity(
 ):
     """
     check if a structure is valid or has records in the database
-    Example
-    -------
-    # check if structure ID 1018 is valid
-    validity, _, _ = check_structure_validity(structure_id=1018)
-    # check if structure SSp is valid
-    validity, _, _ = check_structure_validity(structure_acronym='SSp')
 
     Parameters
     ----------
-    structure_id: int, optional
+    structure_id : int, optional
         structure ID
-    structure_acronym: str, optional
+    structure_acronym : str, optional
         structure acronym (case sensitive)
-    structure_name: str, optional
+    structure_name : str, optional
         structure name (case sensitive)
 
     Returns
     -------
-    validity: boolean
+    validity : boolean
         if the structure has records in the database
-    root_mouse: obj,
+    root_mouse : obj:`Response`,
         Element 'Response' object, empty if query fails
-    root_dev_mouse: obj
+    root_dev_mouse : obj:`Response`
         Element 'Response' object, empty if query fails
 
     Raises
     ------
-    TypeError:
+    TypeError
         missing parameters
+
+    Examples
+    --------
+    >>> # check if structure ID 1018 is valid
+    >>> validity, _, _ = check_structure_validity(structure_id=1018)
+    >>> validity
+    True
+    >>> # check if structure SSp is valid
+    >>> validity, _, _ = check_structure_validity(structure_acronym='SSp')
+    >>> Validity
+    True
+
     """
     # if structure ID is given
     # preferred: id > acronym > name
@@ -139,15 +145,16 @@ def get_structure_info(
 ):
     """
     get attributes of a structure
+
     Parameters
     ----------
-    structure_id: int, optional
+    structure_id : int, optional
         structure ID
-    structure_acronym: str, optional
+    structure_acronym : str, optional
         structure acronym (case sensitive)
-    structure_name: str, optional
+    structure_name : str, optional
         structure name (case sensitive)
-    attributes: str or list, optional
+    attributes : str or list, optional
         a single attribute or a list of attributes
         default: 'all', returning all the attributes
         available attributes:
@@ -171,7 +178,7 @@ def get_structure_info(
 
     Returns
     -------
-    structure_info: list or dict
+    structure_info : list or dict
         if a single attribute is given, return a list of values
         (int or str) of that attribute acquired from mouse atlas and
         developing mouse atlas
@@ -180,8 +187,16 @@ def get_structure_info(
 
     Raises
     ------
-    ValueError:
+    ValueError
         the structure given is invalid
+
+    Examples
+    --------
+    # get the full name of structure 1018
+    >>> structure_name = get_structure_info(structure_id=1018, attributes='name')
+    >>> structure_name
+    ['Ventral auditory area']
+
     """
     validity, root1, root2 = check_structure_validity(
         structure_id=structure_id,
@@ -236,13 +251,15 @@ def _get_single_structure_attribute(root, attr):
 
     Parameters
     ----------
-    root: obj, Element 'Response'
-    attr: str
+    root : obj:`Response`
+    attr : str
         the attribute to return
 
     Returns
     -------
-    int or str, the value of structure's attr
+    int or str
+        the value of structure's attr
+
     """
     item = root.findall(
         'structures/structure/{}'
@@ -273,34 +290,35 @@ def get_structure_coordinates(
     """
     get structure coordinates in reference atlas.
 
-    Examples
-    --------
-    # get the coordinates of structure ID 1018
-    coor = get_structure_coordinates(structure_id=1018)
-    # if the structure has records in mouse brain atlas
-    # coordinates in space with reference id 10
-    # (Mouse brain atlas left hemisphere)
-    coordinates = coor[10]
-    # coordinates in space with reference id 9
-    # (Mouse brain atlas right hemisphere)
-    coordinates = coor[9]
-    # get the coordinates of structure acronym SSp
-    coor = get_structure_coordinates(structure_acronym='CA')
-    coor
-
     Parameters
     ----------
-    structure_id: int, optional
+    structure_id : int, optional
         structure ID
-    structure_acronym: str, optional
+    structure_acronym : str, optional
         structure acronym (case sensitive)
-    structure_name: str, optional
+    structure_name : str, optional
         structure name (case sensitive)
 
     Returns
     -------
-    coor: dict {int: list of (3, } tuple}
+    coor : dict
         {reference-space-id:[(x, y, z)]}
+
+    Raises
+    ------
+    ValueError
+        structure given is invalid
+
+    Examples
+    --------
+    >>> # get the coordinates of structure ID 1018
+    >>> coor = get_structure_coordinates(structure_id=1018)
+    >>> # if the structure has records in mouse brain atlas
+    >>> # coordinates in space with reference id 10
+    >>> # (Mouse brain atlas left hemisphere)
+    >>> coor[10]
+    [(7800, 3400, 1050)]
+
     """
 
     validity, root1, root2 = check_structure_validity(
