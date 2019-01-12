@@ -259,7 +259,9 @@ def get_experiment_id_from_gene(
                          .format(slicing_direction))
 
     validity, root = check_gene_validity(
-        gene_id=gene_id, acronym=gene_acronym, name=gene_name
+        gene_id=gene_id,
+        gene_acronym=gene_acronym,
+        gene_name=gene_name
     )
 
     if validity is False:
@@ -270,7 +272,7 @@ def get_experiment_id_from_gene(
                     item
                     for item in [gene_id, gene_acronym, gene_name]
                     if item is not None
-                ]
+                ][0]
             )
         )
     experiment_id_list = [
