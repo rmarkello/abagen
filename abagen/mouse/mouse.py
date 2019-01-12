@@ -192,7 +192,7 @@ def get_unionization_from_experiment(
         attr_list = UNIONIZATION_ATTRIBUTES
     else:
         attr_list = attributes
-            
+
     # only one attribute is specified
     if isinstance(attr_list, str):
         return _get_single_unionization_attribute(

@@ -30,10 +30,10 @@ def test_check_gene_validity():
         assert validity is True
         # remove name test temporarily
         # gene naming conventions are too complicated...
-        #validity, _ = check_gene_validity(
+        # validity, _ = check_gene_validity(
         #    name=GENES_LIST_NAME[sample]
         #)
-        #assert validity is True
+        # assert validity is True
 
     # if the gene is invalid
     validity, _ = check_gene_validity(gene_acronym=RANDOM_STRING)

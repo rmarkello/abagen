@@ -193,7 +193,9 @@ def get_structure_info(
     Examples
     --------
     # get the full name of structure 1018
-    >>> structure_name = get_structure_info(structure_id=1018, attributes='name')
+    >>> structure_name = get_structure_info(
+    >>>     structure_id=1018, attributes='name'
+    >>> )
     >>> structure_name
     ['Ventral auditory area']
 

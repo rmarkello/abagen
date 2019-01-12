@@ -118,7 +118,12 @@ def check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None):
         return False, root
 
 
-def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None, attributes='all'):
+def get_gene_info(
+        gene_id=None,
+        gene_acronym=None,
+        gene_name=None,
+        attributes='all'
+):
     """
     get attributes of a gene.
 

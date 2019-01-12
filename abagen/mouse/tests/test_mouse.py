@@ -1,38 +1,34 @@
-from ..mouse import (
-    get_unionization_from_experiment,
-    get_experiment_id_from_gene,
-    get_unionization_from_gene
-)
+from ..mouse import get_experiment_id_from_gene
 import pytest
 import numpy as np
 
 RANDOM_ID = -1
 RANDOM_STRING = 'random_string'
 TEST_GENE_ACRONYM = {
-    'Snca':{
+    'Snca': {
         'sagittal':[988, 990, 79904550],
         'coronal':[986, 989, 79908848]
     },  # mutiple experiment IDs found
-    'Gba':{
+    'Gba': {
         'sagittal':[1612], 'coronal':[1611]
     },  # one experiment ID found
-    'Elf4':{
+    'Elf4': {
         'sagittal':[73834415, 77464840], 'coronal':[]
     }  # no experiment ID found (while the gene is valid)
 }
 TEST_GENE_ID = {
-    84193:{
-        'sagittal':[70238925, 71147924, 71213117],
-        'coronal':[74047443]
+    84193: {
+        'sagittal': [70238925, 71147924, 71213117],
+        'coronal': [74047443]
     },  # one experiment ID found
-    18608:{
-        'sagittal':[69289721], 'coronal':[]
+    18608: {
+        'sagittal': [69289721], 'coronal': []
     }  # no experiment ID found (while the gene is valid)
 }
 # test single experiment ID
 TEST_ATTRIBUTE = ['expression-energy', 'expression-density', 'sum-pixels']
 TEST_EXPERIMENT = {
-    69782969:{'expression-energy':np.array([]), },
+    69782969:{'expression-energy': np.array([]), },
 
 }
 
