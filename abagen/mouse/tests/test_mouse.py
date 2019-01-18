@@ -163,7 +163,7 @@ def test_get_unionization_from_experiment():
             TEST_EXPERIMENT[experiment_id]['expression-energy']
         )
         unionization = get_unionization_from_experiment(
-            experiment_id-experiment_id,
+            experiment_id=experiment_id,
             structure_list=TEST_STRUCTURE
         )
         assert np.allclose(
