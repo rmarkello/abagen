@@ -132,21 +132,48 @@ def test_get_single_unionization_attribute():
                 structure_list=TEST_STRUCTURE
             )
         vals = _get_single_unionization_attribute(
-            root=root, attr='expression-energy', structure_list=TEST_STRUCTURE
+            root=root, attr='expression-energy',
+            structure_list=TEST_STRUCTURE
         )
         assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['expression-energy'])
         vals = _get_single_unionization_attribute(
-            root=root, attr='expression-density', structure_list=TEST_STRUCTURE
+            root=root, attr='expression-density',
+            structure_list=TEST_STRUCTURE
         )
         assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['expression-density'])
         vals = _get_single_unionization_attribute(
-            root=root, attr='sum-pixels', structure_list=TEST_STRUCTURE
+            root=root, attr='sum-pixels',
+            structure_list=TEST_STRUCTURE
         )
         assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['sum-pixels'])
 
 
 def test_get_unionization_from_experiment():
-    pass
+    with pytest.raises(ValueError):
+        get_unionization_from_experiment(
+            RANDOM_ID, structure_list=TEST_STRUCTURE
+        )
+    for experiment_id in TEST_EXPERIMENT:
+        unionization = get_unionization_from_experiment(
+            experiment_id=experiment_id,
+            structure_list=TEST_STRUCTURE, attributes='expression-energy'
+        )
+        assert np.allclose(
+            unionization,
+            TEST_EXPERIMENT[experiment_id]['expression-energy']
+        )
+        unionization = get_unionization_from_experiment(
+            experiment_id-experiment_id,
+            structure_list=TEST_STRUCTURE
+        )
+        assert np.allclose(
+            unionization['expression-density'],
+            TEST_EXPERIMENT[experiment_id]['expression-density']
+        )
+        assert np.allclose(
+            unionization['sum-pixels'],
+            TEST_EXPERIMENT[experiment_id]['sum-pixels']
+        )
 
 
 def test_get_unionization_from_gene():
