@@ -32,3 +32,4 @@ def test_real_all_structures():
         )
     assert default_structures.shape == (56, 3)
 
+
