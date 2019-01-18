@@ -21,10 +21,15 @@ TEST_GENE_ACRONYM = {
     'Gba': {
         'sagittal': [1612], 'coronal': [1611],
         'coronal_unionization': {
-            'expression-energy': np.array([[0.236301, 0.261266, 0.416281, 0.379438]]),
-            'expression-density': np.array([[0.00207073, 0.00232453, 0.00372069, 0.0032345]]),
-            'sum-pixels': np.array([[419628.0, 2238000.0, 3636670.0, 1973710000.0]]),
-            'voxel-energy-cv': np.array([[0.923913, 0.995631, 0.81265, 1.34475]])
+            'expression-energy': np.array(
+                [[0.236301, 0.261266, 0.416281, 0.379438]]
+            ), 'expression-density': np.array(
+                [[0.00207073, 0.00232453, 0.00372069, 0.0032345]]
+            ), 'sum-pixels': np.array(
+                [[419628.0, 2238000.0, 3636670.0, 1973710000.0]]
+            ), 'voxel-energy-cv': np.array(
+                [[0.923913, 0.995631, 0.81265, 1.34475]]
+            )
         }
     },  # one experiment ID found
     'Elf4': {
@@ -42,17 +47,27 @@ TEST_GENE_ID = {
 }
 # test single experiment ID
 TEST_STRUCTURE = [182305713, 182305709, 182305705, 15564]
-TEST_ATTRIBUTE = ['expression-energy', 'expression-density', 'sum-pixels']
+TEST_ATTRIBUTE = [
+    'expression-energy', 'expression-density', 'sum-pixels'
+]
 TEST_EXPERIMENT = {
     986: {
-        'expression-energy': np.array([7.73432, 7.28206, 3.82741, 2.52219]),
-        'expression-density': np.array([0.0603072, 0.0553335, 0.0298628, 0.0188711]),
-        'sum-pixels': np.array([419628.0, 2238000.0, 3629050.0, 1534150000.0])
+        'expression-energy': np.array(
+            [7.73432, 7.28206, 3.82741, 2.52219]
+        ), 'expression-density': np.array(
+            [0.0603072, 0.0553335, 0.0298628, 0.0188711]
+        ), 'sum-pixels': np.array(
+            [419628.0, 2238000.0, 3629050.0, 1534150000.0]
+        )
     },
     69782969: {
-        'expression-energy': np.array([1.00879, 1.40198, 2.34988, 2.729]),
-        'expression-density': np.array([0.00650952, 0.00896709, 0.015409, 0.0178506]),
-        'sum-pixels': np.array([195863.0, 1051230.0, 1440430.0, 998731000.0])
+        'expression-energy': np.array(
+            [1.00879, 1.40198, 2.34988, 2.729]
+        ), 'expression-density': np.array(
+            [0.00650952, 0.00896709, 0.015409, 0.0178506]
+        ), 'sum-pixels': np.array(
+            [195863.0, 1051230.0, 1440430.0, 998731000.0]
+        )
     }
 }
 
@@ -127,7 +142,8 @@ def test_get_experiment_id_from_gene():
 
 def test_get_single_unionization_attribute():
     for experiment_id in TEST_EXPERIMENT:
-        url = "http://api.brain-map.org/api/v2/data/SectionDataSet/query.xml?id={}" \
+        url = "http://api.brain-map.org/api/v2/data/SectionDataSet/" \
+            "query.xml?id={}" \
             "&include=structure_unionizes%28structure%29"\
             .format(experiment_id)
         r = requests.get(url)
@@ -142,17 +158,23 @@ def test_get_single_unionization_attribute():
             root=root, attr='expression-energy',
             structure_list=TEST_STRUCTURE
         )
-        assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['expression-energy'])
+        assert np.allclose(
+            vals, TEST_EXPERIMENT[experiment_id]['expression-energy']
+        )
         vals = _get_single_unionization_attribute(
             root=root, attr='expression-density',
             structure_list=TEST_STRUCTURE
         )
-        assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['expression-density'])
+        assert np.allclose(
+            vals, TEST_EXPERIMENT[experiment_id]['expression-density']
+        )
         vals = _get_single_unionization_attribute(
             root=root, attr='sum-pixels',
             structure_list=TEST_STRUCTURE
         )
-        assert np.allclose(vals, TEST_EXPERIMENT[experiment_id]['sum-pixels'])
+        assert np.allclose(
+            vals, TEST_EXPERIMENT[experiment_id]['sum-pixels']
+        )
 
 
 def test_get_unionization_from_experiment():
