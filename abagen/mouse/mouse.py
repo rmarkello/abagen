@@ -263,7 +263,7 @@ def _get_single_unionization_attribute(root, attr, structure_list):
                     structure_items
                 ) if structure_item.text in structure_list
             ]
-        elif isinstance(random.choice(structure_list), np.integer):
+        elif isinstance(random.choice(structure_list), (np.integer, int)):
             structure_items = root.findall(PATH_PREFIX + 'structure/id')
             # extract structure and values in structure_list
             all_items = [
