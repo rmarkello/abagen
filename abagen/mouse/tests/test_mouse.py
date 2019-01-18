@@ -37,12 +37,12 @@ TEST_GENE_ID = {
 TEST_STRUCTURE = [182305713, 182305709,182305705, 15564]
 TEST_ATTRIBUTE = ['expression-energy', 'expression-density', 'sum-pixels']
 TEST_EXPERIMENT = {
-    69782969: {
+    986: {
         'expression-energy': np.array([7.73432, 7.28206, 3.82741, 2.52219]),
         'expression-density':np.array([0.0603072, 0.0553335, 0.0298628, 0.0188711]),
         'sum-pixels':np.array([419628.0, 2238000.0, 3629050.0, 1534150000.0])
     },
-    986:{
+    69782969: {
         'expression-energy': np.array([1.00879, 1.40198, 2.34988, 2.729]),
         'expression-density':np.array([0.00650952, 0.00896709, 0.015409, 0.0178506]),
         'sum-pixels':np.array([195863.0, 1051230.0, 1440430.0, 998731000.0])

@@ -2,10 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c53329d6-4676-4120-9690-d0d5ded036c2" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/abagen.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/abagen.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py" beforeDir="false" afterPath="$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -66,7 +62,8 @@
       <file pinned="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
+            <state relative-caret-position="608">
+              <caret line="44" column="14" selection-start-line="44" selection-start-column="14" selection-end-line="44" selection-end-column="14" />
               <folding>
                 <element signature="e#0#165#0" expanded="true" />
               </folding>
@@ -78,7 +75,7 @@
         <entry file="file://$PROJECT_DIR$/abagen/mouse/mouse.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="-4485">
-              <caret line="5" column="39" lean-forward="true" selection-start-line="5" selection-end-line="5" selection-end-column="39" />
+              <caret line="5" column="39" selection-start-line="5" selection-end-line="5" selection-end-column="39" />
             </state>
           </provider>
         </entry>
@@ -308,6 +305,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-1" y="24" width="2562" height="1393" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.24990146" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -495,13 +493,14 @@
     <entry file="file://$PROJECT_DIR$/abagen/mouse/mouse.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-4485">
-          <caret line="5" column="39" lean-forward="true" selection-start-line="5" selection-end-line="5" selection-end-column="39" />
+          <caret line="5" column="39" selection-start-line="5" selection-end-line="5" selection-end-column="39" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/abagen/mouse/tests/test_mouse.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state>
+        <state relative-caret-position="608">
+          <caret line="44" column="14" selection-start-line="44" selection-start-column="14" selection-end-line="44" selection-end-column="14" />
           <folding>
             <element signature="e#0#165#0" expanded="true" />
           </folding>
