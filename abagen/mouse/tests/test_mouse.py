@@ -2,7 +2,8 @@ from ..mouse import (
     get_experiment_id_from_gene,
     _get_single_unionization_attribute,
     get_unionization_from_experiment,
-    get_unionization_from_gene
+    get_unionization_from_gene,
+    UNIONIZATION_ATTRIBUTES
 )
 
 import pytest
@@ -204,6 +205,8 @@ def test_get_unionization_from_gene():
         slicing_direction='coronal',
         structure_list=TEST_STRUCTURE
     )
+    for attrib in UNIONIZATION_ATTRIBUTES:
+        assert attrib in unionization
     assert np.allclose(
         unionization['expression-density'],
         TEST_GENE_ACRONYM['Gba']['coronal_unionization']['expression-density']
