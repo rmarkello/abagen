@@ -425,6 +425,6 @@ def get_unionization_from_gene(
         unionization = {
             item: unionization[item]
             for item in unionization
-            if unionization[item].size == 0
+            if unionization[item].size != 0
         }
     return unionization
