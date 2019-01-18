@@ -10,3 +10,6 @@ _build/
 _static/
 build/
 dist/
+
+# PyCharm
+.idea/
