@@ -27,8 +27,7 @@ INSTALL_REQUIRES = [
 ]
 
 TESTS_REQUIRES = [
-    'codecov',
-    'pytest',
+    'pytest>=3.6',
     'pytest-cov'
 ]
 
