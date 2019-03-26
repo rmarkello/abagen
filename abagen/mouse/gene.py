@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Functions to make mouse gene expression queries and manipulations
+Functions to make mouse gene queries and manipulations
 """
-import requests
-from xml.etree import ElementTree as ET
 
-# the attributes of gene query
+import json
+import requests
+
+# available attributes of gene query
 _GENE_ATTRIBUTES = [
     'acronym',
     'alias-tags',
@@ -26,10 +27,12 @@ _GENE_ATTRIBUTES = [
 ]
 
 
-def _check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None,
-                         verbose=False):
+def _make_gene_query(gene_id=None, gene_acronym=None, gene_name=None,
+                     attributes=None, suffix=None, verbose=False):
     """
     Check if a provided gene is valid and has records in the Allen database
+
+    Requires internet access to make query to the Allen API
 
     Parameters
     ----------
@@ -39,63 +42,67 @@ def _check_gene_validity(gene_id=None, gene_acronym=None, gene_name=None,
         Short-form gene acronym (case sensitive)
     gene_name : str, optional
         Full gene name (case sensitive)
+    attributes : list, optional
+        List of attributes for which to query gene information
     verbose : bool, optional
         Whether to print query URL. Default: False
 
     Returns
     -------
-    validity : boolean
-        Whether the provided gene has records in the Allen database
-    root : :obj:`xml.etree.ElementTree`
-        XML response from Allen API; empty if `validity` is False
+    response : list
+        Response from Allen API; empty list if no response
 
     Raises
     ------
     TypeError
-        If missing parameters
+        When none of the required parameters are specified
 
     Example
     -------
-    >>> # check if gene ID 18376 is valid
-    >>> validity, _ = check_structure_validity(gene_id=18376)
-    >>> validity
-    True
-    >>> # check if structure Pdyn is valid
-    >>> validity, root = check_structure_validity(gene_acronym='Pdyn')
+    Check if gene ID '18376' is valid:
+    >>> out = _check_gene_validity(gene_id=18376)
+    >>> len(out)
+    1
+
+    Check if gene acronym 'Pdyn' is valid:
+    >>> out = _check_gene_validity(gene_acronym='Pdyn')
+    >>> len(out)
+    1
     """
 
-    url = 'http://api.brain-map.org/api/v2/data/SectionDataSet/query.xml' \
-          '?criteria=products[id$eq1],genes[{}$eq{}]' \
-          '&include=genes,plane_of_section'
+    url = 'http://api.brain-map.org/api/v2/data/Gene/query.json' \
+          '?criteria=[{}${}{}],products[id$eq1]'
 
-    # if gene ID is given
-    # preferred: id > acronym > name
-    if gene_id is not None:
-        query_url = url.format('id', gene_id)
-    elif gene_acronym is not None:
-        query_url = url.format('acronym', gene_acronym)
-    elif gene_name is not None:
-        query_url = url.format('name', gene_name)
-    else:
-        raise TypeError('At least one of [\'gene_id\', \'gene_acronym\','
-                        '\'gene_name\'] must be specified.')
+    if attributes is not None:
+        url += '&only={}'.format(','.join(attributes))
+    if suffix is not None:
+        url += suffix
 
-    # make the query
+    # preferred order of inputs: id > acronym > name
+    query, params = 'eq', [gene_id, gene_acronym, gene_name]
+    for criteria, param in zip(['id', 'acronym', 'name'], params):
+        if param is not None:
+            if isinstance(param, list):
+                query, param = 'in', ','.join([str(f) for f in param])
+            break
+    if param is None:
+        params = ['gene_id', 'gene_acronym', 'gene_name']
+        raise TypeError('At least one of {} must be specified.'.format(params))
+
+    # formt URL with desired information and make query to API
+    query_url = url.format(criteria, query, param)
     if verbose:
         print("Querying {}...".format(query_url))
-    root = ET.fromstring(requests.get(query_url).content)
+    response = json.loads(requests.get(query_url).content)
 
-    if root.attrib['total_rows'] != '0':  # successful
-        return True, root
-    else:
-        return False, root
+    return response.get('msg', [])
 
 
 def available_gene_info():
-    """ Lists available attributes for :py:func:`abagen.mouse.get_gene_info`
+    """ Lists available attributes for :func:`abagen.mouse.get_gene_info`
     """
 
-    return _GENE_ATTRIBUTES
+    return _GENE_ATTRIBUTES.copy()
 
 
 def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
@@ -115,7 +122,7 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
         Full gene name (case sensitive)
     attributes : str or list, optional
         Which attributes / information to obtain for the provided gene. See
-        :py:func:`abagen.mouse.available_gene_info` for list of available
+        :func:`abagen.mouse.available_gene_info` for list of available
         attributes to request. If not specified all available attributes will
         be returned. Default: None
     verbose : bool, optional
@@ -123,7 +130,7 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
 
     Returns
     -------
-    gene_info : int, str, or dict
+    info : int, str, or dict
         If `attributes` is a str, returns an int or str depending on specified
         attribute. If `attributes` is a list, return a dict where keys are
         attributes and values are str or int.
@@ -137,77 +144,34 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
 
     Examples
     --------
-    Get gene name according to gene name 'Pdyn':
+    Get gene name corresponding to gene acronym 'Pdyn':
     >>> get_gene_info(gene_acronym='Pdyn', attributes='name')
     'prodynorphin'
 
-    Get gene acronym according to gene id 1will hve t8376:
-    >>> gene_acronym = get_gene_info(gene_id=18376, attributes='acronym')
+    Get gene acronym corresponding to gene id 18376:
+    >>> get_gene_info(gene_id=18376, attributes='acronym')
     'Pdyn'
     """
 
-    validity, root = _check_gene_validity(gene_id=gene_id,
-                                          gene_acronym=gene_acronym,
-                                          gene_name=gene_name)
-    if validity is False:
+    # determine which attributes to request; if we don't have to request all
+    # of them then we can speed up the API call
+    if attributes is None:
+        attributes = _GENE_ATTRIBUTES
+    elif isinstance(attributes, str):
+        attributes = [attributes]
+    attributes = [attr.replace('-', '_') for attr in attributes]
+
+    # query API and check if we received a valid output
+    info = _make_gene_query(gene_id, gene_acronym, gene_name,
+                            attributes=attributes, verbose=verbose)
+    if len(info) == 0:
         provided = [gene_id, gene_acronym, gene_name]
-        raise ValueError('Gene {} is invalid. Try another gene.'
+        raise ValueError('Gene {} is invalid.'
                          .format(*[i for i in provided if i is not None]))
 
-    # if the query was successful
-    attr_list = _GENE_ATTRIBUTES if attributes is None else attributes
+    if len(attributes) == 1:
+        info = [f[attributes[0]] for f in info]
+        if len(info) == 1:
+            return info[0]
 
-    if isinstance(attr_list, list):
-        gene_info = dict()
-        for attr in attr_list:
-            try:
-                # extract the info of attr
-                gene_info[attr] = _get_single_gene_attribute(root, attr)
-            except AttributeError:
-                print('Invalid attribute {}; skipping...'.format(attr))
-                continue
-    else:  # single attribute is given
-        # return the single attr value, or raise AttributeError
-        return _get_single_gene_attribute(root, attributes)
-
-    return gene_info
-
-
-def _get_single_gene_attribute(root, attr):
-    """
-    Finds attribute `attr` in `root` XML tree
-
-    Parameters
-    ----------
-    root : :obj:`xml.etree.ElementTree`
-        XML response for Allen API
-    attr : str
-        Attribute to query from XML response `root`
-
-    Returns
-    -------
-    value: int, str, or None
-        Value of `attr`
-
-    Raises
-    ------
-    AttributeError
-        If `attr` does not exist in `root`
-    """
-
-    item = root.findall('section-data-sets/section-data-set/genes/gene/{}'
-                        .format(attr))
-
-    # check if attr is valid (if any information is found)
-    if len(item) == 0:
-        raise AttributeError('There is no gene attribute called {}'
-                             .format(attr))
-
-    # check data type
-    try:
-        return int(item[0].text)
-    except ValueError:
-        return item[0].text
-    except TypeError:
-        # the attribute exists, but has no value
-        return None
+    return info

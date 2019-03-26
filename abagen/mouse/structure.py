@@ -1,32 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-functions to make mouse structure queries and manipulations
-such as structure ID <-> structure acronym conversions,
-fetch structure full names,
-find structure coordinates, etc
+Functions to make mouse structure queries and manipulations
 """
+
+import json
 import requests
-from xml.etree import ElementTree as ET
 
-URL_PREFIX = "http://api.brain-map.org/api/v2/data/" \
-    "query.xml?include=model::Structure"
-# Allen mouse atlas
-URL_INCLUDE_MOUSE = ",structure_centers," \
-    "ontology[id$eq1]"
-# Allen developing mouse atlas
-URL_INCLUDE_DEV_MOUSE = ",structure_centers," \
-    "ontology[id$eq12]"
-# for more available attributes, see
-# http://api.brain-map.org/doc/Structure.html
-# more attributes to be incorporated
-
-STRUCTURE_ENTRY_TYPES = [
-    'acronym',
-    'id',
-    'name'
-]
-
-STRUCTURE_ATTRIBUTES = [
+# available attributes of structure query
+_STRUCTURE_ATTRIBUTES = [
     'acronym',
     'atlas-id',
     'color-hex-triplet',
@@ -47,143 +28,109 @@ STRUCTURE_ATTRIBUTES = [
 ]
 
 
-def check_structure_validity(
-    structure_id=None,
-    structure_acronym=None,
-    structure_name=None,
-):
+def _make_structure_query(structure_id=None, structure_acronym=None,
+                          structure_name=None, use_developing=False,
+                          attributes=None, suffix=None, verbose=False):
     """
-    check if a structure is valid or has records in the database
+    Check if provided structure is valid and has records in the Allen database
 
     Parameters
     ----------
     structure_id : int, optional
-        structure ID
+        Numerical structure ID
     structure_acronym : str, optional
-        structure acronym (case sensitive)
+        Short-form structure acronym (case sensitive)
     structure_name : str, optional
-        structure name (case sensitive)
+        Full structure name (case sensitive)
+    verbose : bool, optional
+        Whether to print query URL. Default: False
 
     Returns
     -------
-    validity : boolean
-        if the structure has records in the database
-    root_mouse : obj:`Response`,
-        Element 'Response' object, empty if query fails
-    root_dev_mouse : obj:`Response`
-        Element 'Response' object, empty if query fails
+    response : list
+        Response from Allen API; empty list if no response
 
     Raises
     ------
     TypeError
-        missing parameters
+        When none of the required parameters are specified
 
     Examples
     --------
-    >>> # check if structure ID 1018 is valid
+    Check if structure ID 1018 is valid
     >>> validity, _, _ = check_structure_validity(structure_id=1018)
     >>> validity
     True
-    >>> # check if structure SSp is valid
+
+    Check if structure acronym SSp is valid
     >>> validity, _, _ = check_structure_validity(structure_acronym='SSp')
     >>> Validity
     True
-
     """
-    # if structure ID is given
-    # preferred: id > acronym > name
-    if structure_id is not None:
-        query_url_mouse = URL_PREFIX + \
-            "[id$eq{}]".format(structure_id) + \
-            URL_INCLUDE_MOUSE
-        query_url_dev_mouse = URL_PREFIX + \
-            "[id$eq{}]".format(structure_id) + \
-            URL_INCLUDE_DEV_MOUSE
-    # then if acronym is given
-    elif structure_acronym is not None:
-        query_url_mouse = URL_PREFIX + \
-            "[acronym$eq'{}']".format(structure_acronym) + \
-            URL_INCLUDE_MOUSE
-        query_url_dev_mouse = URL_PREFIX + \
-            "[acronym$eq'{}']".format(structure_acronym) + \
-            URL_INCLUDE_DEV_MOUSE
-    # then if name is given
-    elif structure_name is not None:
-        query_url_mouse = URL_PREFIX + \
-            "[name$eq'{}']".format(structure_name) + \
-            URL_INCLUDE_MOUSE
-        query_url_dev_mouse = URL_PREFIX + \
-            "[name$eq'{}']".format(structure_name) + \
-            URL_INCLUDE_DEV_MOUSE
-    else:
-        # if no input
-        raise TypeError(
-            "at least one structure identifier should be specified"
-        )
 
-    print('accessing {}...'.format(query_url_mouse))
-    r_mouse = requests.get(query_url_mouse)
-    root_mouse = ET.fromstring(r_mouse.content)
+    url = 'http://api.brain-map.org/api/v2/data/Structure/query.json?' \
+          'criteria=[{}${}{}],ontology[id$'
+    url += 'in1,12]' if use_developing else 'eq1]'
 
-    print('accessing {}...'.format(query_url_dev_mouse))
-    r_dev_mouse = requests.get(query_url_dev_mouse)
-    root_dev_mouse = ET.fromstring(r_dev_mouse.content)
+    if attributes is not None:
+        url += '&only={}'.format(','.join(attributes))
+    if suffix is not None:
+        url += suffix
 
-    # both are empty
-    if root_mouse.attrib['total_rows'] == '0' \
-            and root_dev_mouse.attrib['total_rows'] == '0':
-        return False, root_mouse, root_dev_mouse
-    else:  # at least one success
-        return True, root_mouse, root_dev_mouse
+    # preferred order of inputs: id > acronym > name
+    query, params = 'eq', [structure_id, structure_acronym, structure_name]
+    for criteria, param in zip(['id', 'acronym', 'name'], params):
+        if param is not None:
+            if isinstance(param, list):
+                query, param = 'in', ','.join([str(f) for f in param])
+            break
+    if param is None:
+        params = ['structure_id', 'structure_acronym', 'structure_name']
+        raise TypeError('At least one of {} must be specified.'.format(params))
+
+    # formt URL with desired information and make query to API
+    query_url = url.format(criteria, query, param)
+    if verbose:
+        print("Querying {}...".format(query_url))
+    root = json.loads(requests.get(query_url).content)
+
+    return root.get('msg', [])
 
 
-def get_structure_info(
-    structure_id=None,
-    structure_acronym=None,
-    structure_name=None,
-    attributes='all'
-):
+def available_structure_info():
+    """ Lists available attributes for :func:`abagen.mouse.get_structure_info`
+    """
+
+    return _STRUCTURE_ATTRIBUTES.copy()
+
+
+def get_structure_info(structure_id=None, structure_acronym=None,
+                       structure_name=None, attributes=None, verbose=False):
     """
     get attributes of a structure
 
     Parameters
     ----------
     structure_id : int, optional
-        structure ID
+        Numerical structure ID
     structure_acronym : str, optional
-        structure acronym (case sensitive)
+        Short-form structure acronym (case sensitive)
     structure_name : str, optional
-        structure name (case sensitive)
+        Full structure name (case sensitive)
     attributes : str or list, optional
-        a single attribute or a list of attributes
-        default: 'all', returning all the attributes
-        available attributes:
-            'acronym',
-            'atlas-id',
-            'color-hex-triplet',
-            'depth',
-            'graph-id',
-            'graph-order',
-            'hemisphere-id',
-            'id',
-            'name',
-            'neuro-name-structure-id',
-            'neuro-name-structure-id-path',
-            'ontology-id',
-            'parent-structure-id',
-            'safe-name',
-            'sphinx-id',
-            'structure-id-path',
-            'weight'
+        Which attributes / information to obtain for the provided structure.
+        See :func:`abagen.mouse.available_structure_info` for list of available
+        attributes to request. If not specified all available attributes will
+        be returned. Default: None
+    verbose : bool, optional
+        Whether to print status messages. Default: False
 
     Returns
     -------
-    structure_info : list or dict
-        if a single attribute is given, return a list of values
-        (int or str) of that attribute acquired from mouse atlas and
-        developing mouse atlas
-        if multiple attributes are given, return a dict
-        {attr:values}. attr is str (attribute) and values is list
+    info : int, str, or dict
+        If `attributes` is a str, returns an int or str depending on specified
+        attribute. If `attributes` is a list, return a dict where keys are
+        attributes and values are str or int.
 
     Raises
     ------
@@ -200,95 +147,33 @@ def get_structure_info(
     ['Ventral auditory area']
 
     """
-    validity, root1, root2 = check_structure_validity(
-        structure_id=structure_id,
-        structure_acronym=structure_acronym,
-        structure_name=structure_name
-    )
 
-    if validity is False:
-        raise ValueError('the structure given is invalid')
+    # determine which attributes to request; if we don't have to request all
+    # of them then we can speed up the API call
+    if attributes is None:
+        attributes = _STRUCTURE_ATTRIBUTES
+    elif isinstance(attributes, str):
+        attributes = [attributes]
+    attributes = [attr.replace('-', '_') for attr in attributes]
 
-    if attributes == 'all':
-        attr_list = STRUCTURE_ATTRIBUTES
-    else:
-        attr_list = attributes
+    info = _make_structure_query(structure_id, structure_acronym,
+                                 structure_name, attributes=attributes,
+                                 verbose=verbose)
+    if len(info) == 0:
+        provided = [structure_id, structure_acronym, structure_name]
+        raise ValueError('Structure {} is invalid.'
+                         .format(*[i for i in provided if i is not None]))
 
-    if isinstance(attr_list, str):
-        # attr_list is a str (single attribute)
-        # return the single attr value, or AttributeError
-        try:
-            structure_info = [
-                _get_single_structure_attribute(root, attr_list)
-                for root in [root1, root2]
-                if root.attrib['total_rows'] != '0'
-            ]
-            return structure_info
-        except AttributeError:
-            print('There is no attribute called {}. '
-                  .format(attr_list))
-            return []
-    else:
-        structure_info = dict()
-        # iterate through the attributes
-        for attr in attr_list:
-            try:
-                # extract the info of attr
-                structure_info[attr] = [
-                    _get_single_structure_attribute(root, attr)
-                    for root in [root1, root2]
-                    if root.attrib['total_rows'] != '0'
-                ]
-            except AttributeError:
-                print('There is no attribute called {}. '
-                      'Skipped.'.format(attr))
-                continue
+    if len(attributes) == 1:
+        info = [f[attributes[0]] for f in info]
+        if len(info) == 1:
+            return info[0]
 
-    return structure_info
+    return info
 
 
-def _get_single_structure_attribute(root, attr):
-    """
-    return single attribute of a structure.
-
-    Parameters
-    ----------
-    root : obj:`Response`
-    attr : str
-        the attribute to return
-
-    Returns
-    -------
-    int or str
-        the value of structure's attr
-
-    """
-    item = root.findall(
-        'structures/structure/{}'
-        .format(attr)
-    )
-    # check if attr is valid (if any information is found)
-    if len(item) == 0:
-        raise AttributeError(
-            'There is no gene attribute called {}'.format(attr)
-        )
-
-    # check data type
-    # attr is an integer
-    try:
-        return int(item[0].text)
-    except ValueError:
-        return item[0].text
-    except TypeError:
-        # has this attribute, but no value in the database
-        return None
-
-
-def get_structure_coordinates(
-    structure_id=None,
-    structure_acronym=None,
-    structure_name=None
-):
+def get_structure_coordinates(structure_id=None, structure_acronym=None,
+                              structure_name=None, verbose=False):
     """
     get structure coordinates in reference atlas.
 
@@ -313,56 +198,42 @@ def get_structure_coordinates(
 
     Examples
     --------
-    >>> # get the coordinates of structure ID 1018
+    Get the coordinates of structure ID 1018
     >>> coor = get_structure_coordinates(structure_id=1018)
-    >>> # if the structure has records in mouse brain atlas
+    >>> coor
+    {10: [(7800, 3400, 1050)]}
+    f the structure has records in mouse brain atlas
     >>> # coordinates in space with reference id 10
     >>> # (Mouse brain atlas left hemisphere)
     >>> coor[10]
     [(7800, 3400, 1050)]
-
     """
 
-    validity, root1, root2 = check_structure_validity(
-        structure_id=structure_id,
-        structure_acronym=structure_acronym,
-        structure_name=structure_name
-    )
+    suffix = ('&include={0}&only={0},{0}.structure_id,{0}.reference_space_id,'
+              '{0}.x,{0}.y,{0}.z'.format('structure_centers'))
 
-    if validity is False:
-        raise ValueError('the structure given is invalid')
+    info = _make_structure_query(structure_id, structure_acronym,
+                                 structure_name, suffix=suffix,
+                                 verbose=verbose)
+    if len(info) == 0:
+        provided = [structure_id, structure_acronym, structure_name]
+        raise ValueError('Structure {} is invalid.'
+                         .format(*[i for i in provided if i is not None]))
 
-    coor = dict()
-    # find coor in mouse atlas and developing mouse atlas
-    # in the form {reference-space-id:(x, y, z)}
-    for root in [root1, root2]:
-        if root.attrib['total_rows'] != '0':  # if root is not empty
-            for item in root.findall(
-                    'structures/structure/'
-                    'structure-centers/structure-center'
-            ):
-                reference_atlas_id = int(
-                    item.find('reference-space-id').text
-                )
-                if reference_atlas_id in coor:
-                    # append a tuple (x, y, z)
-                    coor[reference_atlas_id].append(
-                        (
-                            int(item.find('x').text),
-                            int(item.find('y').text),
-                            int(item.find('z').text)
-                        )
-                    )
-                else:  # create a new list for reference_atlas_id
-                    coor[reference_atlas_id] = [
-                        (
-                            int(item.find('x').text),
-                            int(item.find('y').text),
-                            int(item.find('z').text)
-                        )
-                    ]
+    coords = dict()
+    for struct in info:
+        for item in struct['structure_centers']:
+            coords.setdefault(item['structure_id'], dict())
+            reference_atlas_id = int(item['reference_space_id'])
+            xyz = (int(item.get('x')), int(item.get('y')), int(item.get('z')))
 
-    if len(coor) == 0:
-        print('No coordinates information is found')
+            if reference_atlas_id in coords:
+                coords[item['structure_id']][reference_atlas_id].append(xyz)
+            else:
+                coords[item['structure_id']][reference_atlas_id] = [xyz]
 
-    return coor
+    # if only one structure was queried don't return a nasty nested dictionary
+    if len(coords) == 1:
+        return list(coords.values())[0]
+
+    return coords
