@@ -5,7 +5,7 @@ functions to fetch unionization relevant data
 import requests
 from xml.etree import ElementTree as ET
 import numpy as np
-from .gene import check_gene_validity
+from .gene import _check_gene_validity
 from .io import read_all_structures
 import random
 
@@ -75,7 +75,7 @@ def get_experiment_id_from_gene(
                          'Try sagittal or coronal instead'
                          .format(slicing_direction))
 
-    validity, root = check_gene_validity(
+    validity, root = _check_gene_validity(
         gene_id=gene_id,
         gene_acronym=gene_acronym,
         gene_name=gene_name

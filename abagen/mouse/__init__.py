@@ -1,5 +1,5 @@
 __all__ = [
-    'check_gene_validity',
+    'available_gene_info',
     'get_gene_info',
     'check_structure_validity',
     'get_structure_info',
@@ -11,15 +11,10 @@ __all__ = [
     'get_unionization_from_experiment',
     'STRUCTURE_ENTRY_TYPES',
     'STRUCTURE_ATTRIBUTES',
-    'GENE_ATTRIBUTES',
-    'GENE_ENTRY_TYPES',
     'UNIONIZATION_ATTRIBUTES'
 ]
 
-from .gene import (check_gene_validity,
-                   get_gene_info,
-                   GENE_ENTRY_TYPES,
-                   GENE_ATTRIBUTES)
+from .gene import get_gene_info, available_gene_info
 from .structure import (check_structure_validity,
                         get_structure_coordinates,
                         get_structure_info,
