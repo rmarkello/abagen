@@ -85,7 +85,7 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
 
     criteria = [
         _coerce_inputs(id=id, acronym=acronym, name=name),
-        'ontology[id$in1,12]'
+        'ontology[id$eq1]'
     ]
     provided = re.search('\[(\S+)\$', criteria[0]).group(1)
 
@@ -96,6 +96,13 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
     elif isinstance(attributes, str):
         attributes = [attributes]
     attributes = list(set.difference(set(attributes), set([provided])))
+
+    for attr in attributes:
+        if attr not in _STRUCTURE_ATTRIBUTES:
+            raise ValueError('Provided attribute "{}" is invalid; please '
+                             'check valid attributes with '
+                             'abagen.mouse.available_structure_info().'
+                             .format(attr))
 
     info = _make_api_query('Structure', criteria=criteria,
                            attributes=attributes + [provided], verbose=verbose)
@@ -145,7 +152,7 @@ def get_structure_coordinates(id=None, acronym=None, name=None,
     includes = 'structure_centers'
     criteria = [
         _coerce_inputs(id=id, acronym=acronym, name=name),
-        'ontology[id$in1,12]',
+        'ontology[id$eq1]',
         'structure_centers[reference_space_id$eq{}]'.format(space)
     ]
     attributes = [

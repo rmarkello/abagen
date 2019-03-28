@@ -41,7 +41,7 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
 
     entries = ['id', 'acronym', 'name']
     url = 'http://api.brain-map.org/api/v2/data/Gene/query.json' \
-          '?criteria=products[id$in1,12]&only=id,acronym,name' \
+          '?criteria=products[id$eq1]&only=id,acronym,name' \
           '&start_row={}&num_rows=1000'
     fname = resource_filename('abagen', 'data/allen_reference_genes.csv')
 
@@ -111,7 +111,7 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
 
     entries = ['id', 'acronym', 'name']
     url = 'http://api.brain-map.org/api/v2/data/Structure/query.json' \
-          '?criteria=ontology[id$in1,12]&num_rows=all&only=id,acronym,name'
+          '?criteria=ontology[id$eq1]&num_rows=all&only=id,acronym,name'
     fname = resource_filename('abagen', 'data/allen_reference_atlas.csv')
 
     if entry_type is not None and entry_type not in entries:

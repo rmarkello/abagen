@@ -102,6 +102,13 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
         attributes = [attributes]
     attributes = list(set.difference(set(attributes), set([provided])))
 
+    for attr in attributes:
+        if attr not in _GENE_ATTRIBUTES:
+            raise ValueError('Provided attribute "{}" is invalid; please '
+                             'check valid attributes with '
+                             'abagen.mouse.available_gene_info().'
+                             .format(attr))
+
     info = _make_api_query('Gene', criteria=criteria,
                            attributes=attributes + [provided], verbose=verbose)
     info = pd.DataFrame(info).set_index(provided)[attributes]

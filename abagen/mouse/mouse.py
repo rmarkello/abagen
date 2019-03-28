@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-functions to fetch unionization relevant data
+Functions to fetch mouse unionization (i.e., expression) data
 """
 
 import itertools
@@ -142,7 +142,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
         '[id$in{}]'.format(
              ','.join([str(f) for f in experiment_id])
         ),
-        'products[id$in1,12]',
+        'products[id$eq1]',
         'structure_unionizes[structure_id$in{}]'.format(
             ','.join([str(f) for f in structures])
         ),
