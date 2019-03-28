@@ -3,12 +3,12 @@
 Functions to fetch (and load) mouse gene and structure lists from Allen API
 """
 
-import json
 import os.path as op
 from pkg_resources import resource_filename
 
 import pandas as pd
-import requests
+
+from .utils import _make_api_query
 
 
 def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
@@ -39,13 +39,8 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
     some time); after query is made once the results are cached.
     """
 
-    entries = ['id', 'acronym', 'name']
-    url = 'http://api.brain-map.org/api/v2/data/Gene/query.json' \
-          '?criteria=products[id$eq1]&only=id,acronym,name' \
-          '&start_row={}&num_rows=1000'
-    fname = resource_filename('abagen', 'data/allen_reference_genes.csv')
-
     # check that provided entry_type is valid
+    entries = ['id', 'acronym', 'name']
     if entry_type is not None and entry_type not in entries:
         raise ValueError('Provided entry_type {} is not valid. Specified '
                          'entry_type must be one of {}.'
@@ -53,21 +48,15 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
 
     # if file doesn't exist or we want to overwrite the cache for some reason
     # download the data from the Allen API
+    fname = resource_filename('abagen', 'data/allen_reference_genes.csv')
     if not op.isfile(fname) or not cache:
-        genes = pd.DataFrame(columns=entries)
         if verbose:
             print('Gene information not available locally; querying '
                   'Allen API for information. This may take some time...')
-        row = 0
-        while True:
-            root = json.loads(requests.get(url.format(row)).content)
-            if not root['success']:
-                raise ValueError('Unable to query Allen API at this time; '
-                                 'please try again later.')
-            genes = genes.append(pd.DataFrame(root['msg'])[entries])
-            row += root['num_rows']
-            if row == root['total_rows']:
-                break
+        out = _make_api_query('Gene', criteria='products[id$eq1]',
+                              attributes=entries, suffix='num_rows=all')
+        genes = pd.DataFrame(out)
+        # sort entries by gene ID
         genes = genes.sort_values('id').reset_index(drop=True)
         # save information to disk
         genes.to_csv(fname, index=False)
@@ -110,24 +99,19 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
     """
 
     entries = ['id', 'acronym', 'name']
-    url = 'http://api.brain-map.org/api/v2/data/Structure/query.json' \
-          '?criteria=ontology[id$eq1]&num_rows=all&only=id,acronym,name'
-    fname = resource_filename('abagen', 'data/allen_reference_atlas.csv')
-
     if entry_type is not None and entry_type not in entries:
         raise ValueError('Provided entry_type {} is not valid. Specified '
                          'entry_type must be one of {}.'
                          .format(entry_type, entries))
 
+    fname = resource_filename('abagen', 'data/allen_reference_atlas.csv')
     if not op.isfile(fname) or not cache:
         if verbose:
             print('Structure information not available locally; querying '
                   'Allen API for information...')
-        root = json.loads(requests.get(url).content)
-        if not root['success']:
-            raise ValueError('Unable to query Allen API at this time; please '
-                             'try again later.')
-        structures = pd.DataFrame(root['msg'])
+        out = _make_api_query('Structure', criteria='ontology[id$eq1]',
+                              attributes=entries, suffix='num_rows=all')
+        structures = pd.DataFrame(out)
         # sort entries by structure ID
         structures = structures.sort_values('id').reset_index(drop=True)
         # save information to disk
