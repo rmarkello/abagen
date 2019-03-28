@@ -11,7 +11,7 @@ import pandas as pd
 import requests
 
 
-def fetch_allenref_genes(entry_type=None, cache=True, verbose=False):
+def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
     """
     Loads all genes from Allen Reference database
 
@@ -26,7 +26,7 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=False):
         Whether to use cached gene information (if it exists). Setting to False
         will overwrite cache. Default: True
     verbose : bool, optional
-        Whether to print status message. Default: False
+        Whether to print status message. Default: True
 
     Returns
     -------
@@ -81,7 +81,7 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=False):
     return genes
 
 
-def fetch_allenref_structures(entry_type=None, cache=True, verbose=False):
+def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
     """
     Loads all anatomical structures in the Allen Reference Atlas
 
@@ -96,7 +96,7 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=False):
         Whether to use cached structure information (if it exists). Setting to
         False will overwrite cache. Default: True
     verbose : bool, optional
-        Whether to print status message. Default: False
+        Whether to print status message. Default: True
 
     Returns
     -------
