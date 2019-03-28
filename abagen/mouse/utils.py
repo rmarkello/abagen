@@ -43,7 +43,7 @@ def _coerce_inputs(id=None, acronym=None, name=None):
 
 
 def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
-                    suffix=None, verbose=False):
+                    suffix=None, returns='msg', verbose=False):
     """
     """
 
@@ -64,7 +64,7 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
     response = requests.get(url)
     response.raise_for_status()
 
-    info = json.loads(response.content)
+    info = json.loads(response.content.decode('utf-8'))
 
     if not info['success']:
         raise ValueError('Provided query {} is invalid. Please check '
@@ -73,4 +73,7 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
         raise ValueError('Provided query {} returned no results. Please '
                          'check parameters and try again.'.format(url))
 
-    return info.get('msg', [])
+    if returns is not None:
+        info = info.get(returns, [])
+
+    return info
