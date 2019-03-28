@@ -2,8 +2,8 @@
 
 import json
 import requests
+from typing import Iterable
 import urllib
-import warnings
 
 
 def _coerce_inputs(id=None, acronym=None, name=None):
@@ -29,7 +29,7 @@ def _coerce_inputs(id=None, acronym=None, name=None):
     query, params = 'eq', [id, acronym, name]
     for criteria, param in zip(['id', 'acronym', 'name'], params):
         if param is not None:
-            if isinstance(param, list):
+            if isinstance(param, Iterable) and not isinstance(param, str):
                 # if we're doing "in" queries with strings they must be quoted
                 if criteria in ['acronym', 'name']:
                     param = ["'{}'".format(f) for f in param]
@@ -70,7 +70,7 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
         raise ValueError('Provided query {} is invalid. Please check '
                          'parameters and try again.'.format(url))
     elif info['total_rows'] == 0:
-        warnings.warn('Provided query {} returned no results. Please '
-                      'check parameters and try again.'.format(url))
+        raise ValueError('Provided query {} returned no results. Please '
+                         'check parameters and try again.'.format(url))
 
     return info.get('msg', [])
