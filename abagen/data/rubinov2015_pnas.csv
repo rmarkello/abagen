@@ -1,0 +1,57 @@
+acronym,name,id
+PTLp,Posterior parietal association areas,22
+ACA,Anterior cingulate area,31
+ILA,Infralimbic area,44
+AI,Agranular insular area,95
+AOB,Accessory olfactory bulb,151
+AON,Anterior olfactory nucleus,159
+RSP,Retrosplenial area,254
+SSp,Primary somatosensory area,322
+CA,Ammon's horn,375
+SSs,Supplemental somatosensory area,378
+VISp,Primary visual area,385
+VISam,Anteromedial visual area,394
+VISal,Anterolateral visual area,402
+VISl,Lateral visual area,409
+VISpl,Posterolateral visual area,425
+MOB,Main olfactory bulb,507
+VISpm,posteromedial visual area,533
+TEa,Temporal association areas,541
+TR,Postpiriform transition area,566
+TT,Taenia tecta,589
+COA,Cortical amygdalar area,631
+VISC,Visceral area,677
+CTXsp,Cortical subplate,703
+ORB,Orbital area,714
+DG,Dentate gyrus,726
+RHP,Retrohippocampal region,822
+ECT,Ectorhinal area,895
+PIR,Piriform area,961
+MOp,Primary motor area,985
+MOs,Secondary motor area,993
+AUDp,Primary auditory area,1002
+AUDd,Dorsal auditory area,1011
+AUDv,Ventral auditory area,1018
+GU,Gustatory areas,1057
+POTel,preoptic telencephalon,15569
+THy,terminal hypothalamus (rostral hypothalamus),15622
+SeSPall,subpallial septum,15752
+PaSe,paraseptal subpallium,15784
+Dg,diagonal domain,15819
+Pal,pallidum (globus pallidus complex),15834
+Strp,periventricular stratum of Str,15854
+Stri,intermediate stratum of Str,15856
+ASPall,subpallial amygdala,15867
+PHy,peduncular (caudal) hypothalamus,16211
+p3,prosomere 3,16309
+p2,prosomere 2,16375
+p1,prosomere 1,16509
+m1,mesomere 1,16650
+is,isthmus,16810
+CbV,cerebellar vermis,16814
+r1,rhombomere 1,16915
+CbH,cerebellar hemisphere,16920
+r2,rhombomere 2,17023
+PH,pontine hindbrain,17092
+PMH,pontomedullary hindbrain,17220
+MH,medullary hindbrain (medulla),17352
