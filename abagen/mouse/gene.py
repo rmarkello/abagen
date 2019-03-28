@@ -92,7 +92,7 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
         _coerce_inputs(id=id, acronym=acronym, name=name),
         'products[id$eq1]'
     ]
-    provided = re.search('\[(\S+)\$', criteria[0]).group(1)
+    provided = re.search(r'\[(\S+)\$', criteria[0]).group(1)
 
     # determine which attributes to request; if we don't have to request all
     # of them then we can speed up the API call
