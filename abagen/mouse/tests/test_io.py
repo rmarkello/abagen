@@ -1,33 +1,48 @@
-from ..io import read_all_genes, read_all_structures
-import numpy as np
+# -*- coding: utf-8 -*-
+
+import pandas as pd
 import pytest
-import random
+
+from abagen.mouse import io
 
 
-def test_read_all_genes():
-    with pytest.raises(KeyError):
-        read_all_genes(entry_type='wrong_entry_type')
+def test_fetch_allenref_genes():
+    # invalid entry_type fails
+    with pytest.raises(ValueError):
+        io.fetch_allenref_genes(entry_type='wrong_entry_type')
 
-    all_genes = read_all_genes(entry_type='id')
-    assert isinstance(all_genes, np.ndarray)
+    # specifying entry_type returns list
+    genes = io.fetch_allenref_genes(entry_type='acronym')
+    assert isinstance(genes, list)
+    assert all(isinstance(f, str) for f in genes)
 
-    all_genes = read_all_genes(
-        entry_type=['id', 'acronym', 'name']
-    )
-    assert all_genes.shape == (19991, 3)
+    # no specification returns data frame
+    genes = io.fetch_allenref_genes()
+    assert isinstance(genes, pd.DataFrame)
+    assert genes.shape == (19991, 3)
 
 
-def test_real_all_structures():
-    with pytest.raises(KeyError):
-        read_all_structures(entry_type='wrong_entry_type')
-    default_structures = \
-        read_all_structures(entry_type='acronym')
-    assert isinstance(default_structures, np.ndarray)
-    assert isinstance(
-        random.choice(default_structures), str
-    )
-    default_structures = \
-        read_all_structures(
-            entry_type=['id', 'acronym', 'name']
-        )
-    assert default_structures.shape == (56, 3)
+def test_fetch_allenref_structures():
+    with pytest.raises(ValueError):
+        io.fetch_allenref_structures(entry_type='wrong_entry_type')
+
+    structures = io.fetch_allenref_structures(entry_type='acronym')
+    assert isinstance(structures, list)
+    assert all(isinstance(f, str) for f in structures)
+
+    structures = io.fetch_allenref_structures()
+    assert isinstance(structures, pd.DataFrame)
+    assert structures.shape == (1327, 3)
+
+
+def test_fetch_rubinov2015_structures():
+    with pytest.raises(ValueError):
+        io.fetch_rubinov2015_structures(entry_type='wrong_entry_type')
+
+    structures = io.fetch_rubinov2015_structures(entry_type='acronym')
+    assert isinstance(structures, list)
+    assert all(isinstance(f, str) for f in structures)
+
+    structures = io.fetch_rubinov2015_structures()
+    assert isinstance(structures, pd.DataFrame)
+    assert structures.shape == (56, 3)
