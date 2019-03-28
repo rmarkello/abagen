@@ -3,99 +3,30 @@
 Functions to make mouse gene queries and manipulations
 """
 
-import json
-import requests
+import re
+import pandas as pd
+from .utils import _coerce_inputs, _make_api_query
+
 
 # available attributes of gene query
 _GENE_ATTRIBUTES = [
     'acronym',
-    'alias-tags',
-    'chromosome-id',
-    'ensembl-id',
-    'entrez-id',
-    'genomic-reference-update-id',
-    'homologene-id',
+    'alias_tags',
+    'chromosome_id',
+    'ensembl_id',
+    'entrez_id',
+    'genomic_reference_update_id',
+    'homologene_id',
     'id',
-    'legacy-ensembl-gene-id',
+    'legacy_ensembl_gene_id',
     'name',
-    'organism-id',
-    'original-name',
-    'original-symbol',
-    'reference-genome-id',
-    'sphinx-id',
-    'version-status'
+    'organism_id',
+    'original_name',
+    'original_symbol',
+    'reference_genome_id',
+    'sphinx_id',
+    'version_status'
 ]
-
-
-def _make_gene_query(gene_id=None, gene_acronym=None, gene_name=None,
-                     attributes=None, suffix=None, verbose=False):
-    """
-    Check if a provided gene is valid and has records in the Allen database
-
-    Requires internet access to make query to the Allen API
-
-    Parameters
-    ----------
-    gene_id : int, optional
-        Numerical gene ID
-    gene_acronym : str, optional
-        Short-form gene acronym (case sensitive)
-    gene_name : str, optional
-        Full gene name (case sensitive)
-    attributes : list, optional
-        List of attributes for which to query gene information
-    verbose : bool, optional
-        Whether to print query URL. Default: False
-
-    Returns
-    -------
-    response : list
-        Response from Allen API; empty list if no response
-
-    Raises
-    ------
-    TypeError
-        When none of the required parameters are specified
-
-    Example
-    -------
-    Check if gene ID '18376' is valid:
-    >>> out = _check_gene_validity(gene_id=18376)
-    >>> len(out)
-    1
-
-    Check if gene acronym 'Pdyn' is valid:
-    >>> out = _check_gene_validity(gene_acronym='Pdyn')
-    >>> len(out)
-    1
-    """
-
-    url = 'http://api.brain-map.org/api/v2/data/Gene/query.json' \
-          '?criteria=[{}${}{}],products[id$eq1]'
-
-    if attributes is not None:
-        url += '&only={}'.format(','.join(attributes))
-    if suffix is not None:
-        url += suffix
-
-    # preferred order of inputs: id > acronym > name
-    query, params = 'eq', [gene_id, gene_acronym, gene_name]
-    for criteria, param in zip(['id', 'acronym', 'name'], params):
-        if param is not None:
-            if isinstance(param, list):
-                query, param = 'in', ','.join([str(f) for f in param])
-            break
-    if param is None:
-        params = ['gene_id', 'gene_acronym', 'gene_name']
-        raise TypeError('At least one of {} must be specified.'.format(params))
-
-    # formt URL with desired information and make query to API
-    query_url = url.format(criteria, query, param)
-    if verbose:
-        print("Querying {}...".format(query_url))
-    response = json.loads(requests.get(query_url).content)
-
-    return response.get('msg', [])
 
 
 def available_gene_info():
@@ -105,20 +36,20 @@ def available_gene_info():
     return _GENE_ATTRIBUTES.copy()
 
 
-def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
-                  attributes=None, verbose=False):
+def get_gene_info(id=None, acronym=None, name=None, attributes=None,
+                  verbose=False):
     """
     Queries Allen API for information about given gene
 
-    One of `gene_id`, `gene_acronym`, or `gene_name` must be provided.
+    One of `id`, `acronym`, or `name` must be provided.
 
     Parameters
     ----------
-    gene_id : int, optional
+    id : int, optional
         Numerical gene ID
-    gene_acronym : str, optional
+    acronym : str, optional
         Short-form gene acronym (case sensitive)
-    gene_name : str, optional
+    name : str, optional
         Full gene name (case sensitive)
     attributes : str or list, optional
         Which attributes / information to obtain for the provided gene. See
@@ -130,7 +61,7 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
 
     Returns
     -------
-    info : int, str, or dict
+    info : :class:`pandas.DataFrame`
         If `attributes` is a str, returns an int or str depending on specified
         attribute. If `attributes` is a list, return a dict where keys are
         attributes and values are str or int.
@@ -139,19 +70,29 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
     ------
     ValueError
         The provided gene is invalid
-    AttributeError
-        Only one attribute is specified but it is invalid
 
     Examples
     --------
-    Get gene name corresponding to gene acronym 'Pdyn':
-    >>> get_gene_info(gene_acronym='Pdyn', attributes='name')
-    'prodynorphin'
+    Get gene ID and name corresponding to gene acronym 'Pdyn':
+    >>> from abagen import mouse
+    >>> mouse.get_gene_info(acronym='Pdyn', attributes=['id', 'name'])
+                id          name
+    acronym
+    Pdyn     18376  prodynorphin
 
-    Get gene acronym corresponding to gene id 18376:
-    >>> get_gene_info(gene_id=18376, attributes='acronym')
-    'Pdyn'
+    You can also supply multiple genes to the query:
+    >>> mouse.get_gene_info(acronym=['Ace', 'Cd99'], attributes=['id', 'name'])
+                 id                                               name
+    acronym
+    Ace       11210  angiotensin I converting enzyme (peptidyl-dipe...
+    Cd99     163028                                       CD99 antigen
     """
+
+    criteria = [
+        _coerce_inputs(id=id, acronym=acronym, name=name),
+        'products[id$eq1]'
+    ]
+    provided = re.search('\[(\S+)\$', criteria[0]).group(1)
 
     # determine which attributes to request; if we don't have to request all
     # of them then we can speed up the API call
@@ -159,19 +100,10 @@ def get_gene_info(gene_id=None, gene_acronym=None, gene_name=None,
         attributes = _GENE_ATTRIBUTES
     elif isinstance(attributes, str):
         attributes = [attributes]
-    attributes = [attr.replace('-', '_') for attr in attributes]
+    attributes = list(set.difference(set(attributes), set([provided])))
 
-    # query API and check if we received a valid output
-    info = _make_gene_query(gene_id, gene_acronym, gene_name,
-                            attributes=attributes, verbose=verbose)
-    if len(info) == 0:
-        provided = [gene_id, gene_acronym, gene_name]
-        raise ValueError('Gene {} is invalid.'
-                         .format(*[i for i in provided if i is not None]))
+    info = _make_api_query('Gene', criteria=criteria,
+                           attributes=attributes + [provided], verbose=verbose)
+    info = pd.DataFrame(info).set_index(provided)[attributes]
 
-    if len(attributes) == 1:
-        info = [f[attributes[0]] for f in info]
-        if len(info) == 1:
-            return info[0]
-
-    return info
+    return info.sort_index()
