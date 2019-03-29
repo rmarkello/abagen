@@ -65,6 +65,8 @@ def test_get_unionization_from_experiment(experiment, attributes):
     data = mouse._get_unionization_from_experiment(experiment,
                                                    structures=STRUCTURES,
                                                    attributes=attributes)
+    data.index = data.index.droplevel('gene_id')
+
     if attributes is None:
         attributes = ['expression_density']
     elif attributes == 'all':
@@ -89,9 +91,12 @@ def test_get_unionization_from_gene(attribute):
                                          slicing_direction='coronal',
                                          structures=STRUCTURES)
 
+    # get data for provided gene
     data = mouse.get_unionization_from_gene(acronym='Gba',
                                             slicing_direction='coronal',
                                             structures=STRUCTURES,
                                             attributes=attribute)
+    data.index = data.index.droplevel('gene_id')
+
     assert np.allclose(data.loc[STRUCTURES, attribute],
                        GBA_UNIONIZATION[attribute])

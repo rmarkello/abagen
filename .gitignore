@@ -10,6 +10,7 @@ _build/
 _static/
 build/
 dist/
+allen_reference_*.csv
 
 # PyCharm
 .idea/
