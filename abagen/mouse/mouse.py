@@ -100,8 +100,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     -------
     unionization : :class:`pandas.DataFrame`
         Where columns are unionization attributes and the index corresponds to
-        strucuture ids (and gene ids, if `experiments` is provided as a list
-        with multiple genes)
+        gene ids and strucuture ids
 
     References
     ----------
@@ -168,9 +167,6 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     info = pd.DataFrame(list(itertools.chain.from_iterable(info)))
     if average:
         info = info.groupby(['gene_id', 'structure_id']).mean()
-        # if only one gene_id drop it from index
-        if len(info.index.get_level_values('gene_id').unique()) == 1:
-            info.index = info.index.droplevel('gene_id')
     else:
         info = info.set_index(['gene_id', 'experiment_id', 'structure_id'])
 
