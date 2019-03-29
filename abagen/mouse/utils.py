@@ -68,10 +68,12 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
 
     if not info['success']:
         raise ValueError('Provided query {} is invalid. Please check '
-                         'parameters and try again.'.format(url))
+                         'parameters and try again.'
+                         .format(urllib.parse.unquote_plus(url)))
     elif info['total_rows'] == 0:
         raise ValueError('Provided query {} returned no results. Please '
-                         'check parameters and try again.'.format(url))
+                         'check parameters and try again.'
+                         .format(urllib.parse.unquote_plus(url)))
 
     if returns is not None:
         info = info.get(returns, [])
