@@ -13,11 +13,13 @@ def main():
     # get package information
     ldict = locals()
     curr_path = os.path.dirname(__file__)
-    with open(os.path.join(curr_path, 'abagen', 'info.py')) as infofile:
+    ipath = os.path.join(curr_path, 'abagen', 'info.py')
+    with open(ipath, encoding='utf-8') as infofile:
         exec(infofile.read(), globals(), ldict)
 
     # get long description from README
-    with open(os.path.join(curr_path, ldict['LONG_DESCRIPTION'])) as src:
+    ldpath = os.path.join(curr_path, ldict['LONG_DESCRIPTION'])
+    with open(ldpath, encoding='utf-8') as src:
         ldict['LONG_DESCRIPTION'] = src.read()
 
     setup(
