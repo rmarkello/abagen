@@ -14,7 +14,7 @@ AGG_FUNCS = dict(
 )
 
 
-def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
+def check_atlas_info(atlas, atlas_info, labels=None):
     """
     Checks whether provided `info` on `atlas` is sufficient for processing
 
@@ -29,7 +29,7 @@ def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
         'structure' containing information mapping atlas IDs to hemisphere and
         broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
-    labels_of_interest : array_like, optional
+    labels : array_like, optional
         List of values containing labels to compare between `atlas` and
         `atlas_info`, if they don't all match. Default: None
 
@@ -57,10 +57,10 @@ def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
     if 'id' in atlas_info.columns:
         atlas_info = atlas_info.set_index('id')
 
-    if labels_of_interest is None:
+    if labels is None:
         ids = get_unique_labels(atlas)
     else:
-        ids = labels_of_interest
+        ids = labels
 
     cols = ['hemisphere', 'structure']
     try:
@@ -157,13 +157,13 @@ def get_unique_labels(label_image):
 
 def get_centroids(image, labels=None, image_space=False):
     """
-    Finds centroids of ``labels_of_interest`` in ``label_image``
+    Finds centroids of ``labels`` in ``label_image``
 
     Parameters
     ----------
     label_image : niimg-like object
         3D image containing integer label at each point
-    labels_of_interest : array_like, optional
+    labels : array_like, optional
         List of values containing labels of which to find centroids. Default:
         all possible labels
     image_space : bool, optional

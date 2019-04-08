@@ -384,7 +384,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     num_subj = len(files.microarray)
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
-        centroids = utils.get_centroids(atlas, labels_of_interest=all_labels)
+        centroids = utils.get_centroids(atlas, labels=all_labels)
 
     # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
     # perform intensity-based filter of probes and select probe with highest

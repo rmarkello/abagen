@@ -50,8 +50,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     # load atlas_info, if provided
     atlas = check_niimg_3d(atlas)
     if atlas_info is not None:
-        atlas_info = utils.check_atlas_info(atlas, atlas_info,
-                                            labels_of_interest=labels)
+        atlas_info = utils.check_atlas_info(atlas, atlas_info, labels=labels)
         if labels is not None and len(labels) != len(coexpression):
             raise ValueError('Provided labels {} are a different length than '
                              'provided coexpression matrix of size {}. Please '
@@ -63,7 +62,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
 
     # we'll do basic Euclidean distance correction for now
     # TODO: implement gray matter volume / cortical surface path distance
-    centroids = utils.get_centroids(atlas, labels_of_interest=labels)
+    centroids = utils.get_centroids(atlas, labels=labels)
     dist = cdist(centroids, centroids, metric='euclidean')
 
     corr_resid = np.zeros_like(coexpression)
