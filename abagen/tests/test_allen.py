@@ -1,7 +1,6 @@
 import pandas as pd
 from nilearn._utils import check_niimg
 from nilearn.image import new_img_like
-import pytest
 from abagen import allen
 from abagen.datasets import fetch_desikan_killiany
 
