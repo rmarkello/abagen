@@ -239,10 +239,11 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     return gene_by_label
 
 
-def get_expression_data(atlas, atlas_info=None, *, donors='all', exact=True,
+def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
                         corrected_mni=True, reannotated=True,
-                        return_counts=False, return_donors=False):
+                        return_counts=False, return_donors=False,
+                        donors='all', data_dir=None):
     """
     Assigns microarray expression data to ROIs defined in `atlas`
 
@@ -297,10 +298,6 @@ def get_expression_data(atlas, atlas_info=None, *, donors='all', exact=True,
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
         and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
-    donors : list, optional
-        List of donors to use as sources of expression data. Can be either
-        donor numbers or UID. If not specified will use all available donors.
-        Default: 'all'
     exact : bool, optional
         Whether to use exact matching of donor tissue samples to parcels in
         `atlas`. If True, this function will match tissue samples to parcels
@@ -341,6 +338,14 @@ def get_expression_data(atlas, atlas_info=None, *, donors='all', exact=True,
     return_donors : bool, optional
         Whether to return donor-level expression arrays instead of aggregating
         expression across donors with provided `metric`. Default: False
+    donors : list, optional
+        List of donors to use as sources of expression data. Can be either
+        donor numbers or UID. If not specified will use all available donors.
+        Default: 'all'
+    data_dir : str, optional
+        Directory where expression data should be downloaded (if it does not
+        already exist) / loaded. If not specified will use the current
+        directory. Default: None
 
     Returns
     -------
@@ -361,7 +366,7 @@ def get_expression_data(atlas, atlas_info=None, *, donors='all', exact=True,
     """
 
     # fetch files
-    files = datasets.fetch_microarray(donors=donors)
+    files = datasets.fetch_microarray(data_dir=data_dir, donors=donors)
     for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
         if key not in files:
             raise KeyError('Provided `files` dictionary is missing {}. '
