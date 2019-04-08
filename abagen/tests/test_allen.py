@@ -22,9 +22,6 @@ def test_vanilla_get_expression_data(testdir, testfiles):
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
-    with pytest.raises(KeyError):
-        allen.get_expression_data({'microarray': [1, 2, 3]}, ATLAS.image)
-
 
 def test_extra_get_expression_data(testdir, testfiles):
     for opts in [{'atlas_info': ATLAS.info},
