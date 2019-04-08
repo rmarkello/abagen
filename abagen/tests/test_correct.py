@@ -9,9 +9,11 @@ ATLAS = fetch_desikan_killiany()
 
 
 @pytest.fixture(scope='module')
-def donor_expression(testfiles):
-    return allen.get_expression_data(testfiles, ATLAS.image, ATLAS.info,
-                                     exact=False, return_donors=True)
+def donor_expression(testdir, testfiles):
+    return allen.get_expression_data(ATLAS.image, ATLAS.info,
+                                     exact=False, return_donors=True,
+                                     data_dir=testdir,
+                                     donors=['12876', '15496'])
 
 
 def test_remove_distance(donor_expression):
