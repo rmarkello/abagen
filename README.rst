@@ -93,6 +93,11 @@ taken from [1]_ and is separately licensed under the `CC BY 4.0 <https://
 creativecommons.org/licenses/by/4.0/legalcode>`_; these data can also be found
 on `figshare <https://figshare.com/s/441295fe494375aa0c13>`_.
 
+Corrected MNI coordinates used to match AHBA tissues samples to MNI space
+located at `abagen/data/corrected_mni_coordinates.csv` are taken from the
+`alleninf package <https://github.com/chrisfilo/alleninf>`, provided under the
+3-clause BSD license.
+
 All trademarks referenced herein are property of their respective holders.
 
 .. |sparkles| replace:: ✨
