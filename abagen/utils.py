@@ -4,7 +4,7 @@ import itertools
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
-from scipy.ndimage.measurements import center_of_mass
+from scipy.ndimage import center_of_mass
 from scipy.spatial.distance import cdist
 from scipy.stats import zscore
 
@@ -155,7 +155,7 @@ def get_unique_labels(label_image):
     return np.trim_zeros(np.unique(label_image.get_data())).astype(int)
 
 
-def get_centroids(label_image, labels_of_interest=None, image_space=False):
+def get_centroids(image, labels=None, image_space=False):
     """
     Finds centroids of ``labels_of_interest`` in ``label_image``
 
@@ -176,20 +176,19 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
         Coordinates of centroids for ROIs in input data
     """
 
-    label_image = check_niimg_3d(label_image)
+    image = check_niimg_3d(image)
+    data = image.get_data()
 
     # if no labels of interest provided, get all possible labels
-    if labels_of_interest is None:
-        labels_of_interest = get_unique_labels(label_image)
+    if labels is None:
+        labels = np.trim_zeros(np.unique(data))
 
     # get centroids for all possible labels
-    image_data = label_image.get_data()
-    centroids = np.row_stack([center_of_mass(image_data == label) for
-                              label in labels_of_interest])
+    centroids = np.row_stack(center_of_mass(data, labels=data, index=labels))
 
     # return xyz if desired; otherwise, ijk
     if image_space:
-        return ijk_to_xyz(centroids, label_image.affine)
+        centroids = ijk_to_xyz(centroids, image.affine)
 
     return centroids
 
