@@ -3,13 +3,15 @@
 Functions for mapping AHBA microarray dataset to atlases and and parcellations
 in MNI space
 """
+
 from functools import reduce
+
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
-from sklearn.utils import Bunch
-from abagen import io, process, utils
+
+from abagen import datasets, io, process, utils
 
 
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
@@ -237,12 +239,13 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
     return gene_by_label
 
 
-def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
+def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
                         corrected_mni=True, reannotated=True,
-                        return_counts=False, return_donors=False):
+                        return_counts=False, return_donors=False,
+                        donors='all', data_dir=None):
     """
-    Assigns microarray expression data in `files` to ROIs defined in `atlas`
+    Assigns microarray expression data to ROIs defined in `atlas`
 
     This function aims to provide a workflow for generating pre-processed,
     microarray expression data for abitrary `atlas` designations. First, some
@@ -286,11 +289,6 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
 
     Parameters
     ----------
-    files : dict
-        Optimally obtained by calling `abagen.fetch_microarray()`, this should
-        be a dict with keys ['annotation', 'microarray', 'ontology', 'pacall',
-        'probes'], where corresponding values are lists of filepaths to
-        downloaded AHBA data
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
@@ -340,15 +338,24 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
     return_donors : bool, optional
         Whether to return donor-level expression arrays instead of aggregating
         expression across donors with provided `metric`. Default: False
+    donors : list, optional
+        List of donors to use as sources of expression data. Can be either
+        donor numbers or UID. If not specified will use all available donors.
+        Default: 'all'
+    data_dir : str, optional
+        Directory where expression data should be downloaded (if it does not
+        already exist) / loaded. If not specified will use the current
+        directory. Default: None
 
     Returns
     -------
-    expression : (R x G) :class:`pandas.DataFrame`
+    expression : (R, G) :class:`pandas.DataFrame`
         Microarray expression for `R` regions in `atlas` for `G` genes,
-        aggregated across donors.
-    counts : (R x D) :class:`pandas.DataFrame`
+        aggregated across donors, where the index corresponds to the unique
+        integer IDs of `atlas` and the columns are gene names.
+    counts : (R, D) :class:`pandas.DataFrame`
         Number of samples assigned to each of `R` regions in `atlas` for each
-        of `D` donors (if multiple donors provided); only returned if
+        of `D` donors (if multiple donors were specified); only returned if
         `return_counts=True`.
 
     References
@@ -358,8 +365,8 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
        data. bioRxiv, 380089.
     """
 
-    # coerce to Bunch in case a simple dictionary was provided
-    files = Bunch(**files)
+    # fetch files
+    files = datasets.fetch_microarray(data_dir=data_dir, donors=donors)
     for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
         if key not in files:
             raise KeyError('Provided `files` dictionary is missing {}. '
@@ -377,7 +384,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
     num_subj = len(files.microarray)
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
-        centroids = utils.get_centroids(atlas, labels_of_interest=all_labels)
+        centroids = utils.get_centroids(atlas, labels=all_labels)
 
     # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
     # perform intensity-based filter of probes and select probe with highest
@@ -391,8 +398,7 @@ def get_expression_data(files, atlas, atlas_info=None, *, exact=True,
     probes = process.get_stable_probes(files.microarray, files.annotation,
                                        probes)
 
-    expression = []
-    missing = []
+    expression, missing = [], []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
                           index=np.append([0], all_labels))
     for subj in range(num_subj):

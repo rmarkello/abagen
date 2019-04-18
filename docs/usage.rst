@@ -17,7 +17,8 @@ following command:
 
 .. note::
 
-    Downloading the entire dataset (about 4GB) can take a long time!
+    Downloading the entire dataset (about 4GB) can take a long time depending
+    on your internet connection speed!
 
 This command will download data from all six available donors into a folder
 called ``allenbrain`` in the current directory. If you have already downloaded
@@ -26,7 +27,7 @@ have been stored:
 
 .. code-block:: python
 
-    >>> files = abagen.fetch_microarray(data_dir='/path/to/local/download', donors='all')
+    >>> files = abagen.fetch_microarray(data_dir='/path/to/files', donors='all')
 
 The returned object ``files`` is a dictionary with filepaths to the five
 different file types in the AHBA dataset:
@@ -133,7 +134,7 @@ we can process the data. This is as simple as:
 
 .. code-block:: python
 
-    >>> expression = abagen.get_expression_data(files, atlas.image, atlas.info)
+    >>> expression = abagen.get_expression_data(atlas.image, atlas.info)
 
 .. note::
 
@@ -172,7 +173,7 @@ specify the following:
 
 .. code-block:: python
 
-    >>> expression = abagen.get_expression_data(files, atlas.image, atlas.info, exact=False)
+    >>> expression = abagen.get_expression_data(atlas.image, atlas.info, exact=False)
     >>> expression.head()
     gene_symbol    MRPL49    ZNHIT2     ...       A_32_P9207  A_32_P94122
     label                               ...

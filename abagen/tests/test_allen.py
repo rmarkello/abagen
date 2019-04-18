@@ -1,7 +1,6 @@
 import pandas as pd
 from nilearn._utils import check_niimg
 from nilearn.image import new_img_like
-import pytest
 from abagen import allen
 from abagen.datasets import fetch_desikan_killiany
 
@@ -15,28 +14,27 @@ def test_label_samples(testfiles):
     assert out.columns == ['label']
 
 
-def test_vanilla_get_expression_data(testfiles):
-    out = allen.get_expression_data(testfiles, ATLAS.image)
+def test_vanilla_get_expression_data(testdir, testfiles):
+    out = allen.get_expression_data(ATLAS.image, data_dir=testdir,
+                                    donors=['12876', '15496'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
-    with pytest.raises(KeyError):
-        allen.get_expression_data({'microarray': [1, 2, 3]}, ATLAS.image)
 
-
-def test_extra_get_expression_data(testfiles):
+def test_extra_get_expression_data(testdir, testfiles):
     for opts in [{'atlas_info': ATLAS.info},
                  {'exact': False},
                  {'reannotated': False},
                  {'atlas_info': ATLAS.info, 'exact': False}]:
-        out = allen.get_expression_data(testfiles, ATLAS.image, **opts)
+        out = allen.get_expression_data(ATLAS.image, data_dir=testdir,
+                                        donors=['12876', '15496'], **opts)
         assert isinstance(out, pd.DataFrame)
         assert out.index.name == 'label'
         assert out.columns.name == 'gene_symbol'
 
 
-def test_missing_labels(testfiles):
+def test_missing_labels(testdir, testfiles):
     # remove some labels from atlas image so numbers are non-sequential
     remove = [10, 20, 60]
     # subset atlas image
@@ -48,8 +46,10 @@ def test_missing_labels(testfiles):
     atlas_info = pd.read_csv(ATLAS.info)
     atlas_info = atlas_info[~atlas_info.id.isin(remove)]
     # test get expression
-    out, counts = allen.get_expression_data(testfiles, atlas, atlas_info,
-                                            exact=False, return_counts=True)
+    out, counts = allen.get_expression_data(atlas, atlas_info,
+                                            exact=False, return_counts=True,
+                                            data_dir=testdir,
+                                            donors=['12876', '15496'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'

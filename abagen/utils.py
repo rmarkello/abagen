@@ -4,7 +4,7 @@ import itertools
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
-from scipy.ndimage.measurements import center_of_mass
+from scipy.ndimage import center_of_mass
 from scipy.spatial.distance import cdist
 from scipy.stats import zscore
 
@@ -14,7 +14,7 @@ AGG_FUNCS = dict(
 )
 
 
-def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
+def check_atlas_info(atlas, atlas_info, labels=None):
     """
     Checks whether provided `info` on `atlas` is sufficient for processing
 
@@ -29,7 +29,7 @@ def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
         'structure' containing information mapping atlas IDs to hemisphere and
         broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
-    labels_of_interest : array_like, optional
+    labels : array_like, optional
         List of values containing labels to compare between `atlas` and
         `atlas_info`, if they don't all match. Default: None
 
@@ -57,10 +57,10 @@ def check_atlas_info(atlas, atlas_info, labels_of_interest=None):
     if 'id' in atlas_info.columns:
         atlas_info = atlas_info.set_index('id')
 
-    if labels_of_interest is None:
+    if labels is None:
         ids = get_unique_labels(atlas)
     else:
-        ids = labels_of_interest
+        ids = labels
 
     cols = ['hemisphere', 'structure']
     try:
@@ -155,15 +155,15 @@ def get_unique_labels(label_image):
     return np.trim_zeros(np.unique(label_image.get_data())).astype(int)
 
 
-def get_centroids(label_image, labels_of_interest=None, image_space=False):
+def get_centroids(image, labels=None, image_space=False):
     """
-    Finds centroids of ``labels_of_interest`` in ``label_image``
+    Finds centroids of ``labels`` in ``label_image``
 
     Parameters
     ----------
     label_image : niimg-like object
         3D image containing integer label at each point
-    labels_of_interest : array_like, optional
+    labels : array_like, optional
         List of values containing labels of which to find centroids. Default:
         all possible labels
     image_space : bool, optional
@@ -176,20 +176,19 @@ def get_centroids(label_image, labels_of_interest=None, image_space=False):
         Coordinates of centroids for ROIs in input data
     """
 
-    label_image = check_niimg_3d(label_image)
+    image = check_niimg_3d(image)
+    data = image.get_data()
 
     # if no labels of interest provided, get all possible labels
-    if labels_of_interest is None:
-        labels_of_interest = get_unique_labels(label_image)
+    if labels is None:
+        labels = np.trim_zeros(np.unique(data))
 
     # get centroids for all possible labels
-    image_data = label_image.get_data()
-    centroids = np.row_stack([center_of_mass(image_data == label) for
-                              label in labels_of_interest])
+    centroids = np.row_stack(center_of_mass(data, labels=data, index=labels))
 
     # return xyz if desired; otherwise, ijk
     if image_space:
-        return ijk_to_xyz(centroids, label_image.affine)
+        centroids = ijk_to_xyz(centroids, image.affine)
 
     return centroids
 
