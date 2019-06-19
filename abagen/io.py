@@ -14,7 +14,8 @@ try:
     eng = pd.io.parquet.get_engine('fastparquet')
     assert 'SNAPPY' in eng.api.compression.compressions
     use_parq = True
-except (ImportError, AssertionError):
+# pandas version too low OR don't have fastparquet installed
+except (AttributeError, ImportError, AssertionError):
     use_parq = False
 
 
