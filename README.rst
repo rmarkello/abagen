@@ -79,6 +79,10 @@ code used, and (2) cite their paper:
    guide to linking brain-wide gene expression and neuroimaging data. bioRxiv,
    380089.
 
+Additionally, please cite the following paper as the source of all microarray expression data from the Allen Human Brain Atlas:
+
+.. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of the adult human transcriptome, Nature 489: 391-399. doi:10.1038/nature11405
+
 .. _licensing:
 
 License Information
@@ -97,6 +101,11 @@ Corrected MNI coordinates used to match AHBA tissues samples to MNI space
 located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
 `alleninf package <https://github.com/chrisfilo/alleninf>`_, provided under
 the `3-clause BSD license <https://opensource.org/licenses/BSD-3-Clause>`_.
+
+All microarray expression data is copyrighted under `non-commercial reuse
+policies <http://alleninstitute.org/legal/terms-use/>`_ by the Allen Institute
+for Brain Science (© 2010 Allen Institute for Brain Science. Allen Human Brain
+Atlas. Available from: human.brain-map.org).
 
 All trademarks referenced herein are property of their respective holders.
 
