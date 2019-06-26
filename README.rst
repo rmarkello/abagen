@@ -102,6 +102,11 @@ located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
 `alleninf package <https://github.com/chrisfilo/alleninf>`_, provided under
 the `3-clause BSD license <https://opensource.org/licenses/BSD-3-Clause>`_.
 
+All microarray expression data is copyrighted under `non-commercial reuse
+policies <http://alleninstitute.org/legal/terms-use/>`_ by the Allen Institute
+for Brain Science (© 2010 Allen Institute for Brain Science. Allen Human Brain
+Atlas. Available from: human.brain-map.org).
+
 All trademarks referenced herein are property of their respective holders.
 
 .. |sparkles| replace:: ✨
