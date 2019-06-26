@@ -79,7 +79,7 @@ code used, and (2) cite their paper:
    guide to linking brain-wide gene expression and neuroimaging data. bioRxiv,
    380089.
 
-Additionally, please add the following publication to all Acknowledgments and References sections per The Allen Institute's `citation policies <https://alleninstitute.org/legal/citation-policy/>`_:
+Additionally, please cite the following paper as the source of all microarray expression data from the Allen Human Brain Atlas:
 
 .. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of the adult human transcriptome, Nature 489: 391-399. doi:10.1038/nature11405
 
