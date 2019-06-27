@@ -62,8 +62,10 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     if atlas_info is not None and sample_info is not None:
         for old_label in labels:
             new_label = _check_label(old_label, sample_info, atlas_info)
-            nz_labels[nz_labels == old_label] = new_label
-        labels, counts = np.unique(nz_labels, return_counts=True)
+            if old_label != new_label:
+                nz_labels[nz_labels == old_label] = new_label
+        labels, counts = np.unique(nz_labels[nz_labels.nonzero()],
+                                   return_counts=True)
 
     # if there is still nothing in the vicinity, return 0
     if labels.size == 0:
