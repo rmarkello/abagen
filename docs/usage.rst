@@ -7,7 +7,7 @@ Downloading the AHBA data
 -------------------------
 
 In order to use ``abagen``, you'll need to download the `AHBA microarray data
-<http://human.brain-map.org/static/download>`_. You can download it with the
+<https://human.brain-map.org/static/download>`_. You can download it with the
 following command:
 
 .. code-block:: python
