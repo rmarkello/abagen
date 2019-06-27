@@ -47,7 +47,7 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
     """
     """
 
-    url = 'http://api.brain-map.org/api/v2/data/{}/query.json?'.format(dtype)
+    url = 'https://api.brain-map.org/api/v2/data/{}/query.json?'.format(dtype)
 
     params = [includes, criteria, attributes]
     for key, value in zip(['include', 'criteria', 'only'], params):

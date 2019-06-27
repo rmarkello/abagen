@@ -65,7 +65,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
     atlas of the adult human brain transcriptome. Nature, 489(7416), 391.
     """
 
-    url = "http://human.brain-map.org/api/v2/well_known_file_download/{}"
+    url = "https://human.brain-map.org/api/v2/well_known_file_download/{}"
 
     dataset_name = 'allenbrain'
     if data_dir is None:

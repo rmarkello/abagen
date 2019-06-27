@@ -100,7 +100,7 @@ htmlhelp_basename = 'abagendoc'
 # -- Extension configuration -------------------------------------------------
 intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
-    'pandas': ('http://pandas-docs.github.io/pandas-docs-travis/', None),
+    'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
-    'sklearn': ('http://scikit-learn.org/stable', None),
+    'sklearn': ('https://scikit-learn.org/stable', None),
 }
