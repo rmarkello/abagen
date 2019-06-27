@@ -362,9 +362,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
     References
     ----------
-    .. [1] Arnatkeviciute, A., Fulcher, B. D., & Fornito, A. (2018). A
+    .. [1] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A
        practical guide to linking brain-wide gene expression and neuroimaging
-       data. bioRxiv, 380089.
+       data. NeuroImage, 189, 353-367.
+    .. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of
+       the adult human transcriptome. Nature, 489, 391-399.
     """
 
     # fetch files

@@ -2,14 +2,14 @@ abagen: A toolbox for the Allen Brain Atlas genetics data
 =========================================================
 
 This package provides a Python interface for working with the `Allen Human
-Brain Atlas <http://human.brain-map.org/>`_ (AHBA) microarray expression data.
+Brain Atlas <https://human.brain-map.org/>`_ (AHBA) microarray expression data.
 
 .. image:: https://travis-ci.org/rmarkello/abagen.svg?branch=master
    :target: https://travis-ci.org/rmarkello/abagen
 .. image:: https://codecov.io/gh/rmarkello/abagen/branch/master/graph/badge.svg
    :target: https://codecov.io/gh/rmarkello/abagen
 .. image:: https://readthedocs.org/projects/abagen/badge/?version=latest
-   :target: http://abagen.readthedocs.io/en/latest
+   :target: https://abagen.readthedocs.io/en/stable
 .. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
    :target: https://opensource.org/licenses/BSD-3-Clause
 
@@ -19,12 +19,13 @@ Overview
 --------
 
 In 2013, the Allen Institute for Brain Science released the Allen Human Brain
-Atlas, `a dataset <http://human.brain-map.org/>`_ containing microarray
-expression data collected from six human brains. This dataset has offered an
-unprecedented opportunity to examine the genetic underpinnings of the human
-brain, and has already yielded novel insight into e.g., `adolescent brain
-development <http://www.pnas.org/content/113/32/9105.long>`_ and `functional
-brain organization <http://science.sciencemag.org/content/348/6240/1241.long>`_.
+Atlas, `a dataset <https://human.brain-map.org/>`_ containing microarray
+expression data collected from six human brains ([2]_) . This dataset has
+offered an unprecedented opportunity to examine the genetic underpinnings of
+the human brain, and has already yielded novel insight into e.g., `adolescent
+brain development <https://www.pnas.org/content/113/32/9105.long>`_ and
+`functional brain organization <https://science.sciencemag.org/content/348/6240
+/1241.long>`_.
 
 However, in order to be effectively used in most analyses, the AHBA microarray
 expression data often needs to be (1) collapsed into regions of interest (e.g.,
@@ -32,9 +33,9 @@ parcels or networks), and (2) combined across donors. While this may
 potentially seem trivial, there are numerous analytic choices in these steps
 that can dramatically influence the resulting data and any downstream analyses.
 Indeed, Arnatkevičiūte et al., 2018 ([1]_) provided a thorough treatment of
-this in a `recent manuscript <https://www.biorxiv.org/content/early/2018/07/30/
-380089>`_, demonstrating how the techniques and code used to prepare the raw
-AHBA data have varied widely across published reports.
+this in a `recent manuscript <https://www.sciencedirect.com/science/article/pii
+/S1053811919300114>`_, demonstrating how the techniques and code used to
+prepare the raw AHBA data have varied widely across published reports.
 
 The current Python package, ``abagen``, aims to provide a reproducible pipeline
 for processing and preparing the AHBA microarray expression data for analysis.
@@ -75,13 +76,15 @@ Arnatkevičiūte et al., 2018. As such, if you use this code it would be good
 to (1) provide a link back to the ``abagen`` repository with the version of the
 code used, and (2) cite their paper:
 
-.. [1] Arnatkeviciute, A., Fulcher, B. D., & Fornito, A. (2018). A practical
-   guide to linking brain-wide gene expression and neuroimaging data. bioRxiv,
-   380089.
+.. [1] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A practical
+   guide to linking brain-wide gene expression and neuroimaging data.
+   NeuroImage, 189, 353-367.
 
-Additionally, please cite the following paper as the source of all microarray expression data from the Allen Human Brain Atlas:
+Additionally, please cite the following paper as the source of all microarray
+expression data from the Allen Human Brain Atlas:
 
-.. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of the adult human transcriptome, Nature 489: 391-399. doi:10.1038/nature11405
+.. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of the
+   adult human transcriptome. Nature, 489, 391-399. doi:10.1038/nature11405
 
 .. _licensing:
 
@@ -103,9 +106,9 @@ located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
 the `3-clause BSD license <https://opensource.org/licenses/BSD-3-Clause>`_.
 
 All microarray expression data is copyrighted under `non-commercial reuse
-policies <http://alleninstitute.org/legal/terms-use/>`_ by the Allen Institute
+policies <https://alleninstitute.org/legal/terms-use/>`_ by the Allen Institute
 for Brain Science (© 2010 Allen Institute for Brain Science. Allen Human Brain
-Atlas. Available from: human.brain-map.org).
+Atlas. Available from: https://human.brain-map.org).
 
 All trademarks referenced herein are property of their respective holders.
 
