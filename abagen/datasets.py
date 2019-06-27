@@ -7,13 +7,11 @@ working directory, but will likely be modified to download into a more
 "standard" directory.
 """
 
-from io import StringIO
 import os
 from pkg_resources import resource_filename
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
 import pandas as pd
-import requests
 from sklearn.utils import Bunch
 from abagen import io
 
@@ -185,16 +183,7 @@ def _fetch_alleninf_coords(*args, **kwargs):
     POSSIBILITY OF SUCH DAMAGE.
     """
 
-    url = ("https://raw.githubusercontent.com/chrisfilo/alleninf/"
-           "e48cd817849be4195b1569b7ac1eaf2c3e5a1085/alleninf/data/"
-           "corrected_mni_coordinates.csv")
-    try:
-        with requests.get(url, stream=True) as r:
-            coords = StringIO(r.content.decode('utf-8'))
-    except requests.exceptions.ConnectionError:
-        coords = resource_filename('abagen',
-                                   'data/corrected_mni_coordinates.csv')
-
+    coords = resource_filename('abagen', 'data/corrected_mni_coordinates.csv')
     coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
                                              corrected_mni_y='mni_y',
                                              corrected_mni_z='mni_z'),
