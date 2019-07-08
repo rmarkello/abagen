@@ -385,8 +385,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors)
     for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
         if key not in files:
-            raise KeyError(f'Provided `files` dictionary is missing {key}. '
-                           'Please check inputs.')
+            raise KeyError('Provided `files` dictionary is missing {}. '
+                           'Please check inputs.'.format(key))
 
     # load atlas_info, if provided
     atlas = check_niimg_3d(atlas)
@@ -401,8 +401,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
         lgr.info('Inexact matching of samples requested; pre-calculating ROI '
-                 f'centroids for {len(all_labels)} labels in provided atlas '
-                 'image')
+                 'centroids for {} labels in provided atlas image'
+                 .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
     # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
@@ -416,12 +416,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         probes = io.read_probes(files.probes[0])
     probes = process.filter_probes(files.pacall, probes,
                                    threshold=ibf_threshold)
-    lgr.info(f'{len(probes)} probes survive intensity-based filtering with '
-             f'threshold of {ibf_threshold}')
+    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
+             .format(len(probes), ibf_threshold))
     probes = process.get_stable_probes(files.microarray, files.annotation,
                                        probes)
-    lgr.info(f'{len(probes)} probes selected to represent genes from '
-             'differential stability analysis')
+    lgr.info('{} probes selected to represent genes from differential '
+             'stability analysis'
+             .format(len(probes)))
 
     expression, missing = [], []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
@@ -443,9 +444,10 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                       tolerance=tolerance)
         expression += [group_by_label(samples, sample_labels,
                                       all_labels, metric=metric)]
-        lgr.info(f'{np.sum(sample_labels.get_values() != 0):>3} / '
-                 f'{len(annotation)} samples matched to ROIs for donor #'
-                 f'{datasets.WELL_KNOWN_IDS.value_set("subj")[subj]}')
+        lgr.info('{:>3} / {} samples matched to ROIs for donor #{}'
+                 .format(np.sum(sample_labels.get_values() != 0),
+                         len(annotation),
+                         datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(sample_labels, return_counts=True)
@@ -469,13 +471,14 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if not exact:
         # find labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info(f'Matching {len(empty)} ROIs with no microarray data to '
-                 'nearest samples')
+        lgr.info('Matching {} ROIs with no microarray data to nearest samples'
+                 .format(len(empty)))
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([d.get(roi) for f, d in missing])
             donor = datasets.WELL_KNOWN_IDS.value_set("subj")[ind]
-            lgr.debug(f'Assigning sample from donor {donor} to ROI {roi}')
+            lgr.debug('Assigning sample from donor {} to ROI {}'
+                      .format(donor, roi))
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts.loc[roi, ind] += 1
