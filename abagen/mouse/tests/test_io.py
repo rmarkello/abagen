@@ -5,6 +5,8 @@ import pytest
 
 from abagen.mouse import io
 
+entries = ['id', 'acronym', 'name']
+
 
 def test_fetch_allenref_genes():
     # invalid entry_type fails
@@ -20,6 +22,7 @@ def test_fetch_allenref_genes():
     genes = io.fetch_allenref_genes()
     assert isinstance(genes, pd.DataFrame)
     assert genes.shape == (19991, 3)
+    assert list(genes.columns) == entries
 
 
 def test_fetch_allenref_structures():
@@ -33,6 +36,7 @@ def test_fetch_allenref_structures():
     structures = io.fetch_allenref_structures()
     assert isinstance(structures, pd.DataFrame)
     assert structures.shape == (1327, 3)
+    assert list(structures.columns) == entries
 
 
 def test_fetch_rubinov2015_structures():
