@@ -61,7 +61,7 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
         # save information to disk
         genes.to_csv(fname, index=False)
     else:
-        genes = pd.read_csv(fname)
+        genes = pd.read_csv(fname)[entries]
 
     # extract only relevant entry_type, if desired
     if entry_type is not None:
@@ -117,7 +117,7 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
         # save information to disk
         structures.to_csv(fname, index=False)
     else:
-        structures = pd.read_csv(fname)
+        structures = pd.read_csv(fname)[entries]
 
     # extract only relevant entry_type, if desired
     if entry_type is not None:
