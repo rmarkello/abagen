@@ -7,6 +7,7 @@ from abagen.mouse import io
 
 entries = ['id', 'acronym', 'name']
 
+
 def test_fetch_allenref_genes():
     # invalid entry_type fails
     with pytest.raises(ValueError):
