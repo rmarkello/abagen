@@ -286,7 +286,7 @@ def _replace_mni_coords(annotation):
 
     annotation = io.read_annotation(annotation)
     mni_coords = _fetch_alleninf_coords().loc[annotation.well_id]
-    annotation[['mni_x', 'mni_y', 'mni_z']] = mni_coords.get_values()
+    annotation[['mni_x', 'mni_y', 'mni_z']] = np.asarray(mni_coords)
 
     return annotation
 
@@ -336,7 +336,7 @@ def normalize_expression(expression):
     """
 
     # get non-NaN values
-    data = expression.dropna(axis=0, how='all').get_values()
+    data = np.asarray(expression.dropna(axis=0, how='all'))
 
     # calculate sigmoid normalization
     norm = (data - np.median(data, axis=0)) / np.std(data, axis=0)

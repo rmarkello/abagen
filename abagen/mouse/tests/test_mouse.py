@@ -74,7 +74,7 @@ def test_get_unionization_from_experiment(experiment, attributes):
 
     assert len(data.columns) == len(attributes)
     for attr in set(EXPERIMENTS[experiment].keys()).intersection(attributes):
-        assert np.allclose(data.loc[STRUCTURES, attr].get_values(),
+        assert np.allclose(np.asarray(data.loc[STRUCTURES, attr]),
                            EXPERIMENTS[experiment][attr])
 
 
