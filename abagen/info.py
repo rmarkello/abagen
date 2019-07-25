@@ -58,5 +58,6 @@ CLASSIFIERS = [
     'Development Status :: 3 - Alpha',
     'Intended Audience :: Science/Research',
     'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
 ]

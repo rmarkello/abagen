@@ -14,7 +14,7 @@ Installation and setup
 Basic installation
 --------------------
 
-This package requires Python >= 3.6. Assuming you have the correct version of
+This package requires Python >= 3.5. Assuming you have the correct version of
 Python installed, you can install ``abagen`` by opening a terminal and running
 the following:
 

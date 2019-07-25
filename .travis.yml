@@ -65,7 +65,7 @@ script:
       if [ "${COVERAGE}" == "1" ]; then
         TEST_ARGS="--cov-report term-missing --cov=abagen";
       fi
-      py.test -s ${TEST_ARGS} abagen;
+      travis_wait py.test ${TEST_ARGS} abagen;
     fi
 
 after_success:

@@ -13,6 +13,11 @@ from scipy.spatial.distance import cdist
 
 from abagen import datasets, io, process, utils
 
+import logging
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+lgr = logging.getLogger('abagen')
+lgr_levels = dict(zip(range(3), [40, 20, 10]))
+
 
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
                    tolerance=2):
@@ -245,7 +250,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
-                        donors='all', data_dir=None):
+                        donors='all', data_dir=None, verbose=1):
     """
     Assigns microarray expression data to ROIs defined in `atlas`
 
@@ -348,6 +353,10 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         Directory where expression data should be downloaded (if it does not
         already exist) / loaded. If not specified will use the current
         directory. Default: None
+    verbose : int, optional
+        Specifies verbosity of status messages to display during workflow.
+        Higher numbers increase verbosity of messages while zero suppresses all
+        messages. Default: 1
 
     Returns
     -------
@@ -369,6 +378,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
        the adult human transcriptome. Nature, 489, 391-399.
     """
 
+    # set logging verbosity level
+    lgr.setLevel(lgr_levels.get(int(verbose), 1))
+
     # fetch files
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors)
     for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
@@ -388,19 +400,29 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     num_subj = len(files.microarray)
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
+        lgr.info('Inexact matching of samples requested; pre-calculating ROI '
+                 'centroids for {} labels in provided atlas image'
+                 .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
     # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
     # perform intensity-based filter of probes and select probe with highest
     # differential stability for each gene amongst remaining probes
     if reannotated:
+        lgr.info('Reannotating microarray probes with information from '
+                 'Arnatkevic̆iūtė et al., 2018, NeuroImage')
         probes = process.reannotate_probes(files.probes[0])
     else:
         probes = io.read_probes(files.probes[0])
     probes = process.filter_probes(files.pacall, probes,
                                    threshold=ibf_threshold)
+    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
+             .format(len(probes), ibf_threshold))
     probes = process.get_stable_probes(files.microarray, files.annotation,
                                        probes)
+    lgr.info('{} probes selected to represent genes from differential '
+             'stability analysis'
+             .format(len(probes)))
 
     expression, missing = [], []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
@@ -422,6 +444,10 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                       tolerance=tolerance)
         expression += [group_by_label(samples, sample_labels,
                                       all_labels, metric=metric)]
+        lgr.info('{:>3} / {} samples matched to ROIs for donor #{}'
+                 .format(np.sum(sample_labels.get_values() != 0),
+                         len(annotation),
+                         datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(sample_labels, return_counts=True)
@@ -445,9 +471,14 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if not exact:
         # find labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
+        lgr.info('Matching {} ROIs with no microarray data to nearest samples'
+                 .format(len(empty)))
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([d.get(roi) for f, d in missing])
+            donor = datasets.WELL_KNOWN_IDS.value_set("subj")[ind]
+            lgr.debug('Assigning sample from donor {} to ROI {}'
+                      .format(donor, roi))
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts.loc[roi, ind] += 1
