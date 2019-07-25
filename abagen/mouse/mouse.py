@@ -230,10 +230,10 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
     --------
     >>> from abagen import mouse
     >>> mouse.get_unionization_from_gene(acronym='Pdyn', structures=[22, 31])
-                  expression_density
-    structure_id
-    22                      0.024840
-    31                      0.017199
+                          expression_density
+    gene_id structure_id
+    18376   22                      0.024840
+            31                      0.017199
 
     >>> mouse.get_unionization_from_gene(acronym=['Ace', 'Cd99'], structures=[22, 31])
                           expression_density

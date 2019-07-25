@@ -77,10 +77,11 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
     Get the full names of structures 22 and 1018:
     >>> from abagen import mouse
     >>> mouse.get_structure_info(id=[22, 1018], attributes=['acronym', 'name'])
-                                          name acronym
+         acronym                                  name
     id
-    22    Posterior parietal association areas    PTLp
-    1018                 Ventral auditory area    AUDv
+    22      PTLp  Posterior parietal association areas
+    1018    AUDv                 Ventral auditory area
+
     """
 
     criteria = [
@@ -95,7 +96,7 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
         attributes = _STRUCTURE_ATTRIBUTES
     elif isinstance(attributes, str):
         attributes = [attributes]
-    attributes = list(set.difference(set(attributes), set([provided])))
+    attributes = [a for a in attributes if a not in provided]
 
     for attr in attributes:
         if attr not in _STRUCTURE_ATTRIBUTES:
