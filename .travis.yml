@@ -23,6 +23,7 @@ matrix:
     env:
       - INSTALL_TYPE=sdist
       - CHECK_TYPE=test
+  - python: 3.6
     env:
       - INSTALL_TYPE=wheel
       - CHECK_TYPE=test
@@ -55,8 +56,6 @@ install:
     elif [ "${INSTALL_TYPE}" == "wheel" ]; then
       python setup.py bdist_wheel;
       pip install dist/*.whl;
-    elif [ "${INSTALL_TYPE}" == "conda" ]; then
-      pip install --no-deps .;
     else
       false;
     fi
