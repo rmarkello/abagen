@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import random
+import numpy as np
 import pytest
 from abagen.mouse import io, structure
 
@@ -52,11 +53,11 @@ def test_get_structure_info():
 def test_get_structure_coordinates(space):
     info = structure.get_structure_coordinates(id=1018,
                                                reference_space=space)
-    assert tuple(info[['x', 'y', 'z']].get_values()[0]) == COORD_ID[space]
+    assert tuple(np.asarray(info[['x', 'y', 'z']])[0]) == COORD_ID[space]
 
     info = structure.get_structure_coordinates(acronym='SSp',
                                                reference_space=space)
-    assert tuple(info[['x', 'y', 'z']].get_values()[0]) == COORD_ACRONYM[space]
+    assert tuple(np.asarray(info[['x', 'y', 'z']])[0]) == COORD_ACRONYM[space]
 
     # exception: structure is invalid
     with pytest.raises(ValueError):

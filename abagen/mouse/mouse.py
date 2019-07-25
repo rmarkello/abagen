@@ -121,7 +121,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     # we need to coerce all provided structures to be integer ids, NOT strings
     # so fetch all available structures then recode them to ids
     if any(isinstance(f, str) for f in structures):
-        structs = fetch_allenref_structures(verbose=False).get_values()
+        structs = np.asarray(fetch_allenref_structures(verbose=False))
         structs = Recoder(structs.tolist(), fields=['acronym', 'id', 'name'])
         structures = list(set(structs.id.get(f) for f in structures))
 
@@ -263,7 +263,7 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
     # we need to coerce all provided structures to be integer ids, NOT strings
     # so fetch all available structures then recode them to ids
     if any(isinstance(f, str) for f in structures):
-        structs = fetch_allenref_structures(verbose=False).get_values()
+        structs = np.asarray(fetch_allenref_structures(verbose=False))
         structs = Recoder(structs.tolist(), fields=['acronym', 'id', 'name'])
         structures = list(set(structs.id.get(f) for f in structures))
 

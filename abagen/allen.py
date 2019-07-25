@@ -445,7 +445,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         expression += [group_by_label(samples, sample_labels,
                                       all_labels, metric=metric)]
         lgr.info('{:>3} / {} samples matched to ROIs for donor #{}'
-                 .format(np.sum(sample_labels.get_values() != 0),
+                 .format(np.sum(np.asarray(sample_labels) != 0),
                          len(annotation),
                          datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
