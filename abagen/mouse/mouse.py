@@ -6,6 +6,7 @@ Functions to fetch mouse unionization (i.e., expression) data
 import itertools
 
 from nibabel.volumeutils import Recoder
+import numpy as np
 import pandas as pd
 
 from .io import fetch_allenref_structures, fetch_rubinov2015_structures
