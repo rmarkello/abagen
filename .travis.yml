@@ -1,74 +1,82 @@
 language: python
-cache: pip
 sudo: false
+dist: xenial
 notifications:
   email: change
 
 python:
   - 3.5
   - 3.6
+  - 3.7
 
 env:
-  - LINTING=1
-  - DOCTEST=1
+  matrix:
+    - CHECK_TYPE=linting
+    - CHECK_TYPE=docdoctest
+    - CHECK_TYPE=test
+  global:
+    - INSTALL_TYPE=setup
 
 matrix:
   include:
-  - python: 3.5
-    sudo: required
+  - python: 3.6
     env:
-      - PARQUET=1
+      - INSTALL_TYPE=sdist
+      - CHECK_TYPE=test
+    env:
+      - INSTALL_TYPE=wheel
+      - CHECK_TYPE=test
   - python: 3.6
     sudo: required
     env:
-      - PARQUET=1
-      - COVERAGE=1
-  - python: 3.7
-    dist: xenial
-    sudo: required
-  - python: 3.7
-    dist: xenial
-    sudo: required
-    env:
-      - DOCTEST=1
+      - INSTALL_PARQUET=true
+      - CHECK_TYPE=test
 
 before_install:
   - python -m pip install --upgrade pip
-  - if [ "${LINTING}" == "1" ]; then
+  - if [ "${CHECK_TYPE}" == "linting" ]; then
       pip install flake8;
     fi
-  - if [ "${COVERAGE}" == "1" ]; then
-      pip install coverage coveralls codecov;
+  - if [ "${CHECK_TYPE}" == "test" ]; then
+      pip install "pytest>=3.6" pytest-cov coverage coveralls codecov;
     fi
-  - if [ "${PARQUET}" == "1" ]; then
+  - if [ ! -z "${INSTALL_PARQUET}"]; then
       sudo apt-get install libsnappy-dev;
+      pip install fastparquet python-snappy;
     fi
 
 install:
-  - if [ "${PARQUET}" == "1" ]; then
-      pip install -e .[io,tests];
-    elif [ "${DOCTEST}" == "1" ]; then
-      pip install -e .[doc];
+  - |
+    if [ "${INSTALL_TYPE}" == "setup" ]; then
+      python setup.py install;
+    elif [ "${INSTALL_TYPE}" == "sdist" ]; then
+      python setup.py sdist;
+      pip install dist/*.tar.gz;
+    elif [ "${INSTALL_TYPE}" == "wheel" ]; then
+      python setup.py bdist_wheel;
+      pip install dist/*.whl;
+    elif [ "${INSTALL_TYPE}" == "conda" ]; then
+      pip install --no-deps .;
     else
-      pip install -e .[tests];
+      false;
     fi
 
 script:
   - |
-    if [ "${LINTING}" == "1" ]; then
+    if [ "${CHECK_TYPE}" == "linting" ]; then
       flake8 abagen;
-    elif [ "${DOCTEST}" == "1" ]; then
+    elif [ "${CHECK_TYPE}" == "docdoctest" ]; then
       cd docs;
+      pip install -r ./requirements.txt;
       make html;
       make doctest;
+    elif [ "${CHECK_TYPE}" == "test" ]; then
+      travis_wait python -m pytest --cov-report term-missing --cov=abagen --doctest-modules abagen;
     else
-      if [ "${COVERAGE}" == "1" ]; then
-        TEST_ARGS="--cov-report term-missing --cov=abagen";
-      fi
-      travis_wait py.test ${TEST_ARGS} abagen;
+      false;
     fi
 
 after_success:
-  - if [ "${COVERAGE}" == "1" ]; then
+  - if [ "${CHECK_TYPE}" == "test" ]; then
       coveralls; codecov;
     fi
