@@ -100,7 +100,7 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
         attributes = _GENE_ATTRIBUTES
     elif isinstance(attributes, str):
         attributes = [attributes]
-    attributes = list(set.difference(set(attributes), set([provided])))
+    attributes = [a for a in attributes if a not in provided]
 
     for attr in attributes:
         if attr not in _GENE_ATTRIBUTES:
