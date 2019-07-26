@@ -36,7 +36,7 @@ def _get_dataset_dir(dataset_name, data_dir=None, verbose=1):
     Parameters
     ----------
     dataset_name : str
-        THe name of the dataset in question
+        The name of the dataset in question
     data_dir : str, optional
         Path to use as data directory. If not specified, will check for
         environmental variables 'ABAGEN_DATA'; if that is not set, will use
