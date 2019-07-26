@@ -1,11 +1,45 @@
-import numpy as np
+import os
+import shutil
+
 import pandas as pd
 import pytest
+
 from abagen import datasets
 
 KEYS = [
     'microarray', 'annotation', 'pacall', 'probes', 'ontology'
 ]
+
+
+def test_get_dataset_dir(testdir):
+    os.environ.pop('ABAGEN_DATA', None)
+
+    # check that data dir defaults to $HOME/abagen-data assuming no env var
+    expected_base = os.path.expanduser('~/abagen-data')
+    data_dir = datasets._get_dataset_dir('test', verbose=0)
+    assert data_dir == os.path.join(expected_base, 'test')
+    assert os.path.isdir(data_dir) and os.path.exists(data_dir)
+    shutil.rmtree(data_dir)
+
+    # if env var is set, we should default to that
+    expected_base = os.path.join(testdir, 'test-abagen-data')
+    os.environ['ABAGEN_DATA'] = expected_base
+    data_dir = datasets._get_dataset_dir('test', verbose=0)
+    assert data_dir == os.path.join(expected_base, 'test')
+    assert os.path.isdir(data_dir) and os.path.exists(data_dir)
+    shutil.rmtree(data_dir)
+
+    # test explicitly setting the data_dir
+    expected_dir = testdir
+    data_dir = datasets._get_dataset_dir('test', data_dir=expected_dir,
+                                         verbose=0)
+    assert data_dir == os.path.join(expected_dir, 'test')
+    assert os.path.isdir(data_dir) and os.path.exists(data_dir)
+    # test that providing the returned data_dir gets us the same thing
+    data_dir2 = datasets._get_dataset_dir('test', data_dir=data_dir,
+                                          verbose=0)
+    assert data_dir == data_dir2
+    shutil.rmtree(data_dir)
 
 
 def test_fetch_datasets(testdir):
@@ -28,7 +62,7 @@ def test_fetch_alleninf_coords():
     coords = datasets._fetch_alleninf_coords()
     assert isinstance(coords, pd.DataFrame)
     assert coords.index.name == 'well_id'
-    assert np.all(coords.columns == ['mni_x', 'mni_y', 'mni_z'])
+    assert list(coords.columns) == ['mni_x', 'mni_y', 'mni_z']
     assert coords.shape == (3702, 3)
 
 

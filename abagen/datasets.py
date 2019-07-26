@@ -115,12 +115,12 @@ def _get_dataset_dir(dataset_name, data_dir=None, verbose=1):
         if not os.path.exists(path):
             try:
                 os.makedirs(path)
-                if verbose > 1:
+                if verbose > 0:
                     print('\nDataset created in {}\n'.format(path))
                 return path
-            except PermissionError as exc:
+            except (NotADirectoryError, PermissionError) as exc:
                 err_msg = getattr(exc, 'strerror', str(exc))
-                errors.append('\n -{} ({1})'.format(path, err_msg))
+                errors.append('\n -{} ({})'.format(path, err_msg))
 
     raise OSError('Tried to store dataset {} in the following directories, '
                   'but: ' + ''.join(errors))
