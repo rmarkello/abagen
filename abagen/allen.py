@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from abagen import datasets, io, process, utils
+from . import datasets, io, probes, process, utils
 
 import logging
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -247,7 +247,8 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 
 
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
-                        tolerance=2, metric='mean', ibf_threshold=0.5,
+                        tolerance=2, metric='mean',
+                        ibf_threshold=0.5, probe_selection='diff_stability',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1):
@@ -255,15 +256,16 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     Assigns microarray expression data to ROIs defined in `atlas`
 
     This function aims to provide a workflow for generating pre-processed,
-    microarray expression data for abitrary `atlas` designations. First, some
-    basic filtering of genetic probes is performed, including:
+    microarray expression data from the Allen Human Brain Atlas ([A2]_) for
+    abitrary `atlas` designations. First, some basic filtering of genetic
+    probes is performed, including:
 
         1. Intensity-based filtering of microarray probes to remove probes that
            do not exceed a certain level of background noise (specified via the
            `ibf_threshold` parameter), and
-        2. Selection of a single, representative probe for each gene via a
-           differential stability metric, wherein the probe that has the most
-           consistent regional variation across donors is retained.
+        2. Selection of a single, representative probe (or collapsing across
+           probes) for each gene, specified via the `probe_selection`
+           parameter.
 
     Tissue samples are then matched to parcels in the defined `atlas` for each
     donor. If `atlas_info` is provided then this matching is constrained by
@@ -330,12 +332,18 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         specify the ratio of samples, across all supplied donors, for which a
         probe must have signal above background noise in order to be retained.
         Default: 0.5
+    probe_selection : str, optional
+        Selection method for subsetting (or collapsing across) probes that
+        index the same gene. Must be one of 'average', 'max_intensity',
+        'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
+        'diff_stability'; see Notes for more information. Default:
+        'diff_stability'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
         data when matching tissue samples to anatomical regions. Default: True
     reannotated : bool, optional
-        Whether to use reannotated probe information provided by [1]_ instead
+        Whether to use reannotated probe information provided by [A1]_ instead
         of the default probe information from the AHBA dataset. Using
         reannotated information will discard probes that could not be reliably
         matched to genes. Default: True
@@ -363,30 +371,68 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     expression : (R, G) :class:`pandas.DataFrame`
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors, where the index corresponds to the unique
-        integer IDs of `atlas` and the columns are gene names.
+        integer IDs of `atlas` and the columns are gene names. If
+        ``return_donors=True`` then this is a list of (R, G) dataframes, one
+        for each donor.
     counts : (R, D) :class:`pandas.DataFrame`
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
         `return_counts=True`.
 
+    Notes
+    -----
+    The following methods can be used for collapsing across probes when
+    multiple probes are available for the same gene.
+
+    1. ``probe_selection='average'``
+
+    Takes the average of expression data across all probes indexing the same
+    gene; ``probe_selection='mean'`` is identical.
+
+    2. ``probe_selection='max_intensity'``
+
+    Selects the probe with the maximum average expression across samples from
+    all donors.
+
+    3. ``probe_selection='max_variance'``
+
+    Selects the probe with the maximum variance in expression across samples
+    from all donors.
+
+    4. ``probe_selection='pc_loading'``
+
+    Selects the probe with the maximum loading along the first principal
+    component of a decomposition performed across samples from all donors.
+
+    5. ``probe_selection='corr_intensity'``
+
+    Selects the probe with the maximum correlation to other probes from the
+    same gene when >2 probes exist; otherwise, uses the same procedure as
+    `max_intensity`.
+
+    6. ``probe_selection='corr_variance'``
+
+    Selects the probe with the maximum correlation to other probes from the
+    same gene when >2 probes exist; otherwise, uses the same procedure as
+    `max_varance`.
+
+    7. ``probe_selection='diff_stability'``
+
+    Selects the probe with the most consistent pattern of regional variation
+    across donors (i.e., the highest average correlation across brain regions
+    between all pairs of donors).
+
     References
     ----------
-    .. [1] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A
+    .. [A1] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A
        practical guide to linking brain-wide gene expression and neuroimaging
        data. NeuroImage, 189, 353-367.
-    .. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of
-       the adult human transcriptome. Nature, 489, 391-399.
+    .. [A2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas
+       of the adult human transcriptome. Nature, 489, 391-399.
     """
 
     # set logging verbosity level
     lgr.setLevel(lgr_levels.get(int(verbose), 1))
-
-    # fetch files
-    files = datasets.fetch_microarray(data_dir=data_dir, donors=donors)
-    for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
-        if key not in files:
-            raise KeyError('Provided `files` dictionary is missing {}. '
-                           'Please check inputs.'.format(key))
 
     # load atlas_info, if provided
     atlas = check_niimg_3d(atlas)
@@ -395,6 +441,21 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
     # get combination functions
     metric = utils.check_metric(metric)
+
+    # check probe_selection input
+    if probe_selection not in probes.SELECTION_METHODS:
+        raise ValueError('Provided probe_selection method is invalid, must be '
+                         'one of {}. Received value: \'{}\''
+                         .format(list(probes.SELECTION_METHODS),
+                                 probe_selection))
+
+    # fetch files (downloading if necessary)
+    files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
+                                      verbose=verbose)
+    for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
+        if key not in files:
+            raise KeyError('Provided `files` dictionary is missing {}. '
+                           'Please check inputs.'.format(key))
 
     # get some info on the number of subjects, labels in `atlas_img`
     num_subj = len(files.microarray)
@@ -411,18 +472,20 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2018, NeuroImage')
-        probes = process.reannotate_probes(files.probes[0])
+        probe_info = probes.reannotate_probes(files.probes[0])
     else:
-        probes = io.read_probes(files.probes[0])
-    probes = process.filter_probes(files.pacall, probes,
-                                   threshold=ibf_threshold)
-    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
-             .format(len(probes), ibf_threshold))
-    probes = process.get_stable_probes(files.microarray, files.annotation,
-                                       probes)
-    lgr.info('{} probes selected to represent genes from differential '
-             'stability analysis'
-             .format(len(probes)))
+        probe_info = io.read_probes(files.probes[0])
+    probe_info = probes.filter_probes(files.pacall, probe_info,
+                                      threshold=ibf_threshold)
+    lgr.info('{} genes survive intensity-based filtering with threshold of {}'
+             .format(len(np.unique(probe_info['gene_symbol'])), ibf_threshold))
+
+    # get probe-reduced microarray expression data for all donors based on
+    # selection method; this will be a list of gene x sample dataframes
+    lgr.info('Reducing probes indexing same gene with provided method: {}'
+             .format(probe_selection))
+    microarray = probes.collapse_probes(files.microarray, files.annotation,
+                                        probe_info, method=probe_selection)
 
     expression, missing = [], []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
@@ -434,9 +497,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                                    corrected=corrected_mni)
 
         # subset representative probes + samples from microarray data
-        microarray = io.read_microarray(files.microarray[subj])
-        samples = microarray.loc[probes.index, annotation.index].T
-        samples.columns = probes.gene_symbol
+        samples = microarray[subj].loc[annotation.index]
 
         # assign samples to regions and aggregate samples w/i the same region
         sample_labels = label_samples(annotation, atlas,
