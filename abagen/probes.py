@@ -16,6 +16,93 @@ from sklearn.utils.extmath import svd_flip
 from . import io, utils
 
 
+def reannotate_probes(probes):
+    """
+    Replaces gene symbols in `probes` with reannotated data
+
+    Uses annotations from [PR18]_ to replace probe annotations shipped with
+    AHBA data. Any probes that were unable to be matched to a gene in
+    reannotation procedure are not retained.
+
+    Parameters
+    ----------
+    probes : str or pandas.DataFrame
+        Probe file or loaded probe dataframe from Allen Brain Institute
+        containing information on microarray probes
+
+    Returns
+    -------
+    reannotated : pandas.DataFrame
+        Provided probe information with updated gene symbols and Entrez IDs
+
+    References
+    ----------
+    .. [PR18] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A
+       practical guide to linking brain-wide gene expression and neuroimaging
+       data. NeuroImage, 189, 353-367.
+    """
+
+    # load in reannotated probes
+    reannot = resource_filename('abagen', 'data/reannotated.csv.gz')
+    with gzip.open(reannot, 'r') as src:
+        reannot = pd.read_csv(StringIO(src.read().decode('utf-8')))
+    reannot = reannot[['probe_name', 'gene_symbol', 'entrez_id']]
+
+    # merge reannotated with original, keeping only reannotated
+    probes = io.read_probes(probes).reset_index()[['probe_name', 'probe_id']]
+    merged = pd.merge(reannot, probes, on='probe_name', how='left')
+
+    # reset index as probe_id and sort
+    reannotated = merged.set_index('probe_id').sort_index()
+
+    return reannotated
+
+
+def filter_probes(pacall, probes, threshold=0.5):
+    """
+    Performs intensity based filtering (IBF) of expression probes
+
+    Uses binary indicator for expression levels in `pacall` to determine which
+    probes have expression levels above background noise in `threshold` of
+    samples across donors.
+
+    Parameters
+    ----------
+    pacall : list of str
+        List of filepaths to PAcall files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `pacall` attribute on the resulting object).
+    probes : str or pandas.DataFrame
+        Dataframe containing information on microarray probes that should be
+        considered in filtering (probes not in this dataframe will be ignored)
+    threshold : (0, 1) float, optional
+        Threshold for filtering probes. Specifies the proportion of samples for
+        which a given probe must have expression levels above background noise.
+        Default: 0.5
+
+    Returns
+    -------
+    filtered : pandas.DataFrame
+        Dataframe containing information on probes that should be retained
+        according to intensity-based filtering
+    """
+
+    threshold = np.clip(threshold, 0.0, 1.0)
+
+    probes = io.read_probes(probes)
+    signal, samples = [], 0
+    for fname in pacall:
+        data = io.read_pacall(fname).loc[probes.index]
+        samples += data.shape[-1]
+        # sum binary expression indicator across samples for current subject
+        signal.append(data.sum(axis=1).values)
+
+    # calculate proportion of signal to noise for given probe across samples
+    keep = (np.sum(signal, axis=0) / samples) >= threshold
+
+    return probes[keep]
+
+
 def _groupby_and_apply(expression, probes, info, applyfunc):
     """
     Subsets `expression` based on most representative probe
@@ -61,7 +148,7 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
     return representative
 
 
-def _max_idx(df):
+def _max_idx(df, column=0):
     """
     Returns probe ID with max index in `df`
 
@@ -70,6 +157,9 @@ def _max_idx(df):
     df : (P, 1) pandas.DataFrame
         Dataframe with `P` rows indicating distinct probes and one column
         containing summary statistic of probe expression
+    column : str, optional
+        Column name from which to extract the max index. If not specified uses
+        the first numerical column.
 
     Returns
     -------
@@ -77,7 +167,7 @@ def _max_idx(df):
         ID of probe selected as representative for given gene
     """
 
-    return df.idxmax()
+    return df.idxmax()[column]
 
 
 def _max_loading(df):
@@ -97,19 +187,18 @@ def _max_loading(df):
     """
 
     if len(df) == 1:
-        return df.iloc[0].name
+        return np.squeeze(df.index)
 
     # center data before SVD
     data = np.asarray(df)
     data = data - data.mean(axis=0, keepdims=True)
 
-    u, s, v = np.linalg.svd(data, full_matrices=False)
-    u, v = svd_flip(u, v)
+    evals, evecs = np.linalg.eig(data.T @ data)
 
-    return df.iloc[u[:, 0].argmax()].name
+    return df.index[(data @ evecs)[:, 0].argmax()]
 
 
-def _wgcna(df, method):
+def _correlate(df, method):
     """
     Returns probe ID with max avg correlation (>2 probes) or `method` (<2)
 
@@ -138,9 +227,9 @@ def _wgcna(df, method):
         elif method == 'intensity':
             xmax = np.mean(data, axis=1)
     else:
-        xmax = np.array([0])
+        return df.index[0]
 
-    return df.iloc[xmax.argmax()].name
+    return df.index[xmax.argmax()]
 
 
 def _diff_stability(expression, probes, annotation, *args, **kwargs):
@@ -186,7 +275,7 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
         region_exp.append(exp.groupby(exp.columns, axis=1).mean())
 
     # get correlation of probe expression across samples for all donor pairs
-    probe_exp = np.zeros((len(probes), sum(range(len(region_exp)))))
+    probe_exp = np.zeros((len(probes), sum(range(len(expression)))))
     for n, (exp1, exp2) in enumerate(itertools.combinations(region_exp, 2)):
 
         # samples that current donor pair have in common
@@ -201,10 +290,11 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
         probe_exp[:, n] = utils.efficient_corr(m1, m2)
 
     info = pd.DataFrame(dict(gene_symbol=np.asarray(probes.gene_symbol),
-                             diffstab=probe_exp.mean(axis=1)),
+                             diff_stability=probe_exp.mean(axis=1)),
                         index=probes.index)
+    applyfunc = functools.partial(_max_idx, column='diff_stability')
 
-    return _groupby_and_apply(expression, probes, info, _max_idx)
+    return _groupby_and_apply(expression, probes, info, applyfunc)
 
 
 def _average(expression, probes, *args, **kwargs):
@@ -275,15 +365,15 @@ def _collapse(expression, probes, *args, method='variance', **kwargs):
     if method == 'max_variance':
         probe_exp = probe_exp.std(axis=1)
         probe_exp.name = method
-        agg = _max_idx
+        agg = functools.partial(_max_idx, column=method)
     elif method == 'max_intensity':
         probe_exp = probe_exp.mean(axis=1)
         probe_exp.name = method
-        agg = _max_idx
+        agg = functools.partial(_max_idx, column=method)
     elif method == 'pc_loading':
         agg = _max_loading
     elif method in ['corr_variance', 'corr_intensity']:
-        agg = functools.partial(_wgcna, method=method[5:])
+        agg = functools.partial(_correlate, method=method[5:])
     else:
         raise ValueError('Provided method {} invalid. Please check inputs '
                          'and try again.'.format(method))
@@ -490,88 +580,3 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     exp = [io.read_microarray(micro).loc[probes.index] for micro in microarray]
 
     return [e.T for e in collfunc(exp, probes, annotation)]
-
-
-def reannotate_probes(probes):
-    """
-    Replaces gene symbols in `probes` with reannotated data
-
-    Uses annotations from [PR18]_ to replace probe annotations shipped with
-    AHBA data. Any probes that were unable to be matched to a gene in
-    reannotation procedure are not retained.
-
-    Parameters
-    ----------
-    probes : str or pandas.DataFrame
-        Probe file or loaded probe dataframe from Allen Brain Institute
-        containing information on microarray probes
-
-    Returns
-    -------
-    reannotated : pandas.DataFrame
-        Provided probe information with updated gene symbols and Entrez IDs
-
-    References
-    ----------
-    .. [PR18] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A
-       practical guide to linking brain-wide gene expression and neuroimaging
-       data. NeuroImage, 189, 353-367.
-    """
-
-    # load in reannotated probes
-    reannot = resource_filename('abagen', 'data/reannotated.csv.gz')
-    with gzip.open(reannot, 'r') as src:
-        reannot = pd.read_csv(StringIO(src.read().decode('utf-8'))).iloc[:-1]
-    reannot = reannot[['probe_name', 'gene_symbol', 'entrez_id']]
-
-    # merge reannotated with original, keeping only reannotated
-    probes = io.read_probes(probes).reset_index()[['probe_name', 'probe_id']]
-    merged = pd.merge(reannot, probes, on='probe_name', how='left')
-
-    # reset index as probe_id and sort
-    reannotated = merged.set_index('probe_id').sort_index()
-
-    return reannotated
-
-
-def filter_probes(pacall, probes, threshold=0.5):
-    """
-    Performs intensity based filtering (IBF) of expression probes
-
-    Uses binary indicator for expression levels in `pacall` to determine which
-    probes have expression levels above background noise in `threshold` of
-    samples across donors.
-
-    Parameters
-    ----------
-    pacall : list of str
-        List of filepaths to PAcall files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `pacall` attribute on the resulting object).
-    probes : str or pandas.DataFrame
-        Dataframe containing information on microarray probes that should be
-        considered in filtering (probes not in this dataframe will be ignored)
-    threshold : (0, 1) float, optional
-        Threshold for filtering probes. Specifies the proportion of samples for
-        which a given probe must have expression levels above background noise.
-        Default: 0.5
-
-    Returns
-    -------
-    filtered : pandas.DataFrame
-        Dataframe containing information on probes that should be retained
-        according to intensity-based filtering
-    """
-
-    probes = io.read_probes(probes)
-    signal, samples = [], 0
-    for fname in pacall:
-        data = io.read_pacall(fname).loc[probes.index]
-        samples += data.shape[-1]
-        # sum binary expression indicator across samples for current subject
-        signal.append(data.sum(axis=1).values)
-
-    # calculate proportion of signal to noise for given probe across samples
-    keep = (np.sum(signal, axis=0) / samples) > threshold
-
-    return probes[keep]
