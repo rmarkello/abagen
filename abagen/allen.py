@@ -247,8 +247,8 @@ def group_by_label(microarray, sample_labels, labels=None, metric='mean'):
 
 
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
-                        tolerance=2, metric='mean',
-                        ibf_threshold=0.5, probe_selection='diff_stability',
+                        tolerance=2, metric='mean', ibf_threshold=0.5,
+                        probe_selection='diff_stability',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1):
@@ -372,12 +372,12 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors, where the index corresponds to the unique
         integer IDs of `atlas` and the columns are gene names. If
-        ``return_donors=True`` then this is a list of (R, G) dataframes, one
-        for each donor.
+        ``return_donors`` is set to ``True`` then this is a list of (R, G)
+        dataframes, one for each donor.
     counts : (R, D) :class:`pandas.DataFrame`
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
-        `return_counts=True`.
+        ``return_counts`` is set to ``True``.
 
     Notes
     -----
@@ -466,22 +466,23 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                  .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
-    # reannotate probes based on updates from Arnatkeviciute et al., 2018 then
-    # perform intensity-based filter of probes and select probe with highest
-    # differential stability for each gene amongst remaining probes
+    # get dataframe of probe information (reannotated or otherwise)
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2018, NeuroImage')
         probe_info = probes.reannotate_probes(files.probes[0])
     else:
         probe_info = io.read_probes(files.probes[0])
+
+    # intensity-based filtering of probes
     probe_info = probes.filter_probes(files.pacall, probe_info,
                                       threshold=ibf_threshold)
     lgr.info('{} genes survive intensity-based filtering with threshold of {}'
              .format(len(np.unique(probe_info['gene_symbol'])), ibf_threshold))
 
     # get probe-reduced microarray expression data for all donors based on
-    # selection method; this will be a list of gene x sample dataframes
+    # selection method; this will be a list of gene x sample dataframes (one
+    # for each donor)
     lgr.info('Reducing probes indexing same gene with provided method: {}'
              .format(probe_selection))
     microarray = probes.collapse_probes(files.microarray, files.annotation,
@@ -544,11 +545,14 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts.loc[roi, ind] += 1
 
-    # normalize data with SRS and aggregate across donors
+    # normalize data with SRS
     expression = [process.normalize_expression(e) for e in expression]
+
+    # aggregate across donors if individual donor dataframes not requested
     if not return_donors:
         expression = process.aggregate_donors(expression, metric)
 
+    # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:
         return expression, counts.iloc[1:]
 
