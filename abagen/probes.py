@@ -189,13 +189,17 @@ def _max_loading(df):
     if len(df) == 1:
         return np.squeeze(df.index)
 
-    # center data before SVD
     data = np.asarray(df)
     data = data - data.mean(axis=0, keepdims=True)
 
-    evals, evecs = np.linalg.eig(data.T @ data)
+    # svd() is faster than eig() here because we don't need to construct the
+    # covariance matrix
+    u, s, v = np.linalg.svd(data, full_matrices=False)
 
-    return df.index[(data @ evecs)[:, 0].argmax()]
+    # use sign flip based on right singular vectors (as we would with eig())
+    u, v = svd_flip(u, v, u_based_decision=False)
+
+    return df.index[(data @ v.T)[:, 0].argmax()]
 
 
 def _correlate(df, method):
@@ -577,6 +581,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
                          .format(list(SELECTION_METHODS), method))
 
     # read in microarray data for all subjects; this can be quite slow...
+    probes = io.read_probes(probes)
     exp = [io.read_microarray(micro).loc[probes.index] for micro in microarray]
 
     return [e.T for e in collfunc(exp, probes, annotation)]
