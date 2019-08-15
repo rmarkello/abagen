@@ -144,10 +144,11 @@ def test_max_loading(angles, index):
     (2, 'variance', 'three'),
 ])
 def test_correlate(from_row, method, expected):
-    df = pd.DataFrame(dict(a=[1.50, 1, 3],   # maximum correlation
-                           b=[2.00, 2, 3],   # maximum variance
-                           c=[2.75, 3, 4]),  # maximum intensity
-                      index=['one', 'two', 'three'])
+    # a = max correlation, b = max variance, c = max intensity
+    df = pd.DataFrame([[1.50, 2.00, 2.75],
+                       [1.00, 2.00, 3.00],
+                       [3.00, 3.00, 4.00]],
+                      index=['one', 'two', 'three'], columns=['a', 'b', 'c'])
 
     assert probes._correlate(df.iloc[from_row:], method=method) == expected
 
@@ -158,13 +159,20 @@ def test_diff_stability():
     prb = pd.DataFrame(dict(gene_symbol=['a', 'a', 'a', 'b', 'b', 'c']),
                        index=index)
     expression = [
-        pd.DataFrame(dict(one=[0, 1, 2, 3, 4, 5],
-                          two=[2, 3, 4, 5, 6, 7],
-                          three=[4, 3, 4, 1, 6, 3],
-                          four=[9, 2, 1, 0, 7, 4]), index=index),
-        pd.DataFrame(dict(one=[1, 3, 1, 1, 1, 1],
-                          two=[2, 2, 3, 3, 2, 2],
-                          three=[3, 1, 2, 2, 3, 3]), index=index)
+        pd.DataFrame([[0, 2, 4, 9],
+                      [1, 3, 3, 2],
+                      [2, 4, 4, 1],
+                      [3, 5, 1, 0],
+                      [4, 6, 6, 7],
+                      [5, 7, 3, 4]],
+                     index=index, columns=['one', 'two', 'three', 'four']),
+        pd.DataFrame([[1, 2, 3],
+                      [3, 2, 1],
+                      [1, 3, 2],
+                      [1, 3, 2],
+                      [1, 2, 3],
+                      [1, 2, 3]],
+                     index=index, columns=['one', 'two', 'three'])
     ]
 
     annotation = [
@@ -197,9 +205,8 @@ def test_average():
     index = pd.Series([1000, 2000, 3000, 4000, 5000, 6000], name='probe_id')
     prb = pd.DataFrame(dict(gene_symbol=['a', 'a', 'a', 'b', 'b', 'c']),
                        index=index)
-    exp = [pd.DataFrame(dict(a=range(6),
-                             b=range(12, 6, -1)),
-                        index=index)]
+    exp = [pd.DataFrame([[0, 12], [1, 11], [2, 10], [3, 9], [4, 8], [5, 7]],
+                        index=index, columns=['a', 'b'])]
 
     # output should be a list of dataframes (only one dataframe in this case)
     out = probes._average(exp, prb)
