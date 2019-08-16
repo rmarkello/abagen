@@ -7,7 +7,7 @@ __pycache__/
 .pytest_cache/
 .vscode/
 _build/
-_static/
+generated/
 build/
 dist/
 allen_reference_*.csv

@@ -26,7 +26,6 @@ version = abagen.__version__
 # The full version, including alpha/beta/rc tags
 release = abagen.__version__
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -44,6 +43,7 @@ extensions = [
 
 # Generate the API documentation when building
 autosummary_generate = True
+autodoc_default_options = {'members': True, 'inherited-members': True}
 numpydoc_show_class_members = False
 autoclass_content = "class"
 
@@ -71,7 +71,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -90,15 +89,17 @@ html_theme_options = {}
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+# CSS files to include
+html_css_files = ['theme_overrides.css']
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'abagendoc'
 
-
 # -- Extension configuration -------------------------------------------------
 intersphinx_mapping = {
+    'python': ('https://docs.python.org/3.6', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
