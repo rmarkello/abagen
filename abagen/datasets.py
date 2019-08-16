@@ -236,7 +236,7 @@ def _fetch_alleninf_coords(*args, **kwargs):
 
     Returns
     -------
-    coords : :class:`pandas.DataFrame`
+    coords : pandas.DataFrame
         Updated MNI coordinates for all AHBA samples
 
     References

@@ -301,7 +301,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
-    atlas_info : str or :class:`pandas.DataFrame`, optional
+    atlas_info : str or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
@@ -368,13 +368,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
     Returns
     -------
-    expression : (R, G) :class:`pandas.DataFrame`
+    expression : (R, G) pandas.DataFrame
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors, where the index corresponds to the unique
         integer IDs of `atlas` and the columns are gene names. If
         ``return_donors`` is set to ``True`` then this is a list of (R, G)
         dataframes, one for each donor.
-    counts : (R, D) :class:`pandas.DataFrame`
+    counts : (R, D) pandas.DataFrame
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
         ``return_counts`` is set to ``True``.
@@ -387,7 +387,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     1. ``probe_selection='average'``
 
     Takes the average of expression data across all probes indexing the same
-    gene; ``probe_selection='mean'`` is identical.
+    gene. Providing 'mean' as the input method will return the same thing.
 
     2. ``probe_selection='max_intensity'``
 

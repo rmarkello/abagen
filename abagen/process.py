@@ -172,7 +172,7 @@ def aggregate_donors(expression, metric='mean'):
 
     Parameters
     ----------
-    expression : list of (R x G) :class:`pandas.DataFrame`
+    expression : list of (R, G) pandas.DataFrame
         Where each entry is the microarray expression of `R` regions across `G`
         genes for a given donor
     metric : str or func, optional
@@ -184,7 +184,7 @@ def aggregate_donors(expression, metric='mean'):
 
     Returns
     -------
-    expression : (R x G) :class:`pandas.DataFrame`
+    expression : (R, G) pandas.DataFrame
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors.
     """

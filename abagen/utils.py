@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import itertools
+
 from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
@@ -23,50 +24,44 @@ def check_atlas_info(atlas, atlas_info, labels=None):
     atlas : niimg-like object
         Parcel image, where each parcel should be identified with a unique
         integer ID
-    atlas_info : str or pandas.DataFrame, optional
-        Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must jhave _at least_ columns 'id', 'hemisphere', and
-        'structure' containing information mapping atlas IDs to hemisphere and
-        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
-        Default: None
+    atlas_info : str or pandas.DataFrame
+        Filepath or dataframe containing information about `atlas`. Must have
+        at least columns 'id', 'hemisphere', and 'structure' containing
+        information mapping atlas IDs to hemisphere and broad structural class
+        (e.g., "cortex", "subcortex", "cerebellum").
     labels : array_like, optional
         List of values containing labels to compare between `atlas` and
-        `atlas_info`, if they don't all match. Default: None
+        `atlas_info`, if they don't all match. If not specified this function
+        will attempt to confirm that all IDs present in `atlas` have entries in
+        `atlas_info` and vice versa. Default: None
 
     Returns
     -------
     atlas_info : pandas.DataFrame
         Loaded dataframe with information on atlas
-
-    Raises
-    ------
-    ValueError
-        If `atlas_info` does not have sufficient information
     """
+
     atlas = check_niimg_3d(atlas)
 
     # load info, if not already
-    if isinstance(atlas_info, str):
+    try:
         atlas_info = pd.read_csv(atlas_info)
+    except ValueError:
+        pass
 
-    if not isinstance(atlas_info, pd.DataFrame):
-        raise ValueError('Provided `atlas_info` of type {} is not a filepath '
-                         'or DataFrame. Please confirm inputs and try again.'
-                         .format(type(atlas_info)))
+    try:
+        if 'id' in atlas_info.columns:
+            atlas_info = atlas_info.set_index('id')
+    except AttributeError:
+        raise ValueError('Provided atlas_info must be a filepath or pandas.'
+                         'DataFrame. Please confirm inputs and try again.')
 
-    if 'id' in atlas_info.columns:
-        atlas_info = atlas_info.set_index('id')
-
-    if labels is None:
-        ids = get_unique_labels(atlas)
-    else:
-        ids = labels
-
+    ids = get_unique_labels(atlas) if labels is None else labels
     cols = ['hemisphere', 'structure']
     try:
         assert all(c in atlas_info.columns for c in cols)
         assert ('id' == atlas_info.index.name)
-        assert np.setdiff1d(ids, atlas_info.index.values).size == 0
+        assert len(np.intersect1d(ids, atlas_info.index)) == len(ids)
     except AssertionError:
         raise ValueError('Provided `atlas_info` does not have adequate '
                          'information  on supplied `atlas`. Please confirm '
@@ -84,24 +79,23 @@ def check_metric(metric):
 
     Parameters
     ----------
-    metric : str or func, optional
-        Mechanism by which to reduce arrays. If str, should be in ['mean',
-        'median']. If func, should be able to accept an `N`-dimensional input
-        and the `axis` keyword argument and return an `N-1`-dimensional output.
-        Default: 'mean'
+    metric : {'mean', 'median'} or callable, optional
+        Mechanism by which to reduce arrays. If a callable, should be able to
+        accept an `N`-dimensional input and the `axis` keyword argument and
+        return an `N-1`-dimensional output. Default: 'mean'
 
     Returns
     -------
-    metric : func
-        Mechanism by which to reduce arrays
+    metric : callable
     """
-    if isinstance(metric, str):
+
+    if not callable(metric):
         try:
             metric = AGG_FUNCS[metric]
         except KeyError:
             raise ValueError('Provided metric {0} is not valid. If supplied'
                              'as string, metric must be in {1}.'
-                             .format(metric, list(AGG_FUNCS.keys())))
+                             .format(metric, list(AGG_FUNCS)))
     else:
         try:
             test = np.random.rand(10, 10, 10)

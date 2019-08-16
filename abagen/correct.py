@@ -28,7 +28,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
-    atlas_info : str or :class:`pandas.DataFrame`, optional
+    atlas_info : str or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
@@ -42,7 +42,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
 
     Returns
     -------
-    residualized : (R x R) :class:`numpy.ndarray`
+    residualized : (R, R) numpy.ndarray
         Provided `coexpression` data residualized against spatial distance
          between region pairs
     """
@@ -131,7 +131,7 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
 
     Parameters
     ----------
-    expression : list of (R x G) :class:`pandas.DataFrame`
+    expression : list of (R, G) pandas.DataFrame
         Where each entry is the microarray expression of `R` regions across `G`
         genes for a given donor
     threshold : [0, 1] float, optional
@@ -149,7 +149,7 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
 
     Returns
     -------
-    expression : list of (R x Gr) :class:`pandas.DataFrame`
+    expression : list of (R, Gr) pandas.DataFrame
         Microarray expression for `R` regions across `Gr` genes, where `Gr` is
         the number of retained genes
     """

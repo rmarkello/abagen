@@ -61,7 +61,7 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
 
     Returns
     -------
-    info : :class:`pandas.DataFrame`
+    info : pandas.DataFrame
         If `attributes` is a str, returns an int or str depending on specified
         attribute. If `attributes` is a list, return a dict where keys are
         attributes and values are str or int.
