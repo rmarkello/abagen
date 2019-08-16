@@ -8,6 +8,7 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
+from datetime import datetime
 import os
 import sys
 
@@ -15,8 +16,8 @@ import sys
 
 # Add project name, copyright holder, and author(s)
 project = 'abagen'
-copyright = '2018, abagen developers'
-author = 'Ross Markello'
+author = '{} developers'.format(project)
+copyright = '2018-{}, {}'.format(datetime.now().year, author)
 
 # Import project to get version info
 sys.path.insert(0, os.path.abspath(os.path.pardir))

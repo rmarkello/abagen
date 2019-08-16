@@ -20,21 +20,21 @@ Overview
 
 In 2013, the Allen Institute for Brain Science released the Allen Human Brain
 Atlas, `a dataset <https://human.brain-map.org/>`_ containing microarray
-expression data collected from six human brains ([2]_) . This dataset has
-offered an unprecedented opportunity to examine the genetic underpinnings of
-the human brain, and has already yielded novel insight into e.g., `adolescent
-brain development <https://www.pnas.org/content/113/32/9105.long>`_ and
-`functional brain organization <https://science.sciencemag.org/content/348/6240
-/1241.long>`_.
+expression data collected from six human brains [2]_ . This dataset has offered
+an unprecedented opportunity to examine the genetic underpinnings of the human
+brain, and has already yielded novel insight into e.g., `adolescent brain
+development <https://www.pnas.org/content/113/32/9105.long>`_ and `functional
+brain organization <https://science.sciencemag.org/content/348/6240/1241.
+long>`_.
 
 However, in order to be effectively used in most analyses, the AHBA microarray
 expression data often needs to be (1) collapsed into regions of interest (e.g.,
 parcels or networks), and (2) combined across donors. While this may
 potentially seem trivial, there are numerous analytic choices in these steps
 that can dramatically influence the resulting data and any downstream analyses.
-Indeed, Arnatkevičiūte et al., 2018 ([1]_) provided a thorough treatment of
-this in a `recent manuscript <https://www.sciencedirect.com/science/article/pii
-/S1053811919300114>`_, demonstrating how the techniques and code used to
+Indeed, Arnatkevičiūte et al., 2018 [1]_ provided a thorough treatment of this
+in a `recent manuscript <https://www.sciencedirect.com/science/article/pii/
+S1053811919300114>`_, demonstrating how the techniques and code used to
 prepare the raw AHBA data have varied widely across published reports.
 
 The current Python package, ``abagen``, aims to provide a reproducible pipeline
@@ -96,9 +96,9 @@ be found in the `LICENSE <https://github.com/rmarkello/abagen/blob/master/
 LICENSE>`_ file in the ``abagen`` distribution.
 
 Reannotated gene information located at ``abagen/data/reannotated.csv.gz`` is
-taken from [1]_ and is separately licensed under the `CC BY 4.0 <https://
-creativecommons.org/licenses/by/4.0/legalcode>`_; these data can also be found
-on `figshare <https://figshare.com/s/441295fe494375aa0c13>`_.
+taken from Arnatkevičiūte et al., 2018 and is separately licensed under the `CC
+BY 4.0 <https://creativecommons.org/licenses/by/4.0/legalcode>`_; these data
+can also be found on `figshare <https://figshare.com/s/441295fe494375aa0c13>`_.
 
 Corrected MNI coordinates used to match AHBA tissues samples to MNI space
 located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the

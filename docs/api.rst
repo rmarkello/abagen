@@ -60,3 +60,18 @@ Reference API
    abagen.io.read_ontology
    abagen.io.read_pacall
    abagen.io.read_probes
+
+:mod:`abagen.utils` - Utility functions
+---------------------------------------
+.. automodule:: abagen.utils
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: abagen.utils
+
+.. autosummary::
+   :template: function.rst
+   :toctree: generated/
+
+   abagen.utils.check_atlas_info
+   abagen.utils.check_metric
