@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Functions for loading the various files associated with the AHBA microarray
-dataset
+dataset.
 
 This also contains functionality for optionally converting the downloaded CSV
 files to the parquet format, which provides much faster I/O access and quicker
-loading times
+loading times.
 """
 
 import os.path as op
