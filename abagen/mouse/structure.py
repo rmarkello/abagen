@@ -63,7 +63,7 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
 
     Returns
     -------
-    info : :class:`pandas.DataFrame`
+    info : pandas.DataFrame
         Where columns are the requested attributes and index is the provided
         structural identifier type (e.g., 'id', 'acronym', 'name')
 
@@ -132,7 +132,7 @@ def get_structure_coordinates(id=None, acronym=None, name=None,
 
     Returns
     -------
-    coords : :class:`pandas.DataFrame`
+    coords : pandas.DataFrame
         With columns ['structure_id', 'x', 'y', 'z']
 
     Examples

@@ -172,19 +172,18 @@ def aggregate_donors(expression, metric='mean'):
 
     Parameters
     ----------
-    expression : list of (R x G) :class:`pandas.DataFrame`
+    expression : list of (R, G) pandas.DataFrame
         Where each entry is the microarray expression of `R` regions across `G`
         genes for a given donor
-    metric : str or func, optional
-        Mechanism by which to collapse across donors, if input `files` provides
-        multiple donor datasets. If a str, should be in ['mean', 'median']; if
-        a function, should be able to accept an `N`-dimensional input and the
-        `axis` keyword argument and return an `N-1`-dimensional output.
-        Default: 'mean'
+    metric : {'mean', 'median'} or callable, optional
+        Mechanism by which to reduce donor-level expression data into a single
+        dataframe. If a callable, should be able to accept an `N`-dimensional
+        input and the `axis` keyword argument and return an `N-1`-dimensional
+        output. Default: 'mean'
 
     Returns
     -------
-    expression : (R x G) :class:`pandas.DataFrame`
+    expression : (R, G) pandas.DataFrame
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors.
     """

@@ -14,6 +14,12 @@ help:
 
 .PHONY: help Makefile
 
+# For getting rid of generated docs before re-building
+clean:
+	rm -rf $(BUILDDIR)/* auto_examples/ generated/
+
+.PHONY: clean
+
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile

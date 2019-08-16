@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Functions for downloading Allen Brain Atlas human microarray dataset
-
-Modeled after ``nilearn.datasets``. Currently just downloads into current
-working directory, but will likely be modified to download into a more
-"standard" directory.
+Functions for downloading the Allen Brain Atlas human microarray dataset.
 """
 
 import os
@@ -240,7 +236,7 @@ def _fetch_alleninf_coords(*args, **kwargs):
 
     Returns
     -------
-    coords : :class:`pandas.DataFrame`
+    coords : pandas.DataFrame
         Updated MNI coordinates for all AHBA samples
 
     References

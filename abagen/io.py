@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 Functions for loading the various files associated with the AHBA microarray
-dataset
+dataset.
 
 This also contains functionality for optionally converting the downloaded CSV
-files to the parquet format, which provides much faster I/O access and quicker
-loading times
+files to parquet format, which provides much faster I/O access / quicker load
+times.
 """
 
 import os.path as op
@@ -74,7 +74,7 @@ def read_microarray(fname, parquet=True):
 
     Returns
     -------
-    microarray : (P, S) :class:`pandas.DataFrame`
+    microarray : (P, S) pandas.DataFrame
         Dataframe containing microarray expression data, where `P` is probes
         and `S` is samples. The row index is the unique probe ID assigned
         during processing, which can be used to match data to the information
@@ -117,11 +117,11 @@ def read_ontology(fname, parquet=True):
     fname : str
         Path to Ontology.csv file
     parquet : bool, optional
-        Does nothing; here for compatibility with other ``abagen.io`` functions
+        Does nothing; for compatibility with other :mod:`abagen.io` functions
 
     Returns
     -------
-    ontology : (R, 8) :class:`pandas.DataFrame`
+    ontology : (R, 8) pandas.DataFrame
         Dataframe containing ontology information for `R` anatomical regions
         used by the Allen Institute. Columns include: 'id', 'acronym', 'name',
         'parent_structure_id', 'hemisphere', 'graph_order',
@@ -166,7 +166,7 @@ def read_pacall(fname, parquet=True):
 
     Returns
     -------
-    pacall : (P, S) :class:`pandas.DataFrame`
+    pacall : (P, S) pandas.DataFrame
         Dataframe containing a binary indicator determining whether expression
         information for each probe exceeded background noise in a given sample,
         where `P` is probes and `S` is samples. The row index is the unique
@@ -208,11 +208,11 @@ def read_probes(fname, parquet=True):
     fname : str
         Path to Probes.csv file
     parquet : bool, optional
-        Does nothing; here for compatibility with other ``abagen.io`` functions
+        Does nothing; for compatibility with other :mod:`abagen.io` functions
 
     Returns
     -------
-    probes : (P, 6) :class:`pandas.DataFrame`
+    probes : (P, 6) pandas.DataFrame
         Dataframe containing information for `P` genetic probes. The row index
         is the unique probe ID assigned during processing, which can be used to
         match metadata to information obtained with :func:`read_microarray` and
@@ -244,11 +244,11 @@ def read_annotation(fname, parquet=True):
     fname : str
         Path to SampleAnnot.csv file
     parquet : bool, optional
-        Does nothing; here for compatibility with other ``abagen.io`` functions
+        Does nothing; for compatibility with other :mod:`abagen.io` functions
 
     Returns
     -------
-    annotation : (S, 13) :class:`pandas.DataFrame`
+    annotation : (S, 13) pandas.DataFrame
         Dataframe containing structural information on `S` samples. The row
         index is the unique sample ID (integer, beginning with 1) which can be
         used to match data to the information obtained with

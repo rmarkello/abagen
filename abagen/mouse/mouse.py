@@ -99,7 +99,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
 
     Returns
     -------
-    unionization : :class:`pandas.DataFrame`
+    unionization : pandas.DataFrame
         Where columns are unionization attributes and the index corresponds to
         gene ids and strucuture ids
 
@@ -220,7 +220,7 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
 
     Returns
     -------
-    unionization : :class:`pandas.DataFrame`
+    unionization : pandas.DataFrame
         Where columns are unionization attributes and the index corresponds to
         strucuture and gene ids (if `experiments` is provided as a list
         with multiple genes). If `average=False`, `experiments` will also be a
