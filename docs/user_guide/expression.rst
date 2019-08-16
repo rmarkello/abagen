@@ -24,15 +24,16 @@ across donors:
 .. code-block:: python
 
     >>> expression.head()
-    gene_symbol    MRPL49    ZNHIT2     ...       A_32_P9207  A_32_P94122
-    label                               ...
-    1            0.407088  0.478699     ...         0.305448     0.470933
-    2            0.391223  0.636014     ...         0.383983     0.585307
-    3                 NaN       NaN     ...              NaN          NaN
-    4            0.492941  0.373068     ...         0.364473     0.246995
-    5            0.358736  0.241114     ...         0.250388     0.215016
+    gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
+    label                                      ...
+    1            0.519351  0.828700  0.453306  ...  0.550029  0.223340  0.381796
+    2            0.419609  0.757244  0.444827  ...  0.442332  0.116300  0.523904
+    3                 NaN       NaN       NaN  ...       NaN       NaN       NaN
+    4            0.533572  0.860614  0.453581  ...  0.486976  0.184656  0.592856
+    5            0.550198  0.745571  0.469597  ...  0.652835  0.258184  0.587019
 
-    [5 rows x 20597 columns]
+    [5 rows x 15656 columns]
+
 
 Unfortunately, due to how tissue samples were collected from the donor brains,
 it is possible that some regions in an atlas may not be represented by any
@@ -49,15 +50,15 @@ specify the following:
 
     >>> expression = abagen.get_expression_data(atlas.image, atlas.info, exact=False)
     >>> expression.head()
-    gene_symbol    MRPL49    ZNHIT2     ...       A_32_P9207  A_32_P94122
-    label                               ...
-    1            0.408125  0.488091     ...         0.307095     0.480003
-    2            0.392768  0.644425     ...         0.386279     0.591653
-    3            0.507654  0.000000     ...         0.257872     0.201342
-    4            0.494560  0.388589     ...         0.366562     0.257212
-    5            0.359371  0.258268     ...         0.251915     0.225289
+    gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
+    label                                      ...
+    1            0.514177  0.828355  0.453783  ...  0.552014  0.223837  0.379434
+    2            0.414703  0.756921  0.444710  ...  0.444384  0.116857  0.521554
+    3            0.628218  0.995734  0.239491  ...  0.519363  0.023518  0.612133
+    4            0.528599  0.860405  0.453873  ...  0.489035  0.185246  0.590921
+    5            0.545804  0.745178  0.470199  ...  0.654884  0.258185  0.585447
 
-    [5 rows x 20597 columns]
+    [5 rows x 15656 columns]
 
 By default, :func:`abagen.get_expression_data` will attempt to be as precise as
 possible in matching microarray samples with brain regions. Specifying
