@@ -321,12 +321,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         Distance (in mm) that a sample must be from a parcel for it to be
         matched to that parcel. This is only considered if the sample is not
         directly within a parcel. Default: 2
-    metric : str or func, optional
-        Mechanism by which to collapse across donors, if input `files` provides
-        multiple donor datasets. If a str, should be in ['mean', 'median']; if
-        a function, should be able to accept an `N`-dimensional input and the
-        `axis` keyword argument and return an `N-1`-dimensional output.
-        Default: 'mean'
+    metric : {'mean', 'median'} or callable, optional
+        Mechanism by which to reduce donor-level expression data into a single
+        dataframe. If a callable, should be able to accept an `N`-dimensional
+        input and the `axis` keyword argument and return an `N-1`-dimensional
+        output. Default: 'mean'
     ibf_threshold : [0, 1] float, optional
         Threshold for intensity-based filtering specifying. This number should
         specify the ratio of samples, across all supplied donors, for which a
