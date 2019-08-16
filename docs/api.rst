@@ -61,6 +61,21 @@ Reference API
    abagen.io.read_pacall
    abagen.io.read_probes
 
+:mod:`abagen.correct` - Post-processing corrections
+---------------------------------------------------
+.. automodule:: abagen.correct
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: abagen.correct
+
+.. autosummary::
+   :template: function.rst
+   :toctree: generated/
+
+   abagen.correct.remove_distance
+   abagen.correct.keep_stable_genes
+
 :mod:`abagen.utils` - Utility functions
 ---------------------------------------
 .. automodule:: abagen.utils
