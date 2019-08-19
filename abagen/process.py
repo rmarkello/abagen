@@ -17,8 +17,10 @@ ONTOLOGY = Recoder(
      ('4391', 'diencephalon', 'subcortex'),
      ('9001', 'mesencephalon', 'subcortex'),
      ('4696', 'cerebellum', 'cerebellum'),
-     ('4833', 'metencephalon', 'cerebellum'),
-     ('9512', 'myelencephalon', 'cerebellum')),
+     ('9131', 'pons', 'brainstem'),
+     ('9512', 'myelencephalon', 'brainstem'),
+     ('9218', 'white matter', 'white matter'),
+     ('9352', 'sulci & spaces', 'other')),
     fields=('id', 'name', 'structure')
 )
 
