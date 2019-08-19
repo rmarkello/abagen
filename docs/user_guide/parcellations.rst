@@ -40,7 +40,8 @@ must ensure it has the following columns:
   1. ``id``: an integer ID corresponding to the labels in the ``atlas`` image
   2. ``hemisphere``: a L/R hemispheric designation (i.e., 'L' or 'R')
   3. ``structure``: a broad structural class designation (i.e., one of
-     'cortex', 'subcortex', or 'cerebellum')
+     'cortex', 'subcortex', 'cerebellum', 'brainstem', 'white matter', or
+     'other')
 
 For example, a valid CSV might look like this:
 
@@ -55,6 +56,6 @@ For example, a valid CSV might look like this:
     3   4   medialorbitofrontal_rh          R    cortex
     4   5      parstriangularis_rh          R    cortex
 
-Notice that extra columns (i.e., ``label``) are okay, as long as the three
+Notice that extra columns (i.e., ``label``) are okay as long as the three
 required columns are present! If you want to confirm your file is formatted
 correctly you can use :func:`abagen.utils.check_atlas_info()`.
