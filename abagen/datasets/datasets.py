@@ -7,6 +7,7 @@ import os
 from pkg_resources import resource_filename
 
 from nibabel.volumeutils import Recoder
+import pandas as pd
 
 from .. import io
 from .utils import _get_dataset_dir, _fetch_files
@@ -155,3 +156,39 @@ def fetch_desikan_killiany(*args, **kwargs):
     info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
 
     return dict(image=image, info=info)
+
+
+def fetch_gene_group(group):
+    """
+    Return list of gene acronyms belonging to provided `group`
+
+    Groups are defined as in [DS1]_
+
+    Parameters
+    ----------
+    group : {'brain', 'neuron', 'oligodendrocyte', 'synaptome', 'layers'}
+        Desired gene group
+
+    Returns
+    -------
+    genes : list of str
+        List of gene acronyms
+
+    References
+    ----------
+    .. [DS1] Burt, J. B., Demirtaş, M., Eckner, W. J., Navejar, N. M., Ji, J.
+       L., Martin, W. J., ... & Murray, J. D. (2018). Hierarchy of
+       transcriptomic specialization across human cortex captured by
+       structural neuroimaging topography. Nature neuroscience, 21(9), 1251.
+    """
+
+    groups = ['brain', 'neuron', 'oligodendrocyte', 'synaptome', 'layers']
+    if group.lower() not in groups:
+        raise ValueError('Provided group {} not one of the available gene '
+                         'groups: {}'.format(group, groups))
+
+    group = group.lower()
+    fn = resource_filename('abagen', 'data/burt2015_natneuro.csv')
+    genes = pd.read_csv(fn).query('group == "{}"'.format(group))['acronym']
+
+    return sorted(list(genes))
