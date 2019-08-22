@@ -108,6 +108,10 @@ located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
 `alleninf package <https://github.com/chrisfilo/alleninf>`_, provided under
 the `3-clause BSD license <https://opensource.org/licenses/BSD-3-Clause>`_.
 
+Gene groups are derived from Supplementary Table 2 of `Burt et al., 2018,
+Nature Neuroscience <https://doi.org/10.1038/s41593-018-0195-0>`_, with minor
+updates (i.e., correcting Excel-converted dates back to gene acronyms).
+
 All microarray expression data is copyrighted under `non-commercial reuse
 policies <https://alleninstitute.org/legal/terms-use/>`_ by the Allen Institute
 for Brain Science (© 2010 Allen Institute for Brain Science. Allen Human Brain
