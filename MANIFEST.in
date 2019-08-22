@@ -1,1 +1,3 @@
 include README.rst LICENSE
+include versioneer.py
+include abagen/_version.py

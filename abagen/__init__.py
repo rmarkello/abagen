@@ -1,8 +1,10 @@
-__all__ = ['__version__',  'io', 'get_expression_data',
-           'keep_stable_genes', 'remove_distance',  'aggregate_donors',
+__all__ = ['__version__', 'io', 'get_expression_data',
+           'keep_stable_genes', 'remove_distance', 'aggregate_donors',
            'fetch_microarray', 'fetch_desikan_killiany', 'mouse']
 
-from .info import __version__
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
 
 from abagen.allen import get_expression_data
 from abagen.correct import keep_stable_genes, remove_distance
