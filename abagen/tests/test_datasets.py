@@ -60,3 +60,17 @@ def test_fetch_datasets(testdir):
 def test_fetch_mri():
     with pytest.raises(NotImplementedError):
         datasets.fetch_mri()
+
+
+@pytest.mark.parametrize('group, expected', [
+    ('brain', 2413),
+    ('neuron', 2530),
+    ('oligodendrocyte', 1769),
+    ('synaptome', 1886),
+    ('layers', 46)
+])
+def test_get_gene_group(group, expected):
+    assert len(datasets.get_gene_group(group)) == expected
+
+    with pytest.raises(ValueError):
+        datasets.get_gene_group('notagroup')
