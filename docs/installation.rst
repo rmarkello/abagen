@@ -1,7 +1,8 @@
 .. _installation_setup:
 
+----------------------
 Installation and setup
-======================
+----------------------
 
 .. note::
 
@@ -12,7 +13,7 @@ Installation and setup
 .. _basic_installation:
 
 Basic installation
---------------------
+==================
 
 This package requires Python >= 3.5. Assuming you have the correct version of
 Python installed, you can install ``abagen`` by opening a terminal and running
@@ -33,7 +34,7 @@ Alternatively, you can install from PyPi with:
 .. _io_installation:
 
 IO installation
----------------
+===============
 
 The data supplied by the Allen Human Brain Atlas is quite large---on the order
 of ~4GB for all six donors. Because loading these datasets into memory can be
