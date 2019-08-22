@@ -52,18 +52,18 @@ This package has been largely developed in the spare time of a single graduate
 student (`@rmarkello <https://github.com/rmarkello>`_) with help from some
 incredible `contributors <https://github.com/rmarkello/abagen/graphs/
 contributors>`_. While it would be |sparkles| amazing |sparkles| if anyone else
-finds it helpful, given the limited time constraints of graduate school, the
+finds it helpful, given the limited time constraints of graduate school the
 current package is not currently accepting requests for new features.
 
-However, if you're interested in getting involved in the project, we're
-thrilled to welcome new contributors! You shouldstart by reading our
-`contributing guidelines <https://github.com/rmarkello/abagen/blob/master/
-CONTRIBUTING.md>`_ and `code of conduct <https://github.com/rmarkello/abagen/
-blob/master/CODE_OF_CONDUCT.md>`_. Once you're done with that, take a look at
-our `issues <https://github.com/rmarkello/abagen/issues>`_ to see if there's
-anything you might like to work on. Alternatively, if you've found a bug, are
-experiencing a problem, or have a question, create a new issue with some
-information about it!
+However, if you're interested in getting involved in the project (and adding a
+feature yourself!) we're thrilled to welcome new contributors. You should start
+by reading our `contributing guidelines <https://github.com/rmarkello/abagen/
+blob/master/CONTRIBUTING.md>`_ and `code of conduct <https://github.com/
+rmarkello/abagen/blob/master/CODE_OF_CONDUCT.md>`_. Once you're done with that,
+take a look at our `issues <https://github.com/rmarkello/abagen/issues>`_ to
+see if there's anything you might like to work on. Alternatively, if you've
+found a bug, are experiencing a problem, or have a question about using the
+package, create a new issue with some information about it!
 
 .. _acknowledgments:
 
