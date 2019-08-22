@@ -1,6 +1,9 @@
-.. Following contents should be from LONG_DESCRIPTION in abagen/info.py
+# -*- coding: utf-8 -*-
+"""
+Defines information about the abagen distribution
+"""
 
-
+long_description = """
 abagen: A toolbox for the Allen Brain Atlas genetics data
 =========================================================
 
@@ -116,3 +119,4 @@ Atlas. Available from: https://human.brain-map.org).
 All trademarks referenced herein are property of their respective holders.
 
 .. |sparkles| replace:: ✨
+"""
