@@ -1,4 +1,4 @@
-v0.0.1 (September 7, 2018)
+0.0.1 (September 7, 2018)
 ==========================
 Initial release of ``abagen``, a toolbox for working with the `Allen Brain Atlas
 <http://human.brain-map.org/>`_ human genetics data.
