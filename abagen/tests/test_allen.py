@@ -37,13 +37,14 @@ def test_missing_labels(testdir, testfiles):
     # remove some labels from atlas image so numbers are non-sequential
     remove = [10, 20, 60]
     # subset atlas image
-    atlas = check_img(ATLAS['image']).get_data()
+    atlas = check_img(ATLAS['image'])
+    atlas_data = atlas.get_data()
     for i in remove:
-        atlas[atlas == i] = 0
-    atlas = ATLAS['image'].__class__(atlas, ATLAS['image'].affine)
+        atlas_data[atlas_data == i] = 0
+    atlas = atlas.__class__(atlas_data, atlas.affine)
     # subset atlas info
     atlas_info = pd.read_csv(ATLAS['info'])
-    atlas_info = atlas_info[~atlas_info.id.isin(remove)]
+    atlas_info = atlas_info[~atlas_info['id'].isin(remove)]
     # test get expression
     out, counts = allen.get_expression_data(atlas, atlas_info,
                                             exact=False, return_counts=True,

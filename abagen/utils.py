@@ -45,7 +45,7 @@ def check_img(img):
         raise ValueError('Provided image must be 3D')
 
     # check if atlas is int or castable to int
-    if not img.get_data().dtype.kind != 'i':
+    if img.get_data().dtype.kind != 'i':
         cast = all([float(f).is_integer() for f in np.unique(img.get_data())])
         if not cast:
             raise ValueError('Provided image should have integer values or '
