@@ -1,7 +1,4 @@
 nibabel
-nilearn
 numpy>=1.14.0
 pandas
-requests
 scipy
-scikit-learn

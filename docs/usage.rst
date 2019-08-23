@@ -1,7 +1,8 @@
 .. _usage:
 
+----------
 User guide
-==========
+----------
 
 ``abagen`` aims to provide a reproducible pipeline for processing and preparing
 microarray expression data provided by the Allen Human Brain Atlas (AHBA) for
@@ -16,6 +17,7 @@ abagen/issues>`_.
 
 .. toctree::
    :caption: Table of Contents
+   :maxdepth: 5
    :numbered:
 
    user_guide/download.rst

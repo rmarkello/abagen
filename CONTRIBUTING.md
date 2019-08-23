@@ -1,28 +1,30 @@
 # Contributing to abagen
 
-Welcome to the abagen repository! We're excited you're here and want to contribute.
+Welcome to the abagen repository!
+We're excited you're here and want to contribute.
 
-These guidelines are designed to make it as easy as possible to get involved. If you have any questions that aren't discussed below, please let us know by opening an [issue][link_issues]!
+These guidelines are designed to make it as easy as possible to get involved.
+If you have any questions that aren't discussed below, please let us know by opening an [issue][link_issues]!
 
-Before you start you'll need to set up a free [GitHub][link_github] account and sign in. Here are some [instructions][link_signupinstructions].
+Before you start you'll need to set up a free [GitHub][link_github] account and sign in.
+Here are some [instructions][link_signupinstructions].
 
 ## Labels
 
-The current list of labels are [here][link_labels] and include:
+The current list of labels are [here][link_labels] and notably include:
 
-* [![Help Wanted](https://img.shields.io/badge/-help%20wanted-008672.svg)][link_helpwanted] *These issues contain a task that a member of the team has determined we need additional help with.*
+* [![Good first issue](https://img.shields.io/badge/-good%20first%20issue-%237057ff)][link_goodfirst] *These issues are great ways to get started contributing.*
+
+    If you are interested in getting involved in `abagen` then take a look at these and we'll be happy to walk you through the contribution process.
+
+* [![Help Wanted](https://img.shields.io/badge/-help%20wanted-%23008672)][link_helpwanted] *These issues contain a task that a member of the team has determined we need additional help with.*
 
     If you feel that you can contribute to one of these issues, we especially encourage you to do so!
 
-* [![Bug](https://img.shields.io/badge/-bug-d73a4a.svg)][link_bugs] *These issues point to problems in the project.*
+* [![Bug](https://img.shields.io/badge/-bug-%23d73a4a)][link_bugs] *These issues point to problems in the project.*
 
     If you find new a bug, please give as much detail as possible in your issue, including steps to recreate the error.
     If you experience the same bug as one already listed, please add any additional information that you have as a comment.
-
-* [![Enhancement](https://img.shields.io/badge/-enhancement-a2eeef.svg)][link_feature] *These issues are asking for enhancements to be added to the project.*
-
-    Please try to make sure that your requested feature is distinct from any others that have already been requested or implemented.
-    If you find one that's similar but there are subtle differences please reference the other request in your issue.
 
 ## Making a change
 
@@ -72,7 +74,7 @@ You're awesome. :wave::smiley:
 
 [link_bugs]: https://github.com/rmarkello/abagen/labels/bug
 [link_helpwanted]: https://github.com/rmarkello/abagen/labels/help%20wanted
-[link_feature]: https://github.com/rmarkello/abagen/labels/enhancement
+[link_goodfirst]: htttps://github.com/rmarkello/abagen/labels/good%20first%20issue
 
 [link_pullrequest]: https://help.github.com/articles/creating-a-pull-request/
 [link_fork]: https://help.github.com/articles/fork-a-repo/

@@ -6,7 +6,6 @@ in MNI space
 
 from functools import reduce
 
-from nilearn._utils import check_niimg_3d
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
@@ -50,7 +49,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     """
 
     # pull relevant info from atlas
-    label_data = check_niimg_3d(atlas).get_data()
+    label_data = utils.check_img(atlas).get_data()
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
@@ -171,7 +170,7 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
 
     # get annotation and atlas data
     annotation = io.read_annotation(annotation)
-    atlas = check_niimg_3d(atlas)
+    atlas = utils.check_img(atlas)
     label_data, affine = atlas.get_data(), atlas.affine
 
     # load atlas_info, if provided
@@ -434,7 +433,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     lgr.setLevel(lgr_levels.get(int(verbose), 1))
 
     # load atlas_info, if provided
-    atlas = check_niimg_3d(atlas)
+    atlas = utils.check_img(atlas)
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
@@ -457,7 +456,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                            'Please check inputs.'.format(key))
 
     # get some info on the number of subjects, labels in `atlas_img`
-    num_subj = len(files.microarray)
+    num_subj = len(files['microarray'])
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
         lgr.info('Inexact matching of samples requested; pre-calculating ROI '
@@ -469,12 +468,12 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2018, NeuroImage')
-        probe_info = probes.reannotate_probes(files.probes[0])
+        probe_info = probes.reannotate_probes(files['probes'][0])
     else:
-        probe_info = io.read_probes(files.probes[0])
+        probe_info = io.read_probes(files['probes'][0])
 
     # intensity-based filtering of probes
-    probe_info = probes.filter_probes(files.pacall, probe_info,
+    probe_info = probes.filter_probes(files['pacall'], probe_info,
                                       threshold=ibf_threshold)
     lgr.info('{} genes survive intensity-based filtering with threshold of {}'
              .format(len(np.unique(probe_info['gene_symbol'])), ibf_threshold))
@@ -484,7 +483,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     # for each donor)
     lgr.info('Reducing probes indexing same gene with provided method: {}'
              .format(probe_selection))
-    microarray = probes.collapse_probes(files.microarray, files.annotation,
+    microarray = probes.collapse_probes(files['microarray'],
+                                        files['annotation'],
                                         probe_info, method=probe_selection)
 
     expression, missing = [], []
@@ -492,8 +492,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                           index=np.append([0], all_labels))
     for subj in range(num_subj):
         # get rid of samples whose coordinates don't match ontological profile
-        annotation = process.drop_mismatch_samples(files.annotation[subj],
-                                                   files.ontology[subj],
+        annotation = process.drop_mismatch_samples(files['annotation'][subj],
+                                                   files['ontology'][subj],
                                                    corrected=corrected_mni)
 
         # subset representative probes + samples from microarray data

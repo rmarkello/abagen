@@ -4,11 +4,9 @@ Functions for post-processing region x gene expression data
 """
 
 import itertools
-from nilearn._utils import check_niimg_3d
 import numpy as np
 from scipy.spatial.distance import cdist
-from sklearn.utils.validation import check_symmetric
-from abagen import utils
+from . import utils
 
 
 def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
@@ -48,7 +46,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     """
 
     # load atlas_info, if provided
-    atlas = check_niimg_3d(atlas)
+    atlas = utils.check_img(atlas)
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info, labels=labels)
         if labels is not None and len(labels) != len(coexpression):
@@ -58,7 +56,8 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
                              .format(labels, coexpression.shape))
 
     # check that provided coexpression array is symmetric
-    check_symmetric(coexpression, raise_exception=True)
+    if not np.allclose(coexpression, coexpression.T, atol=1e-10):
+        raise ValueError('Provided coexpression matrix is not symmetric')
 
     # we'll do basic Euclidean distance correction for now
     # TODO: implement gray matter volume / cortical surface path distance

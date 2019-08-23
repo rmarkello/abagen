@@ -1,0 +1,16 @@
+0.0.1 (September 7, 2018)
+==========================
+Initial release of ``abagen``, a toolbox for working with the `Allen Brain Atlas
+<http://human.brain-map.org/>`_ human genetics data.
+
+  * [DOC] Updates various documentation (#15), @rmarkello
+  * [DOC] Adds LICENSE reference for alleninf (#14), @rmarkello
+  * [DOC] Updates README links and example usage (#13), @rmarkello
+  * [TEST] Updates tests of `abagen.get_expression_data()` (#12), @rmarkello
+  * [DOC] Adds Sphinx documentation (#11), @rmarkello
+  * [FIX] Resolves dataframe formatting issue (#10), @rmarkello
+  * [ENH] Adds DK atlas fetcher and updates README.md (#8), @rmarkello
+  * [REF] Cleaning up unused code (#7), @rmarkello
+  * [ENH] MAJOR refactoring of IO and processing (#4), @rmarkello
+  * [TEST] Adds .travis.yml and initial tests (#3), @rmarkello
+  * [STY] Stylistic updates to abagen.datasets (#2), @rmarkello

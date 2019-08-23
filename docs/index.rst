@@ -4,8 +4,9 @@ Contents
 --------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
    installation
+   changes
    usage
    api

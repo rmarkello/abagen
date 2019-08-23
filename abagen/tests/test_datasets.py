@@ -1,7 +1,6 @@
 import os
 import shutil
 
-import pandas as pd
 import pytest
 
 from abagen import datasets
@@ -56,14 +55,6 @@ def test_fetch_datasets(testdir):
 
     files = datasets.fetch_microarray(data_dir=str(testdir),
                                       donors=None)
-
-
-def test_fetch_alleninf_coords():
-    coords = datasets._fetch_alleninf_coords()
-    assert isinstance(coords, pd.DataFrame)
-    assert coords.index.name == 'well_id'
-    assert list(coords.columns) == ['mni_x', 'mni_y', 'mni_z']
-    assert coords.shape == (3702, 3)
 
 
 def test_fetch_mri():

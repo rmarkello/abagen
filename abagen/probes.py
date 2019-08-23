@@ -11,7 +11,6 @@ from pkg_resources import resource_filename
 
 import numpy as np
 import pandas as pd
-from sklearn.utils.extmath import svd_flip
 
 from . import io, utils
 
@@ -197,7 +196,7 @@ def _max_loading(df):
     u, s, v = np.linalg.svd(data, full_matrices=False)
 
     # use sign flip based on right singular vectors (as we would with eig())
-    u, v = svd_flip(u, v, u_based_decision=False)
+    v *= np.sign(v[range(len(v)), np.argmax(np.abs(v), axis=1)])[:, np.newaxis]
 
     return df.index[(data @ v.T)[:, 0].argmax()]
 

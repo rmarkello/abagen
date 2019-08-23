@@ -8,7 +8,7 @@ we can process the data. This is as simple as:
 
 .. code-block:: python
 
-    >>> expression = abagen.get_expression_data(atlas.image, atlas.info)
+    >>> expression = abagen.get_expression_data(atlas['image'], atlas['info'])
 
 .. note::
 
@@ -48,7 +48,7 @@ specify the following:
 
 .. code-block:: python
 
-    >>> expression = abagen.get_expression_data(atlas.image, atlas.info, exact=False)
+    >>> expression = abagen.get_expression_data(atlas['image'], atlas['info'], exact=False)
     >>> expression.head()
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
