@@ -6,9 +6,9 @@ Functions for downloading the Allen Brain Atlas human microarray dataset.
 import os
 from pkg_resources import resource_filename
 from nibabel.volumeutils import Recoder
-from nilearn.datasets.utils import _fetch_files
 import pandas as pd
-from abagen import io
+from .. import io
+from .utils import _get_dataset_dir, _fetch_files
 
 WELL_KNOWN_IDS = Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636'),
@@ -22,103 +22,6 @@ WELL_KNOWN_IDS = Recoder(
 
 VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
-
-
-def _get_dataset_dir(dataset_name, data_dir=None, verbose=1):
-    """
-    Gets path to `dataset_name`
-
-    Parameters
-    ----------
-    dataset_name : str
-        The name of the dataset in question
-    data_dir : str, optional
-        Path to use as data directory. If not specified, will check for
-        environmental variables 'ABAGEN_DATA'; if that is not set, will use
-        '~/abagen-data' instead. Default: None
-    verbose : int, optional
-        Verbosity level (0 means no message). Default: 1
-
-    Returns
-    -------
-    data_dir : str
-        Path to use as data directory
-
-    References
-    ----------
-    Function lightly modified from `nilearn <https://github.com/nilearn/
-    nilearn>`_, which is licensed under the BSD, referenced here:
-
-    Copyright (c) 2007 - 2015 The nilearn developers.
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
-
-    a. Redistributions of source code must retain the above copyright notice,
-        this list of conditions and the following disclaimer.
-    b. Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in the
-        documentation and/or other materials provided with the distribution.
-    c. Neither the name of the nilearn developers nor the names of
-        its contributors may be used to endorse or promote products
-        derived from this software without specific prior written
-        permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-    ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR
-    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-    DAMAGE.
-    """
-
-    paths = [
-        os.environ.get('ABAGEN_DATA'),
-        os.path.join('~', 'abagen-data'),
-        os.getcwd()
-    ]
-    if data_dir is not None:
-        paths = [data_dir, os.path.dirname(data_dir)] + paths
-    paths = [os.path.expanduser(d) for d in paths if d is not None]
-
-    if verbose > 2:
-        print('Dataset search paths: {}'.format(paths))
-
-    for path in paths:
-        if not os.path.basename(path) == dataset_name:
-            path = os.path.join(path, dataset_name)
-        if os.path.islink(path):
-            link = os.readlink(path)
-            if os.path.isabs(link):
-                path = link
-            path = os.path.join(os.path.dirname(path), link)
-        if os.path.exists(path) and os.path.isdir(path):
-            if verbose > 1:
-                print('\nDataset found in {}\n'.format(path))
-            return path
-
-    errors = []
-    for path in paths:
-        if not os.path.basename(path) == dataset_name:
-            path = os.path.join(path, dataset_name)
-        if not os.path.exists(path):
-            try:
-                os.makedirs(path)
-                if verbose > 0:
-                    print('\nDataset created in {}\n'.format(path))
-                return path
-            except (NotADirectoryError, PermissionError) as exc:
-                err_msg = getattr(exc, 'strerror', str(exc))
-                errors.append('\n -{} ({})'.format(path, err_msg))
-
-    raise OSError('Tried to store dataset {} in the following directories, '
-                  'but: ' + ''.join(errors))
 
 
 def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,

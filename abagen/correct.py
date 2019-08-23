@@ -6,7 +6,7 @@ Functions for post-processing region x gene expression data
 import itertools
 import numpy as np
 from scipy.spatial.distance import cdist
-from abagen import utils
+from . import utils
 
 
 def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
