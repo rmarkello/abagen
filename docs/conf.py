@@ -104,5 +104,4 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
-    'sklearn': ('https://scikit-learn.org/stable', None),
 }

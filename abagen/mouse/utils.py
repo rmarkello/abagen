@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import json
-import requests
 from typing import Iterable
 import urllib
+from urllib.request import HTTPError, urlopen
 
 
 def _coerce_inputs(id=None, acronym=None, name=None):
@@ -61,10 +61,12 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
 
     if verbose:
         print("Querying {}...".format(url))
-    response = requests.get(url)
-    response.raise_for_status()
+    response = urlopen(url)
+    if response.status != 200:
+        raise HTTPError('Failed to query API with code {}: {}'
+                        .format(response.status, response.reason))
 
-    info = json.loads(response.content.decode('utf-8'))
+    info = json.loads(response.read().decode('utf-8'))
 
     if not info['success']:
         raise ValueError('Provided query {} is invalid. Please check '

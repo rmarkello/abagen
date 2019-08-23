@@ -10,7 +10,7 @@ ATLAS = fetch_desikan_killiany()
 
 @pytest.fixture(scope='module')
 def donor_expression(testdir, testfiles):
-    return allen.get_expression_data(ATLAS.image, ATLAS.info,
+    return allen.get_expression_data(ATLAS['image'], ATLAS['info'],
                                      exact=False, return_donors=True,
                                      data_dir=testdir,
                                      donors=['12876', '15496'])
@@ -19,26 +19,26 @@ def donor_expression(testdir, testfiles):
 def test_remove_distance(donor_expression):
     expr = pd.concat(donor_expression).groupby('label').aggregate(np.mean)
     coexpr = np.corrcoef(expr)
-    for atlas_info in [None, ATLAS.info]:
-        out = correct.remove_distance(coexpr, ATLAS.image, atlas_info)
+    for atlas_info in [None, ATLAS['info']]:
+        out = correct.remove_distance(coexpr, ATLAS['image'], atlas_info)
         assert np.allclose(out, out.T)
         assert isinstance(out, np.ndarray)
 
     # subset expression data + and atlas_info
     coexpr = np.corrcoef(expr.iloc[:-1])
     removed_label = pd.read_csv(atlas_info).iloc[:-1]
-    out = correct.remove_distance(coexpr, ATLAS.image, removed_label,
+    out = correct.remove_distance(coexpr, ATLAS['image'], removed_label,
                                   labels=removed_label.id)
     assert np.allclose(out, out.T)
     assert isinstance(out, np.ndarray)
     assert len(out) == len(removed_label)
 
     with pytest.raises(ValueError):
-        correct.remove_distance(np.corrcoef(expr), ATLAS.image, removed_label,
-                                labels=removed_label.id)
+        correct.remove_distance(np.corrcoef(expr), ATLAS['image'],
+                                removed_label, labels=removed_label.id)
 
     with pytest.raises(ValueError):
-        correct.remove_distance(expr, ATLAS.image, ATLAS.info)
+        correct.remove_distance(expr, ATLAS['image'], ATLAS['info'])
 
 
 def test_resid_dist():

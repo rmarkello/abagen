@@ -42,7 +42,7 @@ by looking at the :ref:`api_ref`. Notably, all IO functions return
 
 .. code-block:: python
 
-    >>> abagen.io.read_annotation(files.annotation[0]).head()
+    >>> abagen.io.read_annotation(files['annotation'][0]).head()
                structure_id  slab_num  well_id  ...  mni_x mni_y mni_z
     sample_id                                   ...
     0                  4077        22      594  ...    5.9 -27.7  49.7
@@ -53,7 +53,7 @@ by looking at the :ref:`api_ref`. Notably, all IO functions return
 
     [5 rows x 13 columns]
 
-    >>> abagen.io.read_probes(files.probes[0]).head()
+    >>> abagen.io.read_probes(files['probes'][0]).head()
                           probe_name  gene_id    ...     entrez_id chromosome
     probe_id                                     ...
     1058685              A_23_P20713      729    ...         733.0          9

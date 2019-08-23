@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import os
 import itertools
 
-from nilearn._utils import check_niimg_3d
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.ndimage import center_of_mass
@@ -13,6 +14,47 @@ AGG_FUNCS = dict(
     mean=np.mean,
     median=np.median
 )
+
+
+def check_img(img):
+    """
+    Very basic checker that loads `img`` and ensures it's 3D/int
+
+    Parameters
+    --------
+    img : str or niimg-like
+        Filepath to or in-memory loaded image
+
+    Returns
+    -------
+    img : niimg-like
+        Loaded 3D/int image
+    """
+    if isinstance(img, str) and os.path.exists(img):
+        img = nib.load(img)
+    elif not isinstance(img, nib.spatialimages.SpatialImage):
+        raise TypeError('Provided image must be an existing filepath or a '
+                        'pre-loaded niimg-like object')
+
+    # ensure 3D or squeezable to 3D (this is a faster check than type casting)
+    if len(img.shape) == 4 and img.shape[3] == 1:
+        data = img.get_data()
+        affine = img.affine
+        img = img.__class__(data[:, :, :, 0], affine, header=img.header)
+    elif len(img.shape) != 3:
+        raise ValueError('Provided image must be 3D')
+
+    # check if atlas is int or castable to int
+    if not img.get_data().dtype.kind != 'i':
+        cast = all([float(f).is_integer() for f in np.unique(img.get_data())])
+        if not cast:
+            raise ValueError('Provided image should have integer values or '
+                             'be safely castable to integer')
+        img = img.__class__(img.get_data().astype(np.int32), img.affine,
+                            header=img.header)
+        img.header.set_data_dtype(np.int32)
+
+    return img
 
 
 def check_atlas_info(atlas, atlas_info, labels=None):
@@ -41,7 +83,7 @@ def check_atlas_info(atlas, atlas_info, labels=None):
         Loaded dataframe with information on atlas
     """
 
-    atlas = check_niimg_3d(atlas)
+    atlas = check_3dint_img(atlas)
 
     # load info, if not already
     try:
@@ -145,7 +187,7 @@ def get_unique_labels(label_image):
         Integer labels of all ROIS found within ``label_image``
     """
 
-    label_image = check_niimg_3d(label_image)
+    label_image = check_img(label_image)
     return np.trim_zeros(np.unique(label_image.get_data())).astype(int)
 
 
@@ -170,7 +212,7 @@ def get_centroids(image, labels=None, image_space=False):
         Coordinates of centroids for ROIs in input data
     """
 
-    image = check_niimg_3d(image)
+    image = check_img(image)
     data = image.get_data()
 
     # if no labels of interest provided, get all possible labels

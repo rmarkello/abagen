@@ -25,9 +25,9 @@ parcellation:
 
     >>> print(atlas.keys())
     dict_keys(['image', 'info'])
-    >>> atlas.image
+    >>> atlas['image']
     '/local/path/to/atlas-desikankilliany.nii.gz'
-    >>> atlas.info
+    >>> atlas['info']
     '/local/path/to/atlas-desikankilliany.csv'
 
 While only the atlas image (i.e., Nifti file) is required for processing the
@@ -48,7 +48,7 @@ For example, a valid CSV might look like this:
 .. code-block:: python
 
     >>> import pandas as pd
-    >>> pd.read_csv(atlas.info).head()
+    >>> pd.read_csv(atlas['info']).head()
        id                    label hemisphere structure
     0   1  lateralorbitofrontal_rh          R    cortex
     1   2         parsorbitalis_rh          R    cortex

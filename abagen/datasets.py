@@ -8,7 +8,6 @@ from pkg_resources import resource_filename
 from nibabel.volumeutils import Recoder
 from nilearn.datasets.utils import _fetch_files
 import pandas as pd
-from sklearn.utils import Bunch
 from abagen import io
 
 WELL_KNOWN_IDS = Recoder(
@@ -80,9 +79,9 @@ def _get_dataset_dir(dataset_name, data_dir=None, verbose=1):
     """
 
     paths = [
-            os.environ.get('ABAGEN_DATA'),
-            os.path.join('~', 'abagen-data'),
-            os.getcwd()
+        os.environ.get('ABAGEN_DATA'),
+        os.path.join('~', 'abagen-data'),
+        os.getcwd()
     ]
     if data_dir is not None:
         paths = [data_dir, os.path.dirname(data_dir)] + paths
@@ -146,10 +145,10 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
 
     Returns
     -------
-    data : :class:`sklearn.utils.Bunch`
-        Dictionary-like object with keys ['microarray', 'ontology', 'pacall',
-        'probes', 'annotation'], where corresponding values are lists of
-        filepaths to downloaded CSV files.
+    data : dict
+        Dictionary with keys ['microarray', 'ontology', 'pacall', 'probes',
+        'annotation'], where corresponding values are lists of filepaths to
+        downloaded CSV files.
 
     References
     ----------
@@ -183,13 +182,13 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
     donors = sorted(set(donors), key=lambda x: int(x))  # avoid duplicates
 
     files = [
-         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
-          url.format(WELL_KNOWN_IDS.url[sub]),
-          dict(uncompress=True,
-               move=os.path.join('normalized_microarray_donor{}'.format(sub),
-                                 'donor{}.zip'.format(sub))))
-         for sub in donors
-         for fname in sub_files
+        (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
+         url.format(WELL_KNOWN_IDS.url[sub]),
+         dict(uncompress=True,
+              move=os.path.join('normalized_microarray_donor{}'.format(sub),
+                                'donor{}.zip'.format(sub))))
+        for sub in donors
+        for fname in sub_files
     ]
 
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
@@ -200,7 +199,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         for fn in files[0::n_files] + files[2::n_files]:
             io._make_parquet(fn, convert_only=True)
 
-    return Bunch(
+    return dict(
         microarray=files[0::n_files],
         ontology=files[1::n_files],
         pacall=files[2::n_files],
@@ -288,9 +287,9 @@ def fetch_desikan_killiany(*args, **kwargs):
 
     Returns
     -------
-    atlas : :class:`sklearn.utils.Bunch`
-        Dictionary-like object with attributes ['image', 'info'] pointing to
-        atlas image (.nii.gz) and information (.csv) files
+    atlas : dict
+        Dictionary with keys ['image', 'info'] pointing to atlas image
+        (.nii.gz) and information (.csv) files
 
     References
     ----------
@@ -303,4 +302,4 @@ def fetch_desikan_killiany(*args, **kwargs):
     image = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
     info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
 
-    return Bunch(image=image, info=info)
+    return dict(image=image, info=info)

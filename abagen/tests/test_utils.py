@@ -55,20 +55,20 @@ def test_coords_transform():
 
 def test_check_atlas_info():
     # check appropriate usage
-    out = utils.check_atlas_info(ATLAS.image, ATLAS.info)
+    out = utils.check_atlas_info(ATLAS['image'], ATLAS['info'])
     assert isinstance(out, pd.DataFrame)
-    atlas_df = pd.read_csv(ATLAS.info)
-    out = utils.check_atlas_info(ATLAS.image, atlas_df)
+    atlas_df = pd.read_csv(ATLAS['info'])
+    out = utils.check_atlas_info(ATLAS['image'], atlas_df)
     atlas_df = atlas_df.set_index('id')
-    out = utils.check_atlas_info(ATLAS.image, atlas_df)
+    out = utils.check_atlas_info(ATLAS['image'], atlas_df)
 
     # check bad usage
     with pytest.raises(ValueError):
-        utils.check_atlas_info(ATLAS.image, [1, 2, 3])
+        utils.check_atlas_info(ATLAS['image'], [1, 2, 3])
 
     bad_df = pd.DataFrame(columns=['id', 'hemisphere', 'structure'])
     with pytest.raises(ValueError):
-        utils.check_atlas_info(ATLAS.image, bad_df)
+        utils.check_atlas_info(ATLAS['image'], bad_df)
 
 
 def test_check_metric():
