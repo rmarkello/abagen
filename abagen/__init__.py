@@ -3,7 +3,7 @@ __all__ = ['__version__', '__doc__', 'io', 'get_expression_data',
            'fetch_microarray', 'fetch_desikan_killiany', 'mouse']
 
 from ._version import get_versions
-version = get_versions()['version']
+__version__ = get_versions()['version']
 del get_versions
 
 from .info import long_description as __doc__
