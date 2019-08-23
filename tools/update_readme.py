@@ -5,6 +5,7 @@ Refresh README.rst file from long description
 Should be run from abagen root (containing setup.py)
 
 Authored by: @effigies and @matthew-brett for `nibabel`, licensed under MIT
+(https://github.com/nipy/nibabel/blob/master/COPYING)
 """
 
 import os
