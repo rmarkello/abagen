@@ -3,12 +3,13 @@
 Functions for cleaning and processing the AHBA microarray dataset
 """
 
+from pkg_resources import resource_filename
+
 from nibabel.volumeutils import Recoder
 import numpy as np
 import pandas as pd
 
 from . import io, utils
-from .datasets import _fetch_alleninf_coords
 
 # AHBA structure IDs corresponding to different brain parts
 ONTOLOGY = Recoder(
@@ -77,6 +78,58 @@ def drop_mismatch_samples(annotation, ontology, corrected=True):
     return keep
 
 
+def _load_alleninf_coords():
+    """
+    Gets updated MNI coordinates for AHBA samples, as shipped with `alleninf`
+
+    Returns
+    -------
+    coords : pandas.DataFrame
+        Updated MNI coordinates for all AHBA samples
+
+    References
+    ----------
+    Updated MNI coordinates taken from https://github.com/chrisfilo/alleninf,
+    which is licensed under the BSD-3 (reproduced here):
+
+    Copyright (c) 2018, Krzysztof Gorgolewski
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+    * Neither the name of the copyright holder nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+    """
+
+    coords = resource_filename('abagen', 'data/corrected_mni_coordinates.csv')
+    coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
+                                             corrected_mni_y='mni_y',
+                                             corrected_mni_z='mni_z'),
+                                        axis=1)
+    return coords.set_index('well_id')
+
+
 def _replace_mni_coords(annotation):
     """
     Replaces MNI coords in `annotation` with corrected coords from alleninf
@@ -95,7 +148,7 @@ def _replace_mni_coords(annotation):
     """
 
     annotation = io.read_annotation(annotation)
-    mni_coords = _fetch_alleninf_coords().loc[annotation.well_id]
+    mni_coords = _load_alleninf_coords().loc[annotation.well_id]
     annotation[['mni_x', 'mni_y', 'mni_z']] = np.asarray(mni_coords)
 
     return annotation
