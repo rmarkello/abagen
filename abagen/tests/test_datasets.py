@@ -70,7 +70,7 @@ def test_fetch_mri():
     ('layers', 46)
 ])
 def test_get_gene_group(group, expected):
-    assert len(datasets.get_gene_group(group)) == expected
+    assert len(datasets.fetch_gene_group(group)) == expected
 
     with pytest.raises(ValueError):
-        datasets.get_gene_group('notagroup')
+        datasets.fetch_gene_group('notagroup')
