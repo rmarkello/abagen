@@ -140,7 +140,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     ]
     criteria = [
         '[id$in{}]'.format(
-             ','.join([str(f) for f in experiment_id])
+            ','.join([str(f) for f in experiment_id])
         ),
         'products[id$eq1]',
         'structure_unionizes[structure_id$in{}]'.format(

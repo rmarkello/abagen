@@ -83,7 +83,7 @@ def check_atlas_info(atlas, atlas_info, labels=None):
         Loaded dataframe with information on atlas
     """
 
-    atlas = check_3dint_img(atlas)
+    atlas = check_img(atlas)
 
     # load info, if not already
     try:

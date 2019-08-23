@@ -20,8 +20,8 @@ WELL_KNOWN_IDS = Recoder(
     fields=('subj', 'uid', 'url', 't1w',)
 )
 
-VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj') |
-                      WELL_KNOWN_IDS.value_set('uid'))
+VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
+                      | WELL_KNOWN_IDS.value_set('uid'))
 
 
 def _get_dataset_dir(dataset_name, data_dir=None, verbose=1):
