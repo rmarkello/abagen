@@ -26,7 +26,7 @@ VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
+def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
                      convert=True):
     """
     Downloads the Allen Human Brain Atlas microarray expression dataset
@@ -38,7 +38,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         current directory
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. Default: 9861
+        specify 'all' to download all available donors. Default: 12876
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
@@ -73,18 +73,19 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
                  'Probes.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
 
-    if donors is not None and (isinstance(donors, (list, tuple))):
-        for n, sub_id in enumerate(donors):
-            if sub_id not in VALID_DONORS:
-                raise ValueError('You provided invalid subject id {0} in a'
-                                 'list. Subjects must be selected in {1}.'
-                                 .format(sub_id, VALID_DONORS))
-            donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    if donors is None:
+        donors = ['12876']
     elif donors == 'all':
-        donors = WELL_KNOWN_IDS.value_set('subj')
-    else:
-        donors = []
-    donors = sorted(set(donors), key=lambda x: int(x))  # avoid duplicates
+        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    for n, sub_id in enumerate(donors):
+        if sub_id not in VALID_DONORS:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, VALID_DONORS))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: donors.index(x))
 
     files = [
         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
@@ -124,7 +125,7 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
         current directory
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. Default: 9861
+        specify 'all' to download all available donors. Default: 12876
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
@@ -147,19 +148,18 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     n_files = len(sub_files)
 
     if donors is None:
-        donors = ['9861']
-    elif donors is not None and isinstance(donors, (list, tuple)):
-        for n, sub_id in enumerate(donors):
-            if sub_id not in VALID_DONORS:
-                raise ValueError('You provided invalid subject id {0} in a'
-                                 'list. Subjects must be selected in {1}.'
-                                 .format(sub_id, VALID_DONORS))
-            donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+        donors = ['12876']
     elif donors == 'all':
-        donors = WELL_KNOWN_IDS.value_set('subj')
-    else:
-        donors = []
-    donors = sorted(set(donors), key=lambda x: int(x))  # avoid duplicates
+        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    for n, sub_id in enumerate(donors):
+        if sub_id not in VALID_DONORS:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, VALID_DONORS))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: donors.index(x))
 
     files = [
         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
