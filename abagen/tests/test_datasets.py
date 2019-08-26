@@ -57,9 +57,20 @@ def test_fetch_datasets(testdir):
                                       donors=None)
 
 
-def test_fetch_mri():
-    with pytest.raises(NotImplementedError):
-        datasets.fetch_mri()
+def test_fetch_mri(testdir):
+    # check downloading for a subset of donors
+    files = datasets.fetch_raw_mri(data_dir=str(testdir),
+                                   donors=['12876'])
+    assert isinstance(files, dict)
+    for k in ['t1w', 't2w']:
+        assert len(files.get(k)) == 1
+
+    # check downloading incorrect donor
+    with pytest.raises(ValueError):
+        datasets.fetch_raw_mri(donors=['notadonor'])
+
+    files = datasets.fetch_microarray(data_dir=str(testdir),
+                                      donors=None)
 
 
 @pytest.mark.parametrize('group, expected', [
