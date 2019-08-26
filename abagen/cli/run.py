@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, SUPPRESS
+import argparse
 import logging
 import os
 from pathlib import Path
@@ -17,6 +17,17 @@ def _resolve_path(path):
         return str(Path(path).expanduser().resolve())
 
 
+class CheckExists(argparse.Action):
+    """ Helper class to check that provided paths exist
+    """
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = self.type(values)
+        if not os.path.exists(_resolve_path(values)):
+            parser.error('Provided value for {} does not exist: {}'
+                         .format(option_string, values))
+        setattr(namespace, self.dest, values)
+
+
 def get_parser():
     """ Gets command-line arguments for primary get_expression_data workflow
     """
@@ -24,8 +35,9 @@ def get_parser():
     from .. import __version__
 
     verstr = 'abagen v{}'.format(__version__)
-    parser = ArgumentParser(formatter_class=RawDescriptionHelpFormatter,
-                            description="""
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""
 Assigns microarray expression data to ROIs defined in the specific `atlas`
 
 This command aims to provide a workflow for generating pre-processed microarray
@@ -66,9 +78,10 @@ Once all samples have been matched to parcels for all supplied donors, the
 microarray expression data are normalized within-donor via a scaled robust
 sigmoid (SRS) procedure before being combined across donors via the supplied
 `metric`.
-""")
+"""
+    )
 
-    parser.add_argument('atlas', action='store', type=_resolve_path,
+    parser.add_argument('atlas', action=CheckExists, type=_resolve_path,
                         help='An image in MNI space, where each parcel in the '
                              'image is identified by a unique integer ID.')
 
@@ -78,11 +91,11 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'display during workflow.')
     parser.add_argument('-q', '--quiet', action='store_true', default=False,
                         help='Suppress all status messages during workflow.')
-    parser.add_argument('--debug', action='store_true', help=SUPPRESS)
+    parser.add_argument('--debug', action='store_true', help=argparse.SUPPRESS)
 
     a_data = parser.add_argument_group('Options to specify information about '
                                        'the atlas used')
-    a_data.add_argument('--atlas_info', '--atlas-info', action='store',
+    a_data.add_argument('--atlas_info', '--atlas-info', action=CheckExists,
                         type=_resolve_path, default=None, metavar='PATH',
                         help='Filepath to CSV files containing information '
                              'about `atlas`. The CSV file must have at least '
@@ -101,7 +114,7 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              '(i.e., 9861, 10021) or UIDs (i.e., H0351.2001). '
                              'If not specified all available donors will be '
                              'used.')
-    g_data.add_argument('--data_dir', '--data-dir', action='store',
+    g_data.add_argument('--data_dir', '--data-dir', action=CheckExists,
                         type=_resolve_path, metavar='PATH',
                         help='Directory where expression data should be '
                              'downloaded to (if it does not already exist) / '
@@ -212,14 +225,14 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
     return parser
 
 
-def main():
+def main(args=None):
     """ Runs primary get_expression_data workflow
     """
 
     from ..allen import get_expression_data
     from ..datasets import WELL_KNOWN_IDS as donors
 
-    opts = get_parser().parse_args()
+    opts = get_parser().parse_args(args)
 
     # quiet overrides any verbosity setting
     if opts.quiet:
@@ -231,7 +244,7 @@ def main():
         return
 
     # run the workflow
-    expression = get_expression_data(atlas=str(opts.atlas),
+    expression = get_expression_data(atlas=opts.atlas,
                                      atlas_info=opts.atlas_info,
                                      exact=opts.exact,
                                      tolerance=opts.tolerance,
