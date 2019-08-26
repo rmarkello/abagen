@@ -5,10 +5,6 @@ import pytest
 
 from abagen import datasets
 
-KEYS = [
-    'microarray', 'annotation', 'pacall', 'probes', 'ontology'
-]
-
 
 def test_get_dataset_dir(testdir):
     os.environ.pop('ABAGEN_DATA', None)
@@ -42,24 +38,46 @@ def test_get_dataset_dir(testdir):
 
 
 def test_fetch_datasets(testdir):
-    # check downloading for a subset of donors
-    files = datasets.fetch_microarray(data_dir=str(testdir),
-                                      donors=['12876'])
-    assert isinstance(files, dict)
-    for k in KEYS:
-        assert len(files.get(k)) == 1
+    # test different `donors` inputs
+    f1 = datasets.fetch_microarray(data_dir=str(testdir), donors=['12876'])
+    f2 = datasets.fetch_microarray(data_dir=str(testdir), donors='12876')
+    f3 = datasets.fetch_microarray(data_dir=str(testdir), donors='H0351.1009')
+    f4 = datasets.fetch_microarray(data_dir=str(testdir), donors=None)
+
+    # don't test this -- it will take a wicked long time
+    # f5 = datasets.fetch_microarray(data_dir=str(testdir), donors='all')
+
+    assert f1 == f2 == f3 == f4
+    for k in ['microarray', 'annotation', 'pacall', 'probes', 'ontology']:
+        assert len(f1.get(k)) == 1
 
     # check downloading incorrect donor
     with pytest.raises(ValueError):
+        datasets.fetch_microarray(donors='notadonor')
+
+    with pytest.raises(ValueError):
         datasets.fetch_microarray(donors=['notadonor'])
 
-    files = datasets.fetch_microarray(data_dir=str(testdir),
-                                      donors=None)
 
+def test_fetch_raw_mri(testdir):
+    # test different `donors` inputs
+    f1 = datasets.fetch_raw_mri(data_dir=str(testdir), donors=['12876'])
+    f2 = datasets.fetch_raw_mri(data_dir=str(testdir), donors='12876')
+    f3 = datasets.fetch_raw_mri(data_dir=str(testdir), donors='H0351.1009')
+    f4 = datasets.fetch_raw_mri(data_dir=str(testdir), donors=None)
+    f5 = datasets.fetch_raw_mri(data_dir=str(testdir), donors='all')
 
-def test_fetch_mri():
-    with pytest.raises(NotImplementedError):
-        datasets.fetch_mri()
+    assert f1 == f2 == f3 == f4
+    for k in ['t1w', 't2w']:
+        assert len(f1.get(k)) == 1
+        assert len(f5.get(k)) == 6
+
+    # check downloading incorrect donor
+    with pytest.raises(ValueError):
+        datasets.fetch_raw_mri(donors='notadonor')
+
+    with pytest.raises(ValueError):
+        datasets.fetch_raw_mri(donors=['notadonor'])
 
 
 @pytest.mark.parametrize('group, expected', [

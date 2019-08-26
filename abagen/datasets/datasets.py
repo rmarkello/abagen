@@ -13,20 +13,20 @@ from .. import io
 from .utils import _get_dataset_dir, _fetch_files
 
 WELL_KNOWN_IDS = Recoder(
-    (('9861', 'H0351.2001', '178238387', '157722636'),
-     ('10021', 'H0351.2002', '178238373', '157723301'),
-     ('12876', 'H0351.1009', '178238359', '157722290'),
-     ('15496', 'H0351.1015', '178238266', '162021642'),
-     ('14380', 'H0351.1012', '178238316', '157721937'),
-     ('15697', 'H0351.1016', '178236545', '157682966')),
-    fields=('subj', 'uid', 'url', 't1w',)
+    (('9861', 'H0351.2001', '178238387', '157722636', '157722638'),
+     ('10021', 'H0351.2002', '178238373', '157723301', '157723303'),
+     ('12876', 'H0351.1009', '178238359', '157722290', '157722292'),
+     ('15496', 'H0351.1015', '178238266', '162021642', '162021644'),
+     ('14380', 'H0351.1012', '178238316', '157721937', '157721939'),
+     ('15697', 'H0351.1016', '178236545', '157682966', '157682968')),
+    fields=('subj', 'uid', 'url', 't1w', 't2w',)
 )
 
 VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
 
 
-def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
+def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
                      convert=True):
     """
     Downloads the Allen Human Brain Atlas microarray expression dataset
@@ -38,7 +38,7 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
         current directory
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. Default: 9861
+        specify 'all' to download all available donors. Default: 12876
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
@@ -73,18 +73,19 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
                  'Probes.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
 
-    if donors is not None and (isinstance(donors, (list, tuple))):
-        for n, sub_id in enumerate(donors):
-            if sub_id not in VALID_DONORS:
-                raise ValueError('You provided invalid subject id {0} in a'
-                                 'list. Subjects must be selected in {1}.'
-                                 .format(sub_id, VALID_DONORS))
-            donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    if donors is None:
+        donors = ['12876']
     elif donors == 'all':
-        donors = WELL_KNOWN_IDS.value_set('subj')
-    else:
-        donors = []
-    donors = sorted(set(donors), key=lambda x: int(x))  # avoid duplicates
+        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    for n, sub_id in enumerate(donors):
+        if sub_id not in VALID_DONORS:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, VALID_DONORS))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: donors.index(x))
 
     files = [
         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
@@ -113,9 +114,9 @@ def fetch_microarray(data_dir=None, donors=['9861'], resume=True, verbose=1,
     )
 
 
-def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
+def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     """
-    Downloads the Allen Human Brain Atlas T1w MRI images
+    Downloads the "raw" Allen Human Brain Atlas T1w/T2w MRI images
 
     Parameters
     ----------
@@ -123,15 +124,58 @@ def fetch_mri(data_dir=None, donors=['9861'], resume=True, verbose=1):
         Directory where data should be downloaded and unpacked. Default:
         current directory
     donors : list, optional
-        List of donors to download; can be either donor number or UID.
-        Default: donor9861
+        List of donors to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors. Default: 12876
     resume : bool, optional
         Whether to resume download of a partly-downloaded file. Default: True
     verbose : int, optional
         Verbosity level (0 means no message). Default: 1
+
+    Returns
+    -------
+    mris : dict
+        Dictionary with keys ['t1w', 't2w'], where corresponding values are
+        lists of filepaths to downloaded Nifti files
     """
 
-    raise NotImplementedError
+    url = "https://human.brain-map.org/api/v2/well_known_file_download/{}"
+
+    dataset_name = 'allenbrain'
+    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
+                                verbose=verbose)
+
+    sub_files = dict(t1w='T1.nii.gz', t2w='T2.nii.gz')
+    n_files = len(sub_files)
+
+    if donors is None:
+        donors = ['12876']
+    elif donors == 'all':
+        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    for n, sub_id in enumerate(donors):
+        if sub_id not in VALID_DONORS:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, VALID_DONORS))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: donors.index(x))
+
+    files = [
+        (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
+         url.format(getattr(WELL_KNOWN_IDS, img)[sub]),
+         dict(move=os.path.join('normalized_microarray_donor{}'.format(sub),
+                                fname)))
+        for sub in donors
+        for img, fname in sub_files.items()
+    ]
+
+    files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
+
+    return dict(
+        t1w=files[0::n_files],
+        t2w=files[1::n_files],
+    )
 
 
 def fetch_desikan_killiany(*args, **kwargs):
