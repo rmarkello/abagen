@@ -14,7 +14,10 @@ def _resolve_path(path):
     """
 
     if path is not None:
-        return str(Path(path).expanduser().resolve())
+        try:
+            return str(Path(path).expanduser().resolve())
+        except FileNotFoundError:
+            return os.path.abspath(os.path.expanduser(path))
 
 
 class CheckExists(argparse.Action):
