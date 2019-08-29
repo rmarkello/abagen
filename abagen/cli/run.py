@@ -88,7 +88,14 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                         help='An image in MNI space, where each parcel in the '
                              'image is identified by a unique integer ID.')
 
-    parser.add_argument('--version', action='version', version=verstr)
+    # because I like consistency in capitalization and punctuation...
+    for act in parser._actions:
+        if isinstance(act, argparse._HelpAction):
+            act.help = act.help.capitalize() + '.'
+            break
+
+    parser.add_argument('--version', action='version', version=verstr,
+                        help='Show program\'s version number and exit.')
     parser.add_argument('-v', '--verbose', action='count', default=1,
                         help='Increase verbosity of status messages to '
                              'display during workflow.')
@@ -102,7 +109,7 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                         type=_resolve_path, default=None, metavar='PATH',
                         help='Filepath to CSV files containing information '
                              'about `atlas`. The CSV file must have at least '
-                             'columns ["id", "hemisphere", "structure"] which'
+                             'columns ["id", "hemisphere", "structure"] which '
                              'contain information mapping the atlas IDs to '
                              'hemispheres (i.e, "L", "R") and broad '
                              'structural groups (i.e., "cortex", "subcortex", '
@@ -115,14 +122,14 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                         help='List of donors to use as sources of expression '
                              'data. Specified IDs can be either donor numbers '
                              '(i.e., 9861, 10021) or UIDs (i.e., H0351.2001). '
-                             'If not specified all available donors will be '
-                             'used.')
+                             'Can specify "all" to use all available donors. '
+                             'Default: "all"')
     g_data.add_argument('--data_dir', '--data-dir', action=CheckExists,
                         type=_resolve_path, metavar='PATH',
                         help='Directory where expression data should be '
                              'downloaded to (if it does not already exist) / '
                              'loaded from. If not specified this will check '
-                             'the environmental variable ABAGEN_DATA, the '
+                             'the environmental variable $ABAGEN_DATA, the '
                              '$HOME/abagen-data directory, and the current '
                              'working directory. If data does not already '
                              'exist at one of those locations then it will be '
@@ -139,13 +146,13 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'samples that are beyond `tolerance` mm of a '
                              'parcel will be discarded, which may result in '
                              'some parcels having no assigned sample / '
-                             'expression data. If --inexact, the matching'
+                             'expression data. If --inexact, the matching '
                              'procedure will be performed and followed by a '
                              'check for parcels with no assigned samples; any '
                              'such parcels will be matched to the nearest '
-                             'sample (nearest defined as the sample with the '
-                             'closest Euclidean distance to the parcel '
-                             'centroid).')
+                             'sample (defined as the sample with the closest '
+                             'Euclidean distance to the parcel centroid). '
+                             'Default: False')
     w_data.add_argument('--tol', '--tolerance', dest='tolerance',
                         action='store', type=float, default=2,
                         help='Distance (in mm) that a sample can be from a '
@@ -165,7 +172,8 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'data of multiple samples in the same `atlas` '
                              'region, and (2) reduce donor-level expression '
                              'data into a single "group" expression '
-                             'dataframe. Default: mean')
+                             'dataframe. Must be one of {"mean", "median"}. '
+                             'Default: "mean"')
     w_data.add_argument('--probe_selection', '--probe-selection',
                         action='store', default='diff_stability',
                         metavar='METHOD',
@@ -174,20 +182,21 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                                  'corr_intensity', 'diff_stability'],
                         help='Selection method for subsetting (or collapsing '
                              'across) probes that index the same gene. Must '
-                             'be one of {average, mean, max_intensity, '
-                             'max_variance, pc_loading, corr_variance, '
-                             'corr_intensity, diff_stability}. Default: '
-                             'diff_stability')
+                             'be one of {"average", "mean", "max_intensity", '
+                             '"max_variance", "pc_loading", "corr_variance", '
+                             '"corr_intensity", "diff_stability"}. Default: '
+                             '"diff_stability"')
 
     p_data = parser.add_argument_group('Options to modify the AHBA data used')
     p_data.add_argument('--no-reannotated', '--no_reannotated',
                         dest='reannotated', action='store_false', default=True,
-                        help='Whether to use the default probe information'
+                        help='Whether to use the original probe information '
                              'from the AHBA dataset instead of the '
                              'reannotated probe information from '
                              'Arnatkevic̆iūtė et al., 2019. Using reannotated '
-                             'probe information (default) discards probes '
-                             'that could not be reliably matched to genes.')
+                             'probe information discards probes that could '
+                             'not be reliably matched to genes. Default: '
+                             'False (i.e., use reannotations)')
     p_data.add_argument('--no-corrected-mni', '--no_corrected_mni',
                         dest='corrected_mni', action='store_false',
                         default=True,
@@ -195,7 +204,8 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'provided with the AHBA data instead of the '
                              '"corrected" MNI coordinates shipped with the '
                              '`alleninf` package when matching tissue samples '
-                             'to anatomical regions.')
+                             'to anatomical regions. Default: False (i.e., '
+                             'use corrected coordinates)')
 
     o_data = parser.add_argument_group('Options to modify how data is output')
     o_data.add_argument('--stdout', action='store_true',
@@ -204,26 +214,28 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'You should REALLY consider just using --output-'
                              'file instead and working with the generated '
                              'CSV file(s). Incompatible with `--save-counts` '
-                             'and --save-donors.')
+                             'and `--save-donors` (i.e., this will override '
+                             'those options). Default: False')
     o_data.add_argument('--output-file', '--output_file', action='store',
                         type=_resolve_path, metavar='PATH',
                         default='abagen_expression.csv',
                         help='Path to desired output file. The generated '
-                             'region x gene dataframe will be saved here.')
+                             'region x gene dataframe will be saved here. '
+                             'Default: $PWD/abagen_expression.csv')
     o_data.add_argument('--save-counts', '--save_counts', action='store_true',
                         help='Whether to save dataframe containing number of '
                              'samples from each donor that were assigned '
                              'to each region in `atlas`. If specified, will '
                              'be saved to the path specified by '
                              '`output-file`, appending "counts" to the end of '
-                             'the filename.')
+                             'the filename. Default: False')
     o_data.add_argument('--save-donors', '--save_donors', action='store_true',
                         help='Whether to save donor-level expression '
                              'dataframes instead of aggregating expression '
                              'across donosr with provided `metric`. If '
                              'specified, dataframes will be saved to path '
                              'specified by `output-file`, appending donor IDs '
-                             'to the end of the filename.')
+                             'to the end of the filename. Default: False')
 
     return parser
 
