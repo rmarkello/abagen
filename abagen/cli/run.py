@@ -37,7 +37,7 @@ def get_parser():
 
     from .. import __version__
 
-    verstr = 'abagen v{}'.format(__version__)
+    verstr = 'abagen {}'.format(__version__)
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
