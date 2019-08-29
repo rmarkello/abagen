@@ -1,5 +1,5 @@
 import pytest
-from abagen.datasets import fetch_microarray
+from abagen.datasets import fetch_desikan_killiany, fetch_microarray
 
 
 @pytest.fixture(scope='session')
@@ -14,3 +14,8 @@ def testfiles(testdir):
                              donors=['12876', '15496'],
                              convert=True)
     return files
+
+
+@pytest.fixture(scope='session')
+def atlas():
+    return fetch_desikan_killiany()

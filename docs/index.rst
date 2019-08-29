@@ -8,5 +8,6 @@ Contents
 
    installation
    changes
+   cli
    usage
    api
