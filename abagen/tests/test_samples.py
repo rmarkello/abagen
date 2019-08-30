@@ -61,28 +61,62 @@ def test__get_struct(path, expected):
 
 
 def test_drop_mismatch_samples(testfiles):
-    assert False
+    sids = ['4251', '4323', '059123']
+    hemi = ['L', 'R', np.nan]
+    paths = [
+        '/4005/4006/4007/4008/4219/4249/12896/4251/',
+        '/4005/4006/4007/4275/4321/4323/',
+        '/4005/059123/',
+    ]
+    ontology = pd.DataFrame(dict(id=sids, hemisphere=hemi,
+                                 structure_id_path=paths))
+
+    # create annotation file with two mismatched samples (idxs 1 & 3)
+    mni_x = [-10, -20, 30, 40, 0]
+    sids = ['4251', '4323', '4323', '4251', '059123']
+    annotation = pd.DataFrame(dict(mni_x=mni_x, structure_id=sids))
+
+    # here's what we expect
+    expected = pd.DataFrame(dict(mni_x=[-10, 30, 0],
+                                 structure_id=['4251', '4323', '059123'],
+                                 hemisphere=['L', 'R', np.nan],
+                                 structure=['cortex', 'subcortex', None]),
+                            index=[0, 2, 4])
+
+    # do we get what we expect?
+    out = samples.drop_mismatch_samples(annotation, ontology)
+    pd.testing.assert_frame_equal(out, expected)
+
+    # make sure we don't get errors on real data, either
+    for an, on in zip(testfiles['annotation'], testfiles['ontology']):
+        samples.drop_mismatch_samples(an, on)
 
 
+@pytest.mark.xfail
 def test__assign_sample(testfiles, atlas):
     assert False
 
 
+@pytest.mark.xfail
 def test__check_label(testfiles, atlas):
     assert False
 
 
+@pytest.mark.xfail
 def test_label_samples(testfiles, atlas):
     assert False
 
 
+@pytest.mark.xfail
 def test_mirror_samples(testfiles):
     assert False
 
 
+@pytest.mark.xfail
 def test__mirror_samples(testfiles):
     assert False
 
 
+@pytest.mark.xfail
 def test__mirror_ontology(testfiles):
     assert False

@@ -124,7 +124,7 @@ def _get_struct(structure_path):
         Structure, or None if unable to identify a corresponding structure
     """
 
-    structure_path = set(structure_path.split('/')[1:-1])
+    structure_path = set(structure_path.strip('/').split('/'))
     ids = list(set(ONTOLOGY.value_set('id')) & structure_path)
 
     try:
@@ -160,26 +160,27 @@ def drop_mismatch_samples(annotation, ontology):
 
     Returns
     -------
-    keep : pandas.DataFrame
+    annot : pandas.DataFrame
         Annotation data
     """
 
     # read in data files
     annot = io.read_annotation(annotation)
-    ont = io.read_ontology(ontology)
+    ont = io.read_ontology(ontology).set_index('id')
 
-    # add hemisphere + brain "structure" designation to annotation data
-    hemi = dict(zip(ont['id'], ont['hemisphere']))
-    struct = dict(zip(ont['id'], ont['structure_id_path'].apply(_get_struct)))
-    annot = annot.assign(hemisphere=annot['structure_id'].replace(hemi),
-                         structure=annot['structure_id'].replace(struct))
+    # get hemisphere and structure path
+    hemisphere = np.asarray(ont.loc[annot['structure_id'], 'hemisphere'])
+    structure = np.asarray(ont.loc[annot['structure_id'], 'structure_id_path']
+                              .apply(_get_struct))
 
+    # add hemisphere + brain "structure" designation to annotation data and
     # only keep samples with consistent hemisphere + MNI coordinate designation
-    keep = annot.query('(hemisphere == "L" & mni_x < 0) '
-                       '| (hemisphere == "R" & mni_x > 0) '
-                       '| (hemisphere.isna() & mni_x == 0)')
+    annot = annot.assign(hemisphere=hemisphere, structure=structure) \
+                 .query('(hemisphere == "L" & mni_x < 0) '
+                        '| (hemisphere == "R" & mni_x > 0) '
+                        '| (hemisphere.isna() & mni_x == 0)')
 
-    return keep
+    return annot
 
 
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
