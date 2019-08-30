@@ -27,7 +27,7 @@ ONTOLOGY = Recoder(
 )
 
 
-def _replace_mni_coords(annotation):
+def update_mni_coords(annotation):
     """
     Replaces MNI coords in `annotation` with corrected coords from `alleninf`
 
@@ -121,7 +121,7 @@ def _get_struct(structure_path):
         return
 
 
-def drop_mismatch_samples(annotation, ontology, corrected=True):
+def drop_mismatch_samples(annotation, ontology):
     """
     Removes samples from `annotation` whose coordinates do not match `ontology`
 
@@ -161,10 +161,6 @@ def drop_mismatch_samples(annotation, ontology, corrected=True):
     struct = dict(zip(ont['id'], ont['structure_id_path'].apply(_get_struct)))
     annot = annot.assign(hemisphere=annot['structure_id'].replace(hemi),
                          structure=annot['structure_id'].replace(struct))
-
-    # correct MNI coordinates, if requested
-    if corrected:
-        annot = _replace_mni_coords(annot)
 
     # only keep samples with consistent hemisphere + MNI coordinate designation
     keep = annot.query('(hemisphere == "L" & mni_x < 0)'
@@ -351,3 +347,143 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
 
     return pd.DataFrame(labelled, dtype=int,
                         columns=['label'], index=annotation.index)
+
+
+def mirror_samples(microarray, pacall, annotation, ontology):
+    """
+    Mirrors all tissue samples across hemispheres (L->R and R->L)
+
+    Parameters
+    ----------
+    microarray : list of str
+        List of filepaths to microarray expression files from Allen Brain
+        Institute (i.e., as obtained by calling :func:`abagen.fetch_microarray`
+        and accessing the `microarray` attribute on the resulting object).
+    pacall : list of str
+        List of filepaths to pacall files from Allen Brain Institute (i.e., as
+        obtained by calling :func:`abagen.fetch_microarray` and accessing the
+        `pacall` attribute on the resulting object).
+    annotation : list of str
+        List of filepaths to annotation files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `annotation` attribute on the resulting object).
+    ontology : list of str
+        List of filepaths to ontology files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `ontoloy` attribute on the resulting object).
+
+    Returns
+    -------
+    microarray,pacall,annotation : list of pandas.DataFrame
+        Loaded input data with all samples duplicated across hemispheres
+
+    References
+    ----------
+    .. [SA1] Gryglewski, G., Seiger, R., James, G. M., Godbersen, G. M.,
+    Komorowski, A., Unterholzner, J., ... & Kasper, S. (2018). Spatial analysis
+    and high resolution mapping of the human whole-brain transcriptome for
+    integrative analysis in neuroimaging. NeuroImage, 176, 259-267.
+
+    .. [SA2] Romero-Garcia, R., Whitaker, K. J., Váša, F., Seidlitz, J., Shinn,
+    M., Fonagy, P., ... & Vértes, P. E. (2018). Structural covariance networks
+    are coupled to expression of genes enriched in supragranular layers of the
+    human cortex. NeuroImage, 171, 256-267.
+    """
+
+    flipped = [_lr_mirror(mi, pa, an, on) for (mi, pa, an, on) in
+               zip(microarray, pacall, annotation, ontology)]
+
+    # unpack so that even if user assigns output to a single variable they get
+    # a tuple and not a zip object with ?? number of variables
+    microarray, pacall, annotation = zip(*flipped)
+
+    return microarray, pacall, annotation
+
+
+def _lr_mirror(microarray, pacall, annotation, ontology):
+    """
+    Mirrors tissue samples across hemispheres for single donor
+
+    microarray : str
+        Filepath to microarray expression file
+    pacall : str
+        Filepath to pacall file
+    annotation : str
+        Filepath to annotation file
+    ontology : str
+        Filepath to ontology file
+
+    Returns
+    -------
+    microarray,pacall,annotation : pandas.DataFrame
+        Loaded input data with all samples duplicated across hemispheres
+    """
+
+    microarray = io.read_microarray(microarray)
+    pacall = io.read_pacall(pacall)
+    annotation = io.read_annotation(annotation)
+    ontology = io.read_ontology(ontology)
+
+    # take all lh and rh samples and flip x-coordinate
+    # also update ontology information (structure_id/acronym/name) as this is
+    # used when dropping mismatched samples later in the workflow
+    lh = _lr_mirror_fix_ontology(annotation[annotation['mni_x'] < 0], ontology)
+    rh = _lr_mirror_fix_ontology(annotation[annotation['mni_x'] > 0], ontology)
+    flipped = pd.concat([lh, rh])
+    flipped['mni_x'] *= -1
+
+    # grow microarray and pacall based on duplicated samples
+    annotation = pd.concat([annotation, flipped])
+    microarray = microarray.loc[:, annotation.index]
+    pacall = pacall.loc[:, annotation.index]
+
+    # now reset index / columns of all dataframes to be consecutive
+    sids = pd.Series(range(len(annotation)), name='sample_id')
+    annotation.index = sids
+    microarray.columns = sids
+    pacall.columns = sids
+
+    return microarray, pacall, annotation
+
+
+def _lr_mirror_fix_ontology(annotation, ontology):
+    """
+    Assumes all hemisphere assignments of structures in `annotation` are wrong
+
+    Parameters
+    ----------
+    annotation : str
+        Filepath to annotation file
+    ontology : str
+        Filepath to ontology file
+
+    Returns
+    -------
+    annotation : pandas.DataFrame
+        Loaded annotation with updated structure information
+    """
+
+    HEMI_SWAP = dict(L='R', R='L')
+
+    annotation = io.read_annotation(annotation)
+    ontology = io.read_ontology(ontology)
+
+    # structure IDs are specific to structure + hemisphere, so we can use this
+    # to grab the hemisphere designation for each sample and flip that L<->R
+    sids = annotation['structure_id']
+    hemi = ontology.set_index('id').loc[sids, 'hemisphere']
+    hemi = hemi.replace(HEMI_SWAP)
+
+    # structure acronyms are distinct to structure but not to hemisphere, so we
+    # can use this to grab all variations of a given structure and, with the
+    # "updated" hemisphere designations, find the ID/name of the same structure
+    # for the opposing hemisphere. we'll use this to update our original
+    # annotation dataframe
+    acr = ontology.set_index(['acronym', 'hemisphere']) \
+                  .loc[zip(annotation['structure_acronym'], hemi)] \
+                  .reset_index()
+    annotation['structure_acronym'] = acr['acronym'].values
+    annotation['structure_id'] = acr['id'].values
+    annotation['structure_name'] = acr['name'].values
+
+    return annotation

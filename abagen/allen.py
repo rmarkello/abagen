@@ -67,7 +67,7 @@ def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
                         probe_selection='diff_stability',
-                        corrected_mni=True, reannotated=True,
+                        lr_mirror=False, corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1):
     """
@@ -155,6 +155,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
         'diff_stability'; see Notes for more information. Default:
         'diff_stability'
+    lr_mirror : bool, optional
+        Whether to mirror microarray expression samples across hemispheres to
+        increase spatial coverage. This will duplicate samples across both
+        hemispheres (i.e., L->R and R->L), doubling the number of available
+        samples. Default: False
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -283,13 +288,33 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                  .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
+    # are we using corrected MNI coordinates? update the annotation "files"
+    # accordingly
+    if corrected_mni:
+        files['annotation'] = [samples.update_mni_coords(an)
+                               for an in files['annotation']]
+
+    # if we're mirroring the samples we need to do it for the following files:
+    #   1. files['microarray'],
+    #   2. files['pacall'], and
+    #   3. files['annotaion']
+    # the other files (ontology and probes) are redundant across subjects and
+    # have no specific sample information
+    # once we've mirrored, we need to reassign the outputs of the procedure
+    # back to these variables so we can use them in the rest of the pipeline
+    if lr_mirror:
+        micro, pacall, annot = samples.mirror_samples(files['microarray'],
+                                                      files['pacall'],
+                                                      files['annotation'],
+                                                      files['ontology'])
+        files.update(dict(microarray=micro, pacall=micro, annotation=annot))
+
     # get dataframe of probe information (reannotated or otherwise)
+    probe_info = io.read_probes(files['probes'][0])
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2018, NeuroImage')
-        probe_info = probes.reannotate_probes(files['probes'][0])
-    else:
-        probe_info = io.read_probes(files['probes'][0])
+        probe_info = probes.reannotate_probes(probe_info)
 
     # intensity-based filtering of probes
     probe_info = probes.filter_probes(files['pacall'], probe_info,
@@ -312,8 +337,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     for subj in range(num_subj):
         # get rid of samples whose coordinates don't match ontological profile
         annotation = samples.drop_mismatch_samples(files['annotation'][subj],
-                                                   files['ontology'][subj],
-                                                   corrected=corrected_mni)
+                                                   files['ontology'][subj])
 
         # subset representative probes + samples from microarray data
         data = microarray[subj].loc[annotation.index]
