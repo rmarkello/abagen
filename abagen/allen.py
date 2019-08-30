@@ -366,7 +366,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             empty = ~np.in1d(all_labels, labs)
             closest, dist = utils.closest_centroid(coords, centroids[empty],
                                                    return_dist=True)
-            closest = samples.loc[annotation.iloc[closest].index]
+            closest = data.loc[annotation.iloc[closest].index]
             empty = all_labels[empty]
             closest.index = pd.Series(empty, name='label')
             missing += [(closest, dict(zip(empty, np.diag(dist))))]
