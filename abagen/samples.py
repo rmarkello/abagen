@@ -86,6 +86,17 @@ def update_mni_coords(annotation):
     coords = coords.set_index('well_id')
 
     annotation = io.read_annotation(annotation)
+
+    # basic check that all well_ids in annotation are present in coords
+    # a future pandas update may cause this to raise a KeyError but we want
+    # this to raise a KeyError NOW
+    diff = np.setdiff1d(annotation['well_id'], coords.index)
+    if len(diff) > 0:
+        raise KeyError('Provided annotation file has well IDs that do not '
+                       'exist in updated MNI coordinate file from `alleninf`. '
+                       'Please check input annotation file and try again. '
+                       'Unknown well IDs: {}'.format(diff))
+
     mni_coords = coords.loc[annotation.well_id]
     annotation[['mni_x', 'mni_y', 'mni_z']] = np.asarray(mni_coords)
 
@@ -96,7 +107,8 @@ def _get_struct(structure_path):
     """
     Gets overarching "structure" of region defined by `structure_path`
 
-    Structure here is defined as one of ['cortex', 'subcortex', 'cerebellum']
+    Structure here is defined as being one of {'cortex', 'subcortex',
+    'cerebellum', 'brainstem', 'white matter', 'other'}.
 
     Parameters
     ----------
@@ -109,11 +121,11 @@ def _get_struct(structure_path):
     Returns
     -------
     structure : str
-        One of ['cortex', 'subcortex', 'cerebellum'] or None
+        Structure, or None if unable to identify a corresponding structure
     """
 
-    structure_path = set(structure_path.split('/'))
-    ids = list(set(ONTOLOGY.value_set('id')).intersection(structure_path))
+    structure_path = set(structure_path.split('/')[1:-1])
+    ids = list(set(ONTOLOGY.value_set('id')) & structure_path)
 
     try:
         return ONTOLOGY.structure[ids[0]]
@@ -163,8 +175,9 @@ def drop_mismatch_samples(annotation, ontology):
                          structure=annot['structure_id'].replace(struct))
 
     # only keep samples with consistent hemisphere + MNI coordinate designation
-    keep = annot.query('(hemisphere == "L" & mni_x < 0)'
-                       '| (hemisphere == "R" & mni_x > 0)')
+    keep = annot.query('(hemisphere == "L" & mni_x < 0) '
+                       '| (hemisphere == "R" & mni_x > 0) '
+                       '| (hemisphere.isna() & mni_x == 0)')
 
     return keep
 
@@ -390,7 +403,7 @@ def mirror_samples(microarray, pacall, annotation, ontology):
     human cortex. NeuroImage, 171, 256-267.
     """
 
-    flipped = [_lr_mirror(mi, pa, an, on) for (mi, pa, an, on) in
+    flipped = [_mirror_samples(mi, pa, an, on) for (mi, pa, an, on) in
                zip(microarray, pacall, annotation, ontology)]
 
     # unpack so that even if user assigns output to a single variable they get
@@ -400,18 +413,12 @@ def mirror_samples(microarray, pacall, annotation, ontology):
     return microarray, pacall, annotation
 
 
-def _lr_mirror(microarray, pacall, annotation, ontology):
+def _mirror_samples(microarray, pacall, annotation, ontology):
     """
     Mirrors tissue samples across hemispheres for single donor
 
-    microarray : str
-        Filepath to microarray expression file
-    pacall : str
-        Filepath to pacall file
-    annotation : str
-        Filepath to annotation file
-    ontology : str
-        Filepath to ontology file
+    microarray,pacall,annotation,ontology : str
+        Filepath to {microarray,pacall,annotation,ontology} file
 
     Returns
     -------
@@ -427,8 +434,8 @@ def _lr_mirror(microarray, pacall, annotation, ontology):
     # take all lh and rh samples and flip x-coordinate
     # also update ontology information (structure_id/acronym/name) as this is
     # used when dropping mismatched samples later in the workflow
-    lh = _lr_mirror_fix_ontology(annotation[annotation['mni_x'] < 0], ontology)
-    rh = _lr_mirror_fix_ontology(annotation[annotation['mni_x'] > 0], ontology)
+    lh = _mirror_ontology(annotation[annotation['mni_x'] < 0], ontology)
+    rh = _mirror_ontology(annotation[annotation['mni_x'] > 0], ontology)
     flipped = pd.concat([lh, rh])
     flipped['mni_x'] *= -1
 
@@ -446,16 +453,14 @@ def _lr_mirror(microarray, pacall, annotation, ontology):
     return microarray, pacall, annotation
 
 
-def _lr_mirror_fix_ontology(annotation, ontology):
+def _mirror_ontology(annotation, ontology):
     """
     Assumes all hemisphere assignments of structures in `annotation` are wrong
 
     Parameters
     ----------
-    annotation : str
-        Filepath to annotation file
-    ontology : str
-        Filepath to ontology file
+    annotation,ontology : str
+        Filepath to {annotation,ontology} file
 
     Returns
     -------
@@ -476,8 +481,8 @@ def _lr_mirror_fix_ontology(annotation, ontology):
 
     # structure acronyms are distinct to structure but not to hemisphere, so we
     # can use this to grab all variations of a given structure and, with the
-    # "updated" hemisphere designations, find the ID/name of the same structure
-    # for the opposing hemisphere. we'll use this to update our original
+    # flipped hemisphere designations, find the ID/name of the relevant
+    # structure in the new hemisphere. we'll used this to update our original
     # annotation dataframe
     acr = ontology.set_index(['acronym', 'hemisphere']) \
                   .loc[zip(annotation['structure_acronym'], hemi)] \
