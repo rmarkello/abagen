@@ -186,6 +186,13 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              '"max_variance", "pc_loading", "corr_variance", '
                              '"corr_intensity", "diff_stability"}. Default: '
                              '"diff_stability"')
+    w_data.add_argument('--lr_mirror', '--lr-mirror', action='store_true',
+                        help='Whether to mirror microarray expression samples '
+                             'across hemispheres to increase spatial '
+                             'coverage. This will duplicate samples across '
+                             'both hemispheres (i.e., L->R and R->L), '
+                             'approximately doubling the number of available '
+                             'samples. Default: False (i.e., no mirroring)')
 
     p_data = parser.add_argument_group('Options to modify the AHBA data used')
     p_data.add_argument('--no-reannotated', '--no_reannotated',
@@ -266,6 +273,7 @@ def main(args=None):
                                      metric=opts.metric,
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
+                                     lr_mirror=opts.lr_mirror,
                                      corrected_mni=opts.corrected_mni,
                                      reannotated=opts.reannotated,
                                      return_counts=opts.save_counts,
