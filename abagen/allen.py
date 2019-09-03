@@ -158,8 +158,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     lr_mirror : bool, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. This will duplicate samples across both
-        hemispheres (i.e., L->R and R->L), doubling the number of available
-        samples. Default: False
+        hemispheres (i.e., L->R and R->L), approximately doubling the number of
+        available samples. Default: False
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -299,7 +299,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     #   2. files['pacall'], and
     #   3. files['annotaion']
     # the other files (ontology and probes) are redundant across subjects and
-    # have no specific sample information
+    # have no specific sample information (though we do need to pass ontology
+    # for info on the structures / hemisphere associated with each sample)
     # once we've mirrored, we need to reassign the outputs of the procedure
     # back to these variables so we can use them in the rest of the pipeline
     if lr_mirror:
