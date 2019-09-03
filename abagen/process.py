@@ -45,8 +45,8 @@ def normalize_expression(expression, norm='srs'):
     elif norm == 'zscore':
         # basic z-score
         mean = np.mean(data, axis=0, keepdims=True)
-        std = np.std(axis=0, ddof=1, keepdims=True)
-        norm = (data - mean) / std
+        std = np.std(data, axis=0, ddof=1, keepdims=True)
+        normed = (data - mean) / std
 
     # recreate dataframe and fill non-NaN values
     normalized = pd.DataFrame(np.nan, columns=expression.columns,
