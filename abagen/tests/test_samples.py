@@ -148,17 +148,17 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
 
 
 @pytest.mark.xfail
-def test__assign_sample(testfiles, atlas):
+def test__assign_sample():
     assert False
 
 
 @pytest.mark.xfail
-def test__check_label(testfiles, atlas):
+def test__check_label():
     assert False
 
 
 @pytest.mark.xfail
-def test_label_samples(testfiles, atlas):
+def test_label_samples():
     assert False
 
 
@@ -216,6 +216,13 @@ def test__mirror_ontology(annotation, ontology):
 def test_update_mni_coords_real(testfiles):
     for annotation in testfiles['annotation']:
         samples.update_mni_coords(annotation)
+
+
+def test_label_samples_real(testfiles, atlas):
+    out = samples.label_samples(testfiles['annotation'][0], atlas['image'])
+    assert isinstance(out, pd.DataFrame)
+    assert out.index.name == 'sample_id'
+    assert out.columns == ['label']
 
 
 def test_drop_mismatch_samples_real(testfiles):

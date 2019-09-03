@@ -6,13 +6,6 @@ from abagen.utils import check_img
 ATLAS = fetch_desikan_killiany()
 
 
-def test_label_samples(testfiles):
-    out = allen.label_samples(testfiles['annotation'][0], ATLAS['image'])
-    assert isinstance(out, pd.DataFrame)
-    assert out.index.name == 'sample_id'
-    assert out.columns == ['label']
-
-
 def test_vanilla_get_expression_data(testdir, testfiles):
     out = allen.get_expression_data(ATLAS['image'], data_dir=testdir,
                                     donors=['12876', '15496'])
