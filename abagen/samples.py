@@ -367,6 +367,9 @@ def mirror_samples(microarray, pacall, annotation, ontology):
     """
     Mirrors all tissue samples across hemispheres (L->R and R->L)
 
+    Methodology follows [SA1]_ in that samples are mirrored bi-directionally
+    rather than uni-directionally (R->L) as in [SA2]_.
+
     Parameters
     ----------
     microarray : list of str
@@ -404,12 +407,18 @@ def mirror_samples(microarray, pacall, annotation, ontology):
     human cortex. NeuroImage, 171, 256-267.
     """
 
-    flipped = [_mirror_samples(mi, pa, an, on) for (mi, pa, an, on) in
-               zip(microarray, pacall, annotation, ontology)]
+    # FIXME: seems like there should be a better way to do this, but both str
+    # and dataframes _are_ iterable just...not the way we want them to be here
+    inp = [microarray, pacall, annotation, ontology]
+    for n, i in enumerate(inp):
+        if isinstance(i, (str, pd.DataFrame)):
+            inp[n] = [i]
 
-    # unpack so that even if user assigns output to a single variable they get
-    # a tuple and not a zip object with ?? number of variables
-    microarray, pacall, annotation = zip(*flipped)
+    # flipped will be a list of len-3 tuples: (microarray, pacall, annotation)
+    flipped = [_mirror_samples(*i) for i in zip(*inp)]
+
+    # unpack so that even if user assigns output to 1 variable they get a tuple
+    microarray, pacall, annotation = [list(f) for f in zip(*flipped)]
 
     return microarray, pacall, annotation
 
@@ -476,18 +485,19 @@ def _mirror_ontology(annotation, ontology):
 
     # structure IDs are specific to structure + hemisphere, so we can use this
     # to grab the hemisphere designation for each sample and flip that L<->R
-    sids = annotation['structure_id']
-    hemi = ontology.set_index('id').loc[sids, 'hemisphere']
-    hemi = hemi.replace(HEMI_SWAP)
+    hemi = ontology.set_index('id') \
+                   .loc[annotation['structure_id'], 'hemisphere'] \
+                   .replace(HEMI_SWAP)
 
     # structure acronyms are distinct to structure but not to hemisphere, so we
     # can use this to grab all variations of a given structure and, with the
-    # flipped hemisphere designations, find the ID/name of the relevant
-    # structure in the new hemisphere. we'll used this to update our original
-    # annotation dataframe
+    # flipped hemisphere designations we just generated, find the ID/name of
+    # the relevant structure in the new hemisphere
     acr = ontology.set_index(['acronym', 'hemisphere']) \
                   .loc[zip(annotation['structure_acronym'], hemi)] \
                   .reset_index()
+
+    # update the original annotation with the new values
     annotation['structure_acronym'] = acr['acronym'].values
     annotation['structure_id'] = acr['id'].values
     annotation['structure_name'] = acr['name'].values
