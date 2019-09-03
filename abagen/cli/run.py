@@ -193,6 +193,15 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'both hemispheres (i.e., L->R and R->L), '
                              'approximately doubling the number of available '
                              'samples. Default: False (i.e., no mirroring)')
+    w_data.add_argument('--donor_norm', '--donor-norm', action='store',
+                        default='srs', metavar='METHOD',
+                        choices=['srs', 'zscore'],
+                        help='Method by which to normalize microarray '
+                             'expression values for each donor prior to '
+                             'collapsing across donors. Expression values are '
+                             'normalized separately for each gene for each '
+                             'donor across all regions in `atlas`. Must be '
+                             'one of {"srs", "zscore"}. Default: "srs"')
 
     p_data = parser.add_argument_group('Options to modify the AHBA data used')
     p_data.add_argument('--no-reannotated', '--no_reannotated',
@@ -274,6 +283,7 @@ def main(args=None):
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
                                      lr_mirror=opts.lr_mirror,
+                                     donor_norm=opts.donor_norm,
                                      corrected_mni=opts.corrected_mni,
                                      reannotated=opts.reannotated,
                                      return_counts=opts.save_counts,

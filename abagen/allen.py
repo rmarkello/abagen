@@ -67,7 +67,8 @@ def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
                         probe_selection='diff_stability',
-                        lr_mirror=False, corrected_mni=True, reannotated=True,
+                        lr_mirror=False, donor_norm='srs',
+                        corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1):
     """
@@ -160,6 +161,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
+    donor_norm : {'srs', 'zscore'}, optional
+        Method by which to normalize microarray expression values for each
+        donor prior to collapsing across donors. Expression values are
+        normalized separately for each gene for each donor across all regions
+        in `atlas`; see Notes for more information. Default: 'srs'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -206,43 +212,58 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     The following methods can be used for collapsing across probes when
     multiple probes are available for the same gene.
 
-    1. ``probe_selection='average'``
+        1. ``probe_selection='average'``
 
-    Takes the average of expression data across all probes indexing the same
-    gene. Providing 'mean' as the input method will return the same thing.
+        Takes the average of expression data across all probes indexing the
+        same gene. Providing 'mean' as the input method will return the same
+        thing.
 
-    2. ``probe_selection='max_intensity'``
+        2. ``probe_selection='max_intensity'``
 
-    Selects the probe with the maximum average expression across samples from
-    all donors.
+        Selects the probe with the maximum average expression across samples
+        from all donors.
 
-    3. ``probe_selection='max_variance'``
+        3. ``probe_selection='max_variance'``
 
-    Selects the probe with the maximum variance in expression across samples
-    from all donors.
+        Selects the probe with the maximum variance in expression across
+        samples from all donors.
 
-    4. ``probe_selection='pc_loading'``
+        4. ``probe_selection='pc_loading'``
 
-    Selects the probe with the maximum loading along the first principal
-    component of a decomposition performed across samples from all donors.
+        Selects the probe with the maximum loading along the first principal
+        component of a decomposition performed across samples from all donors.
 
-    5. ``probe_selection='corr_intensity'``
+        5. ``probe_selection='corr_intensity'``
 
-    Selects the probe with the maximum correlation to other probes from the
-    same gene when >2 probes exist; otherwise, uses the same procedure as
-    `max_intensity`.
+        Selects the probe with the maximum correlation to other probes from the
+        same gene when >2 probes exist; otherwise, uses the same procedure as
+        `max_intensity`.
 
-    6. ``probe_selection='corr_variance'``
+        6. ``probe_selection='corr_variance'``
 
-    Selects the probe with the maximum correlation to other probes from the
-    same gene when >2 probes exist; otherwise, uses the same procedure as
-    `max_varance`.
+        Selects the probe with the maximum correlation to other probes from the
+        same gene when >2 probes exist; otherwise, uses the same procedure as
+        `max_varance`.
 
-    7. ``probe_selection='diff_stability'``
+        7. ``probe_selection='diff_stability'``
 
-    Selects the probe with the most consistent pattern of regional variation
-    across donors (i.e., the highest average correlation across brain regions
-    between all pairs of donors).
+        Selects the probe with the most consistent pattern of regional
+        variation across donors (i.e., the highest average correlation across
+        brain regions between all pairs of donors).
+
+    The following methods can be used for normalizing microarray expression
+    values for each donor prior to aggregating:
+
+        1. ``donor_norm='srs'``
+
+        Uses a scaled robust sigmoid function as in [A3]_ to normalize
+        expression values for each gene across regions to within the unit
+        normal (i.e., in the range 0-1).
+
+        2. ``donor_norm='zscore'``
+
+        Applies a basic z-score (subtract mean, divide by standard deviation)
+        to expression values for each gene across regions.
 
     References
     ----------
@@ -251,6 +272,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
        data. NeuroImage, 189, 353-367.
     .. [A2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas
        of the adult human transcriptome. Nature, 489, 391-399.
+    .. [A3] Fulcher, B. D., & Fornito, A. (2016). A transcriptional signature
+       of hub connectivity in the mouse connectome. Proceedings of the National
+       Academy of Sciences, 113(5), 1435-1440.
     """
 
     # set logging verbosity level
@@ -389,7 +413,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             counts.loc[roi, ind] += 1
 
     # normalize data with SRS
-    expression = [process.normalize_expression(e) for e in expression]
+    expression = [
+        process.normalize_expression(e, norm=donor_norm) for e in expression
+    ]
 
     # aggregate across donors if individual donor dataframes not requested
     if not return_donors:

@@ -5,19 +5,23 @@ Functions for cleaning and processing the AHBA microarray dataset
 
 import numpy as np
 import pandas as pd
+import scipy.stats as sstats
 
 from . import utils
 
 
-def normalize_expression(expression):
+def normalize_expression(expression, norm='srs'):
     """
-    Performs scaled robust sigmoid (SRS) normalization on `expression` data
+    Performs normalization on `expression` data
 
     Parameters
     ----------
     expression : (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples (or regions) and `G`
         is genes
+    norm : {'srs', 'zscore'}, optional
+        Function by which to normalize expression data, where 'srs' is a scaled
+        robust sigmoid. Default: 'srs'
 
     Returns
     -------
@@ -28,21 +32,26 @@ def normalize_expression(expression):
     # get non-NaN values
     data = np.asarray(expression.dropna(axis=0, how='all'))
 
-    # calculate sigmoid normalization
-    norm = (data - np.median(data, axis=0)) / np.std(data, axis=0)
-    srs = 1 / (1 + np.exp(-norm))
+    if norm == 'srs':
+        # calculate sigmoid normalization
+        med = np.median(data, axis=0, keepdims=True)
+        iqr = sstats.iqr(data, axis=0, scale='normal', keepdims=True)
+        srs = 1 / (1 + np.exp(-(data - med) / iqr))
 
-    # rescale normalized values to a unit interval
-    srs_min = srs.min(axis=0, keepdims=True)
-    srs_max = srs.max(axis=0, keepdims=True)
-    scaled = (srs - srs_min) / (srs_max - srs_min)
+        # rescale normalized values to a unit interval
+        srs_min = srs.min(axis=0, keepdims=True)
+        srs_max = srs.max(axis=0, keepdims=True)
+        normed = (srs - srs_min) / (srs_max - srs_min)
+    elif norm == 'zscore':
+        # basic z-score
+        mean = np.mean(data, axis=0, keepdims=True)
+        std = np.std(axis=0, ddof=1, keepdims=True)
+        norm = (data - mean) / std
 
     # recreate dataframe and fill non-NaN values
-    normalized = pd.DataFrame(np.nan,
-                              columns=expression.columns,
+    normalized = pd.DataFrame(np.nan, columns=expression.columns,
                               index=expression.index)
-    inds = expression[expression.notna().all(axis=1)].index
-    normalized.loc[inds] = scaled
+    normalized.loc[expression.notna().all(axis=1)] = normed
 
     return normalized
 
