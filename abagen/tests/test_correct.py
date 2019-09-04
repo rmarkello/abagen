@@ -8,6 +8,7 @@ import itertools
 import numpy as np
 import pandas as pd
 import pytest
+import scipy.stats as sstats
 
 from abagen import allen, correct, io
 
@@ -20,14 +21,45 @@ def donor_expression(testdir, testfiles, atlas):
                                      donors=['12876', '15496'])
 
 
-@pytest.mark.xfail
 def test__batch():
-    assert False
+    rs = np.random.RandomState(1234)
+    # p-values for ANOVA should all be ~0 (large group differences) before
+    # batch correction
+    y = [rs.normal(size=(100, 1000)) + f for f in [5, 0, 0]]
+    assert np.allclose(sstats.f_oneway(*y)[1], 0)
+
+    # F-values for ANOVA should all be ~0 (no group differences) after batch
+    # correction; p-values returned here are sometimes NaN so not a good test
+    out = correct._batch_correct(y)
+    assert np.allclose(sstats.f_oneway(*out)[0], 0)
+
+    # mean expressions after correction should be ~equal
+    assert np.allclose([o.mean() for o in out], 1.24871965683026)
+
+    with pytest.raises(ValueError):
+        correct._batch_correct([y[0]])
 
 
-@pytest.mark.xfail
 def test__srs():
-    assert False
+    rs = np.random.RandomState(1234)
+
+    # create an array with a pretty ridiculous outlier effect to try and fix
+    y = rs.normal(size=(100, 1000))
+    y[0] += 1000
+    out = correct._srs(y)
+
+    # basic check for scaling
+    assert np.allclose(out.max(0), 1) and np.allclose(out.min(), 0)
+
+    # we should have reduced skewness / kurtosis compared to the original
+    assert np.all(sstats.skew(out) < sstats.skew(y))
+    assert np.all(sstats.kurtosis(out) < sstats.kurtosis(y))
+
+    # this is a weird test; we're gonna bin the data at 0.2 intervals and make
+    # sure no bins are empty. if one is something probably went wrong, right?
+    for low in np.arange(0, 1, 0.2):
+        hi = low + 0.2 + np.spacing(1)  # include 1
+        assert np.all(np.sum(np.logical_and(out >= low, out < hi), axis=0) > 0)
 
 
 def test_normalize_expression_real(testfiles):
@@ -53,12 +85,12 @@ def test_normalize_expression_real(testfiles):
         assert np.allclose(exp.mean(axis=0), 0)
         assert np.allclose(exp.std(axis=0, ddof=1), 1)
 
-    # this is effectively centering so mean = 0
+    # batch correct: force means identical
     batch = correct.normalize_expression(micro, norm='batch')
+    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in batch])
+    # the NaN values should still be there, though
     for exp, idx in zip(batch, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
-        exp = exp.dropna(axis=1, how='all')
-        assert np.allclose(exp.mean(axis=0), 0)
 
     # invalid norm parameter
     with pytest.raises(ValueError):
