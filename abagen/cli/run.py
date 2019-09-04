@@ -20,6 +20,15 @@ def _resolve_path(path):
             return os.path.abspath(os.path.expanduser(path))
 
 
+def _resolve_none(inp):
+    """ Helper function to allow 'None' as input from argparse
+    """
+
+    if inp == "None":
+        return
+    return inp
+
+
 class CheckExists(argparse.Action):
     """ Helper class to check that provided paths exist
     """
@@ -78,9 +87,9 @@ over the sample matching can be obtained by setting the `inexact` parameter;
 see the parameter description for more information.
 
 Once all samples have been matched to parcels for all supplied donors, the
-microarray expression data are normalized within-donor via a scaled robust
-sigmoid (SRS) procedure before being combined across donors via the supplied
-`metric`.
+microarray expression data are optionally normalized within-donor via the
+provided `donor_norm` function before being combined across donors via the
+supplied `metric`.
 """
     )
 
@@ -193,6 +202,16 @@ sigmoid (SRS) procedure before being combined across donors via the supplied
                              'both hemispheres (i.e., L->R and R->L), '
                              'approximately doubling the number of available '
                              'samples. Default: False (i.e., no mirroring)')
+    w_data.add_argument('--donor_norm', '--donor-norm', action='store',
+                        default='srs', metavar='METHOD', type=_resolve_none,
+                        choices=['srs', 'zscore', 'batch', None],
+                        help='Method by which to normalize microarray '
+                             'expression values for each donor prior to '
+                             'collapsing across donors. Expression values are '
+                             'normalized separately for each gene for each '
+                             'donor across all regions in `atlas`. Must be '
+                             'one of {"srs", "zscore", "batch", None}. '
+                             'Default: "srs"')
 
     p_data = parser.add_argument_group('Options to modify the AHBA data used')
     p_data.add_argument('--no-reannotated', '--no_reannotated',
@@ -274,6 +293,7 @@ def main(args=None):
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
                                      lr_mirror=opts.lr_mirror,
+                                     donor_norm=opts.donor_norm,
                                      corrected_mni=opts.corrected_mni,
                                      reannotated=opts.reannotated,
                                      return_counts=opts.save_counts,

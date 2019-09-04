@@ -1,12 +1,170 @@
 # -*- coding: utf-8 -*-
 """
-Functions for post-processing region x gene expression data
+Functions for processing and correcting gene expression data
 """
 
 import itertools
+
 import numpy as np
+import pandas as pd
+import scipy.stats as sstats
 from scipy.spatial.distance import cdist
+
 from . import utils
+
+
+def _batch_correct(data):
+    """
+    Performs batch correction on `data`
+
+    Parameters
+    ----------
+    data : list of (S, G) pandas.DataFrame
+        Microarray expression data, where `S` is samples (or regions) and `G`
+        is genes
+
+    Returns
+    -------
+    residualized : list of (S, G) pandas.DataFrame
+        Batch-corrected microarray expression data
+    """
+
+    if len(data) < 2:
+        raise ValueError('Cannot perform batch correction with one batch.')
+
+    # need to drop NaNs or the lstsq fit will choke
+    data = [np.asarray(f) for f in data]
+    data = [f[np.logical_not(np.all(np.isnan(f), axis=1))] for f in data]
+
+    # generate donor label / "batch" array
+    n_samp = [len(d) for d in data]
+    batch = np.repeat(range(len(data)), n_samp)
+    batch = np.column_stack([batch == f for f in np.unique(batch)]).astype(int)
+    # add intercept for fit (but we won't regress this out)
+    batch = np.column_stack([batch, np.ones(len(batch), dtype=int)])
+
+    # fit least squares and residualize
+    raw = np.row_stack(data)
+    betas = np.linalg.lstsq(batch, raw, rcond=None)[0]
+    resid = raw - (batch[:, :-1] @ betas[:-1])
+    residualized = np.split(resid, np.cumsum(n_samp)[:-1])
+
+    return residualized
+
+
+def _srs(data, axis=0):
+    """
+    Normalizes `data` with a scaled robust sigmoid function
+
+    Parameters
+    ----------
+    data : array_like
+        Input data to be passed through SRS function
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    data = np.asarray(data)
+
+    # calculate sigmoid normalization
+    med = np.median(data, axis=axis, keepdims=True)
+    iqr = sstats.iqr(data, axis=axis, scale='normal', keepdims=True)
+    srs = 1 / (1 + np.exp(-(data - med) / iqr))
+
+    # rescale normalized values to a unit interval
+    srs_min = srs.min(axis=axis, keepdims=True)
+    srs_max = srs.max(axis=axis, keepdims=True)
+    normed = (srs - srs_min) / (srs_max - srs_min)
+
+    return normed
+
+
+def normalize_expression(expression, norm='srs'):
+    """
+    Performs normalization on `expression` data
+
+    Parameters
+    ----------
+    expression : list of (S, G) pandas.DataFrame
+        Microarray expression data, where `S` is samples (or regions) and `G`
+        is genes
+    norm : {'srs', 'zscore', 'batch'}, optional
+        Function by which to normalize expression data; see Notes for more
+        information. Default: 'srs'
+
+    Returns
+    -------
+    normalized : list of (S, G) pandas.DataFrame
+        Data from `expression` normalized separately for each gene
+
+    Notes
+    -----
+    The following methods can be used for normalizing gene expression values
+    for each donor:
+
+    1. ``norm='srs'``
+
+    Uses a scaled robust sigmoid function as in [PC1]_ to normalize expression
+    values for each gene across regions to within the unit normal (i.e., in the
+    range 0-1).
+
+    2. ``norm='zscore'``
+
+    Applies a basic z-score (subtract mean, divide by standard deviation) to
+    expression values for each gene across regions. Uses degrees of freedom
+    equal to one for standard deviation calculation.
+
+    3. ``norm='batch'``
+
+    Uses a linear model to remove donor effects from expression values. Differs
+    from other methods in that all donors are simultaneously fit to the same
+    model and expression values are residualized based on estimated betas.
+    Linear model includes the intercept but the residualization does not remove
+    it.
+
+    References
+    ----------
+    .. [PC1] Fulcher, B. D., & Fornito, A. (2016). A transcriptional signature
+       of hub connectivity in the mouse connectome. Proceedings of the National
+       Academy of Sciences, 113(5), 1435-1440.
+    """
+
+    norms = ['srs', 'zscore', 'batch']
+    if norm not in norms:
+        raise ValueError('Provided value for `norm` not recognized. Must be '
+                         'one of {}. Received: {}'.format(norms, norm))
+
+    # FIXME: I hate having to do this...
+    if isinstance(expression, pd.DataFrame):
+        expression = [expression]
+
+    if norm == 'batch':
+        corrected = _batch_correct(expression)
+
+    normexp = []
+    for n, exp in enumerate(expression):
+        # get non-NaN values
+        notna = exp.notna().all(axis=1)
+        data = np.asarray(exp)[notna]
+
+        if norm == 'srs':
+            normed = _srs(data, axis=0)
+        elif norm == 'zscore':
+            normed = sstats.zscore(data, axis=0, ddof=1)
+        elif norm == 'batch':
+            normed = corrected[n]
+
+        # recreate dataframe and fill non-NaN values
+        normalized = pd.DataFrame(np.nan, columns=exp.columns, index=exp.index)
+        normalized.loc[notna] = normed
+        normexp.append(normalized)
+
+    return normexp
 
 
 def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
