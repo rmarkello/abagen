@@ -43,6 +43,9 @@ def test_run_get_parser(capsys, atlas, testdir):
     with pytest.raises(SystemExit):
         parser.parse_args(['--probe-selection', 'notamethod', atlas['image']])
     assert "invalid choice: 'notamethod'" in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        parser.parse_args(['--donor-norm', 'notamethod', atlas['image']])
+    assert "invalid choice: 'notamethod'" in capsys.readouterr().err
 
     # just test every option
     args = parser.parse_args([
@@ -58,6 +61,7 @@ def test_run_get_parser(capsys, atlas, testdir):
         '--metric', 'median',
         '--probe-selection', 'average',
         '--lr_mirror',
+        '--donor-norm', 'srs',
         '--no-reannotated', '--no-corrected-mni',
         '--output-file', 'test.csv',
         '--save-counts', '--save-donors',
