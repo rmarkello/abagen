@@ -271,8 +271,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         Uses a linear model to remove donor effects from expression values.
         Differs from other methods in that all donors are simultaneously fit
         to the same model and expression values are residualized based on
-        estimated betas. Linear model (and residualization) includes the
-        intercept.
+        estimated betas. Linear model includes the intercept but the
+        residualization does not remove it.
 
     References
     ----------
