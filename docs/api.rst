@@ -10,9 +10,9 @@ Reference API
 
 .. _ref_workflows:
 
-:mod:`abagen` - Primary workflows
----------------------------------
-.. automodule:: abagen
+:mod:`abagen.allen` - Primary workflows
+---------------------------------------
+.. automodule:: abagen.allen
    :no-members:
    :no-inherited-members:
 
@@ -32,14 +32,16 @@ Reference API
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: abagen.datasets
+.. currentmodule:: abagen
 
 .. autosummary::
    :template: function.rst
    :toctree: generated/
 
-   abagen.datasets.fetch_microarray
-   abagen.datasets.fetch_desikan_killiany
+   abagen.fetch_microarray
+   abagen.fetch_raw_mri
+   abagen.fetch_desikan_killiany
+   abagen.fetch_gene_group
 
 .. _ref_io:
 
@@ -67,14 +69,14 @@ Reference API
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: abagen.correct
+.. currentmodule:: abagen
 
 .. autosummary::
    :template: function.rst
    :toctree: generated/
 
-   abagen.correct.remove_distance
-   abagen.correct.keep_stable_genes
+   abagen.remove_distance
+   abagen.keep_stable_genes
 
 :mod:`abagen.utils` - Utility functions
 ---------------------------------------
