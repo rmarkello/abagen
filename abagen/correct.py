@@ -29,29 +29,27 @@ def _batch_correct(data):
         Batch-corrected microarray expression data
     """
 
-    # need to elegantly drop NA values or else the lstsq fit will choke
-    notna = [np.asarray(f.notna().all(axis=1)) for f in data]
-    exp = [np.asarray(f)[i] for f, i in zip(data, notna)]
+    if len(data) < 2:
+        raise ValueError('Cannot perform batch correction with one batch.')
+
+    # need to drop NaNs or the lstsq fit will choke
+    data = [np.asarray(f) for f in data]
+    data = [f[np.logical_not(np.all(np.isnan(f), axis=1))] for f in data]
 
     # generate donor label / "batch" array
-    n_samp = [len(d) for d in exp]
-    batch = np.repeat(range(len(exp)), n_samp)
+    n_samp = [len(d) for d in data]
+    batch = np.repeat(range(len(data)), n_samp)
     batch = np.column_stack([batch == f for f in np.unique(batch)]).astype(int)
-    batch = np.column_stack([batch, np.ones(len(batch))])
+    # add intercept for fit (but we won't regress this out)
+    batch = np.column_stack([batch, np.ones(len(batch), dtype=int)])
 
     # fit least squares and residualize
-    raw = np.row_stack(exp)
+    raw = np.row_stack(data)
     betas = np.linalg.lstsq(batch, raw, rcond=None)[0]
-    residualized = np.split(raw - (batch @ betas), np.cumsum(n_samp)[:-1])
+    resid = raw - (batch[:, :-1] @ betas[:-1])
+    residualized = np.split(resid, np.cumsum(n_samp)[:-1])
 
-    # recreate original dataframes (replacing NaN values as expected)
-    exp = []
-    for res, orig, inds in zip(residualized, data, notna):
-        df = pd.DataFrame(np.nan, columns=orig.columns, index=orig.index)
-        df.iloc[inds] = res
-        exp.append(df)
-
-    return exp
+    return residualized
 
 
 def _srs(data, axis=0):
@@ -126,7 +124,8 @@ def normalize_expression(expression, norm='srs'):
     Uses a linear model to remove donor effects from expression values. Differs
     from other methods in that all donors are simultaneously fit to the same
     model and expression values are residualized based on estimated betas.
-    Linear model (and residualization) includes the intercept.
+    Linear model includes the intercept but the residualization does not remove
+    it.
 
     References
     ----------
@@ -145,13 +144,10 @@ def normalize_expression(expression, norm='srs'):
         expression = [expression]
 
     if norm == 'batch':
-        if len(expression) < 2:
-            raise ValueError('Cannot perform batch correction with expression '
-                             'data from only one donor.')
-        return _batch_correct(expression)
+        corrected = _batch_correct(expression)
 
     normexp = []
-    for exp in expression:
+    for n, exp in enumerate(expression):
         # get non-NaN values
         notna = exp.notna().all(axis=1)
         data = np.asarray(exp)[notna]
@@ -160,6 +156,8 @@ def normalize_expression(expression, norm='srs'):
             normed = _srs(data, axis=0)
         elif norm == 'zscore':
             normed = sstats.zscore(data, axis=0, ddof=1)
+        elif norm == 'batch':
+            normed = corrected[n]
 
         # recreate dataframe and fill non-NaN values
         normalized = pd.DataFrame(np.nan, columns=exp.columns, index=exp.index)
