@@ -1,7 +1,7 @@
 __all__ = [
     '__version__', '__doc__',
     'io', 'mouse', 'get_expression_data', 'keep_stable_genes',
-    'remove_distance', 'aggregate_donors', 'fetch_desikan_killiany',
+    'remove_distance', 'fetch_desikan_killiany',
     'fetch_gene_group', 'fetch_microarray', 'fetch_raw_mri'
 ]
 
@@ -16,4 +16,3 @@ from .allen import get_expression_data
 from .correct import keep_stable_genes, remove_distance
 from .datasets import (fetch_desikan_killiany, fetch_gene_group,
                        fetch_microarray, fetch_raw_mri)
-from .process import aggregate_donors

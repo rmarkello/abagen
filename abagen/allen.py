@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Functions for mapping AHBA microarray dataset to atlases and and parcellations
-in MNI space
 """
 
 from functools import reduce
@@ -9,7 +8,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
-from . import datasets, io, probes, process, samples, utils
+from . import correct, datasets, io, probes, samples, utils
 
 import logging
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -111,8 +110,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     parameter; see the parameter description for more information.
 
     Once all samples have been matched to parcels for all supplied donors, the
-    microarray expression data are normalized within-donor via a scaled robust
-    sigmoid (SRS) procedure before being combined across donors via the
+    microarray expression data are optionally normalized within-donor via the
+    provided `donor_norm` function before being combined across donors via the
     supplied `metric`.
 
     Parameters
@@ -161,11 +160,12 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
-    donor_norm : {'srs', 'zscore'}, optional
+    donor_norm : {'srs', 'zscore', 'batch', None}, optional
         Method by which to normalize microarray expression values for each
-        donor prior to collapsing across donors. Expression values are
-        normalized separately for each gene for each donor across all regions
-        in `atlas`; see Notes for more information. Default: 'srs'
+        donor. Expression values are normalized separately for each gene for
+        each donor across all regions in `atlas`; see Notes for more
+        information on different methods. If not specified no normalization
+        is performed. Default: 'srs'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -263,7 +263,16 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         2. ``donor_norm='zscore'``
 
         Applies a basic z-score (subtract mean, divide by standard deviation)
-        to expression values for each gene across regions.
+        to expression values for each gene across regions. Uses degrees of
+        freedom equal to one for standard deviation calculation.
+
+        3. ``donor_norm='batch'``
+
+        Uses a linear model to remove donor effects from expression values.
+        Differs from other methods in that all donors are simultaneously fit
+        to the same model and expression values are residualized based on
+        estimated betas. Linear model (and residualization) includes the
+        intercept.
 
     References
     ----------
@@ -413,13 +422,12 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             counts.loc[roi, ind] += 1
 
     # normalize data with SRS
-    expression = [
-        process.normalize_expression(e, norm=donor_norm) for e in expression
-    ]
+    if donor_norm is not None:
+        expression = correct.normalize_expression(expression, norm=donor_norm)
 
     # aggregate across donors if individual donor dataframes not requested
     if not return_donors:
-        expression = process.aggregate_donors(expression, metric)
+        expression = pd.concat(expression).groupby('label').aggregate(metric)
 
     # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:
