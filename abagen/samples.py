@@ -480,7 +480,7 @@ def _mirror_ontology(annotation, ontology):
 
     HEMI_SWAP = dict(L='R', R='L')
 
-    annotation = io.read_annotation(annotation)
+    annotation = io.read_annotation(annotation, copy=True)
     ontology = io.read_ontology(ontology)
 
     # structure IDs are specific to structure + hemisphere, so we can use this
