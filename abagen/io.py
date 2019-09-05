@@ -89,12 +89,13 @@ def read_microarray(fname, copy=False, parquet=True):
 
     try:
         if use_parq and parquet:
-            data = _make_parquet(fname, convert_only=False).set_index('0')
+            data = _make_parquet(fname, convert_only=False)
+            data = data.set_index('0')
         else:
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except ValueError:
+    except (AttributeError, ValueError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Microarray'
                             'Expression.csv file from Allen Human Brain '
@@ -188,12 +189,13 @@ def read_pacall(fname, copy=False, parquet=True):
 
     try:
         if use_parq and parquet:
-            data = _make_parquet(fname, convert_only=False).set_index('0')
+            data = _make_parquet(fname, convert_only=False)
+            data = data.set_index('0')
         else:
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except ValueError:
+    except (AttributeError, ValueError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to PACall.csv'
                             'file from Allen Human Brain Atlas.')

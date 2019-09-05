@@ -1,71 +1,73 @@
+# -*- coding: utf-8 -*-
+"""
+Tests for abagen.io module
+"""
+
 import os.path as op
+
 import numpy as np
 import pandas as pd
 import pytest
+
 from abagen import io
 
 
-IO_FUNC = [
-    dict(
-        key='microarray',
-        has_parq=True,
-        columns=None,
-        func=io.read_microarray
-    ),
-    dict(
-        key='pacall',
-        has_parq=True,
-        columns=None,
-        func=io.read_pacall
-    ),
-    dict(
-        key='annotation',
-        has_parq=False,
-        columns=[
-            'structure_id', 'slab_num', 'well_id', 'slab_type',
-            'structure_acronym', 'structure_name', 'polygon_id', 'mri_voxel_x',
-            'mri_voxel_y', 'mri_voxel_z', 'mni_x', 'mni_y', 'mni_z'
-        ],
-        func=io.read_annotation
-    ),
-    dict(
-        key='ontology',
-        has_parq=False,
-        columns=[
-            'id', 'acronym', 'name', 'parent_structure_id', 'hemisphere',
-            'graph_order', 'structure_id_path', 'color_hex_triplet'
-        ],
-        func=io.read_ontology
-    ),
-    dict(
-        key='probes',
-        has_parq=False,
-        columns=[
-            'probe_name', 'gene_id', 'gene_symbol', 'gene_name', 'entrez_id',
-            'chromosome'
-        ],
-        func=io.read_probes
-    )
+annot_cols = [
+    'structure_id', 'slab_num', 'well_id', 'slab_type', 'structure_acronym',
+    'structure_name', 'polygon_id', 'mri_voxel_x', 'mri_voxel_y',
+    'mri_voxel_z', 'mni_x', 'mni_y', 'mni_z'
+]
+
+ont_cols = [
+    'id', 'acronym', 'name', 'parent_structure_id', 'hemisphere',
+    'graph_order', 'structure_id_path', 'color_hex_triplet'
+]
+
+probe_cols = [
+    'probe_name', 'gene_id', 'gene_symbol', 'gene_name', 'entrez_id',
+    'chromosome'
 ]
 
 
-def test_readfiles(testfiles):
-    for config in IO_FUNC:
-        for fn in testfiles.get(config['key']):
-            assert op.exists(fn)
-            if config['has_parq'] and io.use_parq:
-                assert op.exists(fn.rpartition('.csv')[0] + '.parq')
+@pytest.mark.parametrize('key, has_parq, columns', [
+    ('microarray', True, None),
+    ('pacall', True, None),
+    ('annotation', False, annot_cols),
+    ('ontology', False, ont_cols),
+    ('probes', False, probe_cols),
+])
+def test_readfiles(testfiles, key, has_parq, columns):
+    for fn in testfiles.get(key):
+        func = getattr(io, 'read_{}'.format(key))
 
-            # check loading from filepath
-            data = config['func'](fn, parquet=True)
-            assert isinstance(data, pd.DataFrame)
+        # check file (CSV + parquet) exist
+        assert op.exists(fn)
+        if has_parq and io.use_parq:
+            assert op.exists(fn.rpartition('.csv')[0] + '.parq')
 
-            # check loading from dataframe
-            data = config['func'](data)
-            assert isinstance(data, pd.DataFrame)
+        # check loading from filepath
+        data = func(fn, parquet=True) if has_parq else func(fn)
+        assert isinstance(data, pd.DataFrame)
 
-            if config['columns'] is not None:
-                assert np.all(config['columns'] == data.columns)
+        # check loading from dataframe (should return same object)
+        data2 = func(data)
+        assert id(data) == id(data2)
+
+        # check that copy parameter works as expected
+        data3 = func(data, copy=True)
+        assert isinstance(data3, pd.DataFrame)
+        assert id(data) != id(data3)
+
+        # confirm columns are as expected
+        if columns is not None:
+            assert np.all(columns == data.columns)
+
+        # confirm errors
+        with pytest.raises(TypeError):
+            func(1)
 
         with pytest.raises(TypeError):
-            config['func']([1, 2, 3])
+            func([1, 2, 3])
+
+        with pytest.raises(FileNotFoundError):
+            func('notafile')
