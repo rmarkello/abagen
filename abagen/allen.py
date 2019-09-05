@@ -316,8 +316,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     num_subj = len(files['microarray'])
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
-        lgr.info('Inexact matching of samples requested; pre-calculating ROI '
-                 'centroids for {} labels in provided atlas image'
+        lgr.info('Pre-calculating centroids for {} regions in provided atlas'
                  .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
@@ -337,6 +336,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     # once we've mirrored, we need to reassign the outputs of the procedure
     # back to these variables so we can use them in the rest of the pipeline
     if lr_mirror:
+        lgr.info('Left/right mirroring requests; mirroring samples across '
+                 'hemispheres and updating relevant ontological information')
         micro, pacall, annot = samples.mirror_samples(files['microarray'],
                                                       files['pacall'],
                                                       files['annotation'],
@@ -347,19 +348,19 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     probe_info = io.read_probes(files['probes'][0], copy=True)
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
-                 'Arnatkevic̆iūtė et al., 2018, NeuroImage')
+                 'Arnatkevic̆iūtė et al., 2019, NeuroImage')
         probe_info = probes.reannotate_probes(probe_info)
 
     # intensity-based filtering of probes
     probe_info = probes.filter_probes(files['pacall'], probe_info,
                                       threshold=ibf_threshold)
-    lgr.info('{} genes survive intensity-based filtering with threshold of {}'
-             .format(len(np.unique(probe_info['gene_symbol'])), ibf_threshold))
+    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
+             .format(len(probe_info), ibf_threshold))
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
-    lgr.info('Reducing probes indexing same gene with provided method: {}'
+    lgr.info('Reducing probes indexing same gene with provided method: "{}"'
              .format(probe_selection))
     microarray = probes.collapse_probes(files['microarray'],
                                         files['annotation'],
@@ -382,7 +383,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                        tolerance=tolerance)
         expression += [groupby_label(data, labels,
                                      all_labels, metric=metric)]
-        lgr.info('{:>3} / {} samples matched to ROIs for donor #{}'
+        lgr.info('{:>3} / {} samples matched to regions for donor #{}'
                  .format(np.sum(np.asarray(labels) != 0),
                          len(annotation),
                          datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
@@ -409,13 +410,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if not exact:
         # find labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info('Matching {} ROIs with no microarray data to nearest samples'
+        lgr.info('Matching {} regions with no data to nearest samples'
                  .format(len(empty)))
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([d.get(roi) for f, d in missing])
             donor = datasets.WELL_KNOWN_IDS.value_set("subj")[ind]
-            lgr.debug('Assigning sample from donor {} to ROI {}'
+            lgr.debug('Assigning sample from donor {} to region id #{}'
                       .format(donor, roi))
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
@@ -423,10 +424,14 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
     # normalize data with SRS
     if donor_norm is not None:
+        lgr.info('Normalizing donor expression data with function: "{}"'
+                 .format(donor_norm))
         expression = correct.normalize_expression(expression, norm=donor_norm)
 
     # aggregate across donors if individual donor dataframes not requested
     if not return_donors:
+        lgr.info('Aggregating donor expression data with function: "{}"'
+                 .format(metric))
         expression = pd.concat(expression).groupby('label').aggregate(metric)
 
     # drop the "zero" label from the counts dataframe (this is background)
