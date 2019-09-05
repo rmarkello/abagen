@@ -57,25 +57,29 @@ def check_img(img):
     return img
 
 
-def check_atlas_info(atlas, atlas_info, labels=None):
+def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
     """
     Checks whether provided `info` on `atlas` is sufficient for processing
 
     Parameters
     ----------
     atlas : niimg-like object
-        Parcel image, where each parcel should be identified with a unique
-        integer ID
+        Parcellation image, where voxels belonging to a given parcel should be
+        identified with a unique integer ID
     atlas_info : str or pandas.DataFrame
         Filepath or dataframe containing information about `atlas`. Must have
         at least columns 'id', 'hemisphere', and 'structure' containing
-        information mapping atlas IDs to hemisphere and broad structural class
-        (e.g., "cortex", "subcortex", "cerebellum").
+        information mapping atlas IDs to hemisphere (i.e., "L" or "R") and
+        broad structural class (i.e.., "cortex", "subcortex", "cerebellum",
+        "brainstem", "white matter", or "other").
     labels : array_like, optional
         List of values containing labels to compare between `atlas` and
         `atlas_info`, if they don't all match. If not specified this function
         will attempt to confirm that all IDs present in `atlas` have entries in
         `atlas_info` and vice versa. Default: None
+    validate : bool, optional
+        Whether to only validate (True) the provided `atlas` and `atlas_info`
+        instead of returning (False) the validated dataframe. Default: False
 
     Returns
     -------
@@ -83,7 +87,13 @@ def check_atlas_info(atlas, atlas_info, labels=None):
         Loaded dataframe with information on atlas
     """
 
+    from .samples import ONTOLOGY  # avoid circular imports
+
     atlas = check_img(atlas)
+    ids = get_unique_labels(atlas) if labels is None else labels
+    valid_structures = list(ONTOLOGY.value_set('structure'))
+    hemi_swap = dict(lh='L', LH='L', rh='R', RH='R')
+    expected_cols = ['hemisphere', 'structure']
 
     # load info, if not already
     try:
@@ -92,27 +102,46 @@ def check_atlas_info(atlas, atlas_info, labels=None):
         pass
 
     try:
+        atlas_info = atlas_info.copy()
         if 'id' in atlas_info.columns:
             atlas_info = atlas_info.set_index('id')
     except AttributeError:
-        raise ValueError('Provided atlas_info must be a filepath or pandas.'
-                         'DataFrame. Please confirm inputs and try again.')
+        raise TypeError('Provided atlas_info must be a filepath or pandas.'
+                        'DataFrame. Please confirm inputs and try again.')
 
-    ids = get_unique_labels(atlas) if labels is None else labels
-    cols = ['hemisphere', 'structure']
     try:
-        assert all(c in atlas_info.columns for c in cols)
-        assert ('id' == atlas_info.index.name)
-        assert len(np.intersect1d(ids, atlas_info.index)) == len(ids)
+        assert all(c in atlas_info.columns for c in expected_cols)
+        assert 'id' == atlas_info.index.name
+        assert len(np.setdiff1d(ids, atlas_info.index)) == 0
     except AssertionError:
-        raise ValueError('Provided `atlas_info` does not have adequate '
-                         'information  on supplied `atlas`. Please confirm '
-                         'that `atlas_info` has columns [\'id\', '
+        raise ValueError('Provided atlas_info does not have adequate '
+                         'information on supplied atlas. Please confirm '
+                         'that atlas_info has columns [\'id\', '
                          '\'hemisphere\', \'structure\'], and that the region '
-                         'IDs listed in `atlas_info` account for all those '
-                         'found in `atlas.')
+                         'IDs listed in atlas_info account for all those '
+                         'found in atlas.')
 
-    return atlas_info
+    try:
+        atlas_info['hemisphere'] = atlas_info['hemisphere'].replace(hemi_swap)
+        hemi_diff = np.setdiff1d(atlas_info['hemisphere'], ['L', 'R'])
+        assert len(hemi_diff) == 0
+    except AssertionError:
+        raise ValueError('Provided atlas_info has invalid values in the'
+                         '\'hemisphere\' column. Only the following values '
+                         'are allowed: {}. Invalid value(s): {}'
+                         .format(['L', 'R'], hemi_diff))
+
+    try:
+        struct_diff = np.setdiff1d(atlas_info['structure'], valid_structures)
+        assert len(struct_diff) == 0
+    except AssertionError:
+        raise ValueError('Provided atlas_info has invalid values in the'
+                         '\'structure\' column. Only the following values are '
+                         'allowed: {}. Invalid value(s): {}'
+                         .format(valid_structures, struct_diff))
+
+    if not validate:
+        return atlas_info
 
 
 def check_metric(metric):
