@@ -85,7 +85,7 @@ def update_mni_coords(annotation):
                                         axis=1)
     coords = coords.set_index('well_id')
 
-    annotation = io.read_annotation(annotation)
+    annotation = io.read_annotation(annotation, copy=True)
 
     # basic check that all well_ids in annotation are present in coords
     # a future pandas update may cause this to raise a KeyError but we want
@@ -436,9 +436,9 @@ def _mirror_samples(microarray, pacall, annotation, ontology):
         Loaded input data with all samples duplicated across hemispheres
     """
 
-    microarray = io.read_microarray(microarray)
-    pacall = io.read_pacall(pacall)
-    annotation = io.read_annotation(annotation)
+    microarray = io.read_microarray(microarray, copy=True)
+    pacall = io.read_pacall(pacall, copy=True)
+    annotation = io.read_annotation(annotation, copy=True)
     ontology = io.read_ontology(ontology)
 
     # take all lh and rh samples and flip x-coordinate
@@ -480,7 +480,7 @@ def _mirror_ontology(annotation, ontology):
 
     HEMI_SWAP = dict(L='R', R='L')
 
-    annotation = io.read_annotation(annotation)
+    annotation = io.read_annotation(annotation, copy=True)
     ontology = io.read_ontology(ontology)
 
     # structure IDs are specific to structure + hemisphere, so we can use this

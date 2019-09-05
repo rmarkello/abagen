@@ -344,7 +344,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         files.update(dict(microarray=micro, pacall=micro, annotation=annot))
 
     # get dataframe of probe information (reannotated or otherwise)
-    probe_info = io.read_probes(files['probes'][0])
+    probe_info = io.read_probes(files['probes'][0], copy=True)
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2018, NeuroImage')

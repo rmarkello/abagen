@@ -36,6 +36,7 @@ def _make_parquet(fname, convert_only=False):
     data : pandas.DataFrame
         Data loaded from `fname`
     """
+
     # get ideal parquet filename
     parqname = fname.rpartition('.csv')[0] + '.parq'
 
@@ -55,7 +56,7 @@ def _make_parquet(fname, convert_only=False):
     return data
 
 
-def read_microarray(fname, parquet=True):
+def read_microarray(fname, copy=False, parquet=True):
     """
     Loads MicroarrayExpression.csv file found at `fname`
 
@@ -66,6 +67,9 @@ def read_microarray(fname, parquet=True):
     ----------
     fname : str
         Path to MicroarrayExpression.csv file
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
     parquet : bool, optional
         Whether to load data from parquet file instead of CSV. If a parquet
         file does not already exist then one will be created for faster loading
@@ -79,28 +83,29 @@ def read_microarray(fname, parquet=True):
         and `S` is samples. The row index is the unique probe ID assigned
         during processing, which can be used to match data to the information
         obtained with :func:`read_probes`. The column index is the unique
-        sample ID (integer, beginning at 1) which can be used to match data to
+        sample ID (integer, beginning at 0) which can be used to match data to
         the information obtained with :func:`read_annotation`.
     """
-    if not isinstance(fname, str):
-        if isinstance(fname, pd.DataFrame):
-            return fname.copy()
+
+    try:
+        if use_parq and parquet:
+            data = _make_parquet(fname, convert_only=False)
+            data = data.set_index('0')
         else:
-            raise TypeError('Provided fname {} must be a filepath.'
-                            .format(fname))
-
-    if use_parq and parquet:
-        data = _make_parquet(fname, convert_only=False).set_index('0')
-    else:
-        data = pd.read_csv(fname, header=None, index_col=0)
-
-    data.index.name = 'probe_id'
-    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+            data = pd.read_csv(fname, header=None, index_col=0)
+        data.index.name = 'probe_id'
+        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+    except (AttributeError, ValueError):
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to Microarray'
+                            'Expression.csv file from Allen Human Brain '
+                            'Atlas.')
+        data = fname.copy() if copy else fname
 
     return data
 
 
-def read_ontology(fname, parquet=True):
+def read_ontology(fname, copy=False):
     """
     Loads Ontology.csv file found at `fname`
 
@@ -116,8 +121,9 @@ def read_ontology(fname, parquet=True):
     ----------
     fname : str
         Path to Ontology.csv file
-    parquet : bool, optional
-        Does nothing; for compatibility with other :mod:`abagen.io` functions
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
 
     Returns
     -------
@@ -127,17 +133,19 @@ def read_ontology(fname, parquet=True):
         'parent_structure_id', 'hemisphere', 'graph_order',
         'structure_id_path', and 'color_hex_triplet'.
     """
-    if not isinstance(fname, str):
-        if isinstance(fname, pd.DataFrame):
-            return fname.copy()
-        else:
-            raise TypeError('Provided fname {} must be a filepath.'
-                            .format(fname))
 
-    return pd.read_csv(fname)
+    try:
+        data = pd.read_csv(fname)
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to Ontology.csv'
+                            'file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
+
+    return data
 
 
-def read_pacall(fname, parquet=True):
+def read_pacall(fname, copy=False, parquet=True):
     """
     Loads PACall.csv file found at `fname`
 
@@ -158,6 +166,9 @@ def read_pacall(fname, parquet=True):
     ----------
     fname : str
         Path to PACall.csv file
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
     parquet : bool, optional
         Whether to load data from parquet file instead of CSV. If a parquet
         file does not already exist then one will be created for faster loading
@@ -175,25 +186,25 @@ def read_pacall(fname, parquet=True):
         the unique sample ID (integer, beginning at 1) which can be used to
         match data to the information obtained with :func:`read_annotation`.
     """
-    if not isinstance(fname, str):
-        if isinstance(fname, pd.DataFrame):
-            return fname.copy()
+
+    try:
+        if use_parq and parquet:
+            data = _make_parquet(fname, convert_only=False)
+            data = data.set_index('0')
         else:
-            raise TypeError('Provided fname {} must be a filepath.'
-                            .format(fname))
-
-    if use_parq and parquet:
-        data = _make_parquet(fname, convert_only=False).set_index('0')
-    else:
-        data = pd.read_csv(fname, header=None, index_col=0)
-
-    data.index.name = 'probe_id'
-    data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+            data = pd.read_csv(fname, header=None, index_col=0)
+        data.index.name = 'probe_id'
+        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+    except (AttributeError, ValueError):
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to PACall.csv'
+                            'file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
 
     return data
 
 
-def read_probes(fname, parquet=True):
+def read_probes(fname, copy=False):
     """
     Loads Probes.csv file found at `fname`
 
@@ -207,8 +218,9 @@ def read_probes(fname, parquet=True):
     ----------
     fname : str
         Path to Probes.csv file
-    parquet : bool, optional
-        Does nothing; for compatibility with other :mod:`abagen.io` functions
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
 
     Returns
     -------
@@ -219,17 +231,19 @@ def read_probes(fname, parquet=True):
         :func:`read_pacall`. Columns include 'probe_name', 'gene_id',
         'gene_symbol', 'gene_name', 'entrez_id', and 'chromosome'.
     """
-    if not isinstance(fname, str):
-        if isinstance(fname, pd.DataFrame):
-            return fname.copy()
-        else:
-            raise TypeError('Provided fname {} must be a filepath.'
-                            .format(fname))
 
-    return pd.read_csv(fname, index_col=0)
+    try:
+        data = pd.read_csv(fname, index_col=0)
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to Probes.csv'
+                            'file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
+
+    return data
 
 
-def read_annotation(fname, parquet=True):
+def read_annotation(fname, copy=False):
     """
     Loads SampleAnnot.csv file found at `fname`
 
@@ -243,8 +257,9 @@ def read_annotation(fname, parquet=True):
     ----------
     fname : str
         Path to SampleAnnot.csv file
-    parquet : bool, optional
-        Does nothing; for compatibility with other :mod:`abagen.io` functions
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
 
     Returns
     -------
@@ -257,14 +272,14 @@ def read_annotation(fname, parquet=True):
         'structure_acronym', 'structure_name', 'polygon_id', 'mri_voxel_x',
         'mri_voxel_y', 'mri_voxel_z', 'mni_x', 'mni_y', 'mni_z'.
     """
-    if not isinstance(fname, str):
-        if isinstance(fname, pd.DataFrame):
-            return fname.copy()
-        else:
-            raise TypeError('Provided fname {} must be a filepath.'
-                            .format(fname))
 
-    annotation = pd.read_csv(fname)
-    annotation.index.name = 'sample_id'
+    try:
+        data = pd.read_csv(fname)
+        data.index.name = 'sample_id'
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to Annotation.'
+                            '.csv file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
 
-    return annotation
+    return data
