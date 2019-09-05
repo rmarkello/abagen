@@ -89,7 +89,7 @@ def filter_probes(pacall, probes, threshold=0.5):
 
     threshold = np.clip(threshold, 0.0, 1.0)
 
-    probes = io.read_probes(probes)
+    probes = io.read_probes(probes, copy=True)
     signal, samples = [], 0
     for fname in pacall:
         data = io.read_pacall(fname).loc[probes.index]
@@ -583,7 +583,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     # read in microarray data for all subjects; this can be quite slow...
     probes = io.read_probes(probes)
     exp = [
-        io.read_microarray(m).loc[probes.index] for m in microarray
+        io.read_microarray(m, copy=True).loc[probes.index] for m in microarray
     ]
 
     return [e.T for e in collfunc(exp, probes, annotation)]
