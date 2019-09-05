@@ -63,7 +63,7 @@ def test_check_atlas_info():
     out = utils.check_atlas_info(ATLAS['image'], atlas_df)
 
     # check bad usage
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         utils.check_atlas_info(ATLAS['image'], [1, 2, 3])
 
     bad_df = pd.DataFrame(columns=['id', 'hemisphere', 'structure'])
