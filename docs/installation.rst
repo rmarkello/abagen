@@ -8,28 +8,28 @@ Installation and setup
 
     Using the instructions for the :ref:`io_installation` is highly
     recommended! It may take a little more set-up depending on your operating
-    system, but the benefits are helpful.
+    system, but the benefits during processing are noticeable!
 
 .. _basic_installation:
 
 Basic installation
 ==================
 
-This package requires Python >= 3.5. Assuming you have the correct version of
+This package requires Python 3.5+. Assuming you have the correct version of
 Python installed, you can install ``abagen`` by opening a terminal and running
 the following:
 
 .. code-block:: bash
 
-   git clone https://github.com/rmarkello/abagen.git
-   cd abagen
-   python setup.py install
+    pip install abagen
 
-Alternatively, you can install from PyPi with:
+Alternatively, you can install the most up-to-date version of from GitHub:
 
 .. code-block:: bash
 
-    pip install abagen
+   git clone https://github.com/rmarkello/abagen.git
+   cd abagen
+   pip install .
 
 .. _io_installation:
 
@@ -48,9 +48,7 @@ additional dependencies. This can be done using ``pip``:
 
 .. code-block:: bash
 
-   git clone https://github.com/rmarkello/abagen.git
-   cd abagen
-   pip install .[io]
+    pip install abagen[io]
 
 .. note::
 
@@ -58,10 +56,10 @@ additional dependencies. This can be done using ``pip``:
     (Debian) or ``snappy-devel`` (Fedora) package before running the above
     installation command!
 
-You can also perform the full installation directly from PyPi with:
+You can also install these extra packages from the GitHub source:
 
 .. code-block:: bash
 
-    pip install abagen[io]
-
-.. _devel_installation:
+   git clone https://github.com/rmarkello/abagen.git
+   cd abagen
+   pip install .[io]
