@@ -326,24 +326,6 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         files['annotation'] = [samples.update_mni_coords(an)
                                for an in files['annotation']]
 
-    # if we're mirroring the samples we need to do it for the following files:
-    #   1. files['microarray'],
-    #   2. files['pacall'], and
-    #   3. files['annotaion']
-    # the other files (ontology and probes) are redundant across subjects and
-    # have no specific sample information (though we do need to pass ontology
-    # for info on the structures / hemisphere associated with each sample)
-    # once we've mirrored, we need to reassign the outputs of the procedure
-    # back to these variables so we can use them in the rest of the pipeline
-    if lr_mirror:
-        lgr.info('Left/right mirroring requests; mirroring samples across '
-                 'hemispheres and updating relevant ontological information')
-        micro, pacall, annot = samples.mirror_samples(files['microarray'],
-                                                      files['pacall'],
-                                                      files['annotation'],
-                                                      files['ontology'])
-        files.update(dict(microarray=micro, pacall=micro, annotation=annot))
-
     # get dataframe of probe information (reannotated or otherwise)
     probe_info = io.read_probes(files['probes'][0], copy=True)
     if reannotated:
@@ -357,6 +339,24 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     lgr.info('{} probes survive intensity-based filtering with threshold of {}'
              .format(len(probe_info), ibf_threshold))
 
+    # if we're mirroring the samples we need to do it for the following files:
+    #   1. files['microarray'],
+    #   2. files['pacall'], and
+    #   3. files['annotaion']
+    # the other files (ontology and probes) are redundant across subjects and
+    # have no specific sample information (though we do need to pass ontology
+    # for info on the structures / hemisphere associated with each sample)
+    # once we've mirrored, we need to reassign the outputs of the procedure
+    # back to these variables so we can use them in the rest of the pipeline
+    if lr_mirror:
+        lgr.info('Left/right mirroring requested; mirroring samples across '
+                 'hemispheres')
+        micro, pacall, annot = samples.mirror_samples(files['microarray'],
+                                                      files['pacall'],
+                                                      files['annotation'],
+                                                      files['ontology'])
+        files.update(dict(microarray=micro, pacall=micro, annotation=annot))
+
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
@@ -365,6 +365,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     microarray = probes.collapse_probes(files['microarray'],
                                         files['annotation'],
                                         probe_info, method=probe_selection)
+    lgr.info('{} genes remain after probe filtering and selection'
+             .format(microarray[0].shape[-1]))
 
     expression, missing = [], []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
