@@ -304,16 +304,20 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                          .format(list(probes.SELECTION_METHODS),
                                  probe_selection))
 
-    # fetch files (downloading if necessary)
+    # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose)
     for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
         if key not in files:
             raise KeyError('Provided `files` dictionary is missing {}. '
                            'Please check inputs.'.format(key))
+    microarray = files['microarray']
+    annotation = files['annotation']
+    pacall = files['pacall']
+    ontology = files['ontology']
+    probe_info = files['probes'][0]
 
-    # get some info on the number of subjects, labels in `atlas_img`
-    num_subj = len(files['microarray'])
+    # get some info on labels in `atlas_img`
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
         lgr.info('Pre-calculating centroids for {} regions in provided atlas'
@@ -321,29 +325,30 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
     # are we using corrected MNI coordinates? update the annotation "files"
-    # accordingly
     if corrected_mni:
-        files['annotation'] = [samples.update_mni_coords(an)
-                               for an in files['annotation']]
+        for n, annot in enumerate(annotation):
+            annotation[n] = samples.update_mni_coords(annot)
 
     # get dataframe of probe information (reannotated or otherwise)
-    probe_info = io.read_probes(files['probes'][0], copy=True)
+    probe_info = io.read_probes(probe_info, copy=True)
     if reannotated:
         lgr.info('Reannotating microarray probes with information from '
                  'Arnatkevic̆iūtė et al., 2019, NeuroImage')
         probe_info = probes.reannotate_probes(probe_info)
 
     # intensity-based filtering of probes
-    probe_info = probes.filter_probes(files['pacall'], probe_info,
-                                      threshold=ibf_threshold)
+    probe_info = probes.filter_probes(pacall, probe_info, ibf_threshold)
     lgr.info('{} probes survive intensity-based filtering with threshold of {}'
              .format(len(probe_info), ibf_threshold))
 
-    # if we're mirroring the samples we need to do it for the following files:
-    #   1. files['microarray'],
-    #   2. files['pacall'], and
-    #   3. files['annotaion']
-    # the other files (ontology and probes) are redundant across subjects and
+    # subset microarray + pacall with filtered probes to save on memory
+    for n in range(len(microarray)):
+        microarray[n] = io.read_microarray(microarray[n]).loc[probe_info.index]
+        pacall[n] = io.read_pacall(pacall[n]).loc[probe_info.index]
+
+    # if we're mirroring the samples we need to do it for microarray, pacall,
+    # and annotation dataframes
+    # the other data (ontology and probes) are redundant across subjects and
     # have no specific sample information (though we do need to pass ontology
     # for info on the structures / hemisphere associated with each sample)
     # once we've mirrored, we need to reassign the outputs of the procedure
@@ -351,43 +356,44 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if lr_mirror:
         lgr.info('Left/right mirroring requested; mirroring samples across '
                  'hemispheres')
-        micro, pacall, annot = samples.mirror_samples(files['microarray'],
-                                                      files['pacall'],
-                                                      files['annotation'],
-                                                      files['ontology'])
-        files.update(dict(microarray=micro, pacall=micro, annotation=annot))
+        microarray, pacall, annotation = samples.mirror_samples(microarray,
+                                                                pacall,
+                                                                annotation,
+                                                                ontology,
+                                                                inplace=True)
+        del pacall  # we don't need this here...
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
     lgr.info('Reducing probes indexing same gene with provided method: "{}"'
              .format(probe_selection))
-    microarray = probes.collapse_probes(files['microarray'],
-                                        files['annotation'],
-                                        probe_info, method=probe_selection)
+    microarray = probes.collapse_probes(microarray, annotation,
+                                        probe_info, method=probe_selection,
+                                        inplace=True)
     lgr.info('{} genes remain after probe filtering and selection'
              .format(microarray[0].shape[-1]))
 
     expression, missing = [], []
-    counts = pd.DataFrame(np.zeros((len(all_labels) + 1, num_subj)),
+    counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray))),
                           index=np.append([0], all_labels))
-    for subj in range(num_subj):
+    for subj in range(len(microarray)):
         # get rid of samples whose coordinates don't match ontological profile
-        annotation = samples.drop_mismatch_samples(files['annotation'][subj],
-                                                   files['ontology'][subj])
+        annotation[subj] = samples.drop_mismatch_samples(annotation[subj],
+                                                         ontology[subj])
 
         # subset representative probes + samples from microarray data
-        data = microarray[subj].loc[annotation.index]
+        microarray[subj] = microarray[subj].loc[annotation[subj].index]
 
         # assign samples to regions and aggregate samples w/i the same region
-        labels = samples.label_samples(annotation, atlas,
+        labels = samples.label_samples(annotation[subj], atlas,
                                        atlas_info=atlas_info,
                                        tolerance=tolerance)
-        expression += [groupby_label(data, labels,
+        expression += [groupby_label(microarray[subj], labels,
                                      all_labels, metric=metric)]
         lgr.info('{:>3} / {} samples matched to regions for donor #{}'
                  .format(np.sum(np.asarray(labels) != 0),
-                         len(annotation),
+                         len(annotation[subj]),
                          datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # get counts of samples collapsed into each ROI
@@ -398,15 +404,15 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         # missing data and the expression data for the closest sample to that
         # parcel; we'll use this once we've iterated through all donors
         if not exact:
-            coords = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
-                                      atlas.affine)
+            cols = ['mni_x', 'mni_y', 'mni_z']
+            coords = utils.xyz_to_ijk(annotation[subj][cols], atlas.affine)
             empty = ~np.in1d(all_labels, labs)
-            closest, dist = utils.closest_centroid(coords, centroids[empty],
-                                                   return_dist=True)
-            closest = data.loc[annotation.iloc[closest].index]
+            idx, dist = utils.closest_centroid(coords, centroids[empty],
+                                               return_dist=True)
+            idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
             empty = all_labels[empty]
-            closest.index = pd.Series(empty, name='label')
-            missing += [(closest, dict(zip(empty, np.diag(dist))))]
+            idx.index = pd.Series(empty, name='label')
+            missing += [(idx, dict(zip(empty, np.diag(dist))))]
 
     # check for missing ROIs and fill in, as needed
     if not exact:

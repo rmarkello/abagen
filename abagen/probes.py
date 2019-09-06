@@ -272,26 +272,22 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
     """
 
     # collapse (i.e., average) expression across AHBA anatomical regions
-    region_exp = []
-    for exp, annot in zip(expression, annotation):
-        sid = io.read_annotation(annot)['structure_id']
-        exp = exp.rename(dict(zip(exp.columns, sid)), axis=1)
-        region_exp.append(exp.groupby(exp.columns, axis=1).mean())
+    region_exp = [_groupby_structure_id(exp, annot)
+                  for exp, annot in zip(expression, annotation)]
 
     # get correlation of probe expression across samples for all donor pairs
     probe_exp = np.zeros((len(probes), sum(range(len(expression)))))
     for n, (exp1, exp2) in enumerate(itertools.combinations(region_exp, 2)):
-
         # samples that current donor pair have in common
         samples = np.intersect1d(exp1.columns, exp2.columns)
 
         # the ranking process can take a few seconds on each loop
         # unfortunately, we have to do it each time because `samples` changes
         # based on which anatomical regions the two subjects have in common
-        m1 = exp1.loc[:, samples].T.rank()
-        m2 = exp2.loc[:, samples].T.rank()
+        exp1 = exp1.loc[:, samples].T.rank()
+        exp2 = exp2.loc[:, samples].T.rank()
 
-        probe_exp[:, n] = utils.efficient_corr(m1, m2)
+        probe_exp[:, n] = utils.efficient_corr(exp1, exp2)
 
     info = pd.DataFrame(dict(gene_symbol=np.asarray(probes.gene_symbol),
                              diff_stability=probe_exp.mean(axis=1)),
@@ -299,6 +295,32 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
     applyfunc = functools.partial(_max_idx, column='diff_stability')
 
     return _groupby_and_apply(expression, probes, info, applyfunc)
+
+
+def _groupby_structure_id(microarray, annotation):
+    """
+    Averages samples in `microarray` having identical structure IDs
+
+    Parameters
+    ----------
+    microarray : pandas.DataFrame
+        Dataframe should have `P` rows representing probes and `S` columns
+        representing distinct samples, with values indicating microarray
+        expression levels
+    annotation : pandas.DataFrame
+        Annotation dataframe, obtained by loading an annotation file from Allen
+        Brain Institute
+
+    Returns
+    -------
+    expression : pandas.DataFrame
+
+    """
+    sid = io.read_annotation(annotation)['structure_id']
+    microarray = io.read_microarray(microarray)
+    microarray = microarray.rename(dict(zip(microarray.columns, sid)), axis=1)
+
+    return microarray.groupby(microarray.columns, axis=1).mean()
 
 
 def _average(expression, probes, *args, **kwargs):
@@ -406,7 +428,8 @@ SELECTION_METHODS = dict(
 )
 
 
-def collapse_probes(microarray, annotation, probes, method='diff_stability'):
+def collapse_probes(microarray, annotation, probes, method='diff_stability',
+                    inplace=False):
     """
     Reduces `microarray` to a sample x gene expression dataframe
 
@@ -436,6 +459,9 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
         same gene. Must be one of 'average', 'intensity', 'variance',
         'pc_loading', 'corr_variance', 'corr_intensity', or 'diff_stability';
         see Notes for more information. Default: 'diff_stability'
+    inplace : bool, optional
+        Whether to conserve memory by editing dataframes in-place instead of
+        returning edited copies. Default: False
 
     Returns
     -------
@@ -583,7 +609,8 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     # read in microarray data for all subjects; this can be quite slow...
     probes = io.read_probes(probes)
     exp = [
-        io.read_microarray(m, copy=True).loc[probes.index] for m in microarray
+        io.read_microarray(m, copy=not inplace).loc[probes.index]
+        for m in microarray
     ]
 
     return [e.T for e in collfunc(exp, probes, annotation)]
