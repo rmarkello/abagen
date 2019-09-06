@@ -29,14 +29,12 @@ pdf>`_ that you can use:
    >>> atlas = abagen.fetch_desikan_killiany()
 
 Here, the returned object ``atlas`` is a dictionary with two keys: ``image``,
-which is a preloaded Nifti image containing the atlas data, and ``info``, which
-is a ``pandas.DataFrame`` containing auxilliary information about the
+which is filepath to a Nifti image containing the atlas data, and ``info``,
+which is a filepath to a CSV file containing auxilliary information about the
 parcellation:
 
 .. doctest::
 
-    >>> print(atlas.keys())
-    dict_keys(['image', 'info'])
     >>> print(atlas['image'])  # doctest: +ELLIPSIS
     /.../atlas-desikankilliany.nii.gz
     >>> print(atlas['info'])  # doctest: +ELLIPSIS

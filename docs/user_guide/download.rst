@@ -15,7 +15,7 @@ following command:
 .. doctest::
 
     >>> import abagen
-    >>> files = abagen.fetch_microarray(donors='all')
+    >>> files = abagen.fetch_microarray(donors='all', verbose=0)
 
 .. note::
 
@@ -68,8 +68,8 @@ microarray dataset:
 
 .. doctest::
 
-    >>> print(files.keys())
-    dict_keys(['microarray', 'ontology', 'pacall', 'probes', 'annotation'])
+    >>> print(sorted(files))
+    ['annotation', 'microarray', 'ontology', 'pacall', 'probes']
 
 You can load the data in these files using the :mod:`abagen.io` functions.
 There are IO functions for each of the five file types; you can get more
