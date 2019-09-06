@@ -3,6 +3,8 @@
 Defining a parcellation
 =======================
 
+.. _usage_parcellations_acceptable:
+
 Acceptable parcellations
 ------------------------
 
@@ -22,26 +24,28 @@ For demonstration purposes, ``abagen`` has a copy of the `Desikan-Killiany
 atlas <https://surfer.nmr.mgh.harvard.edu/ftp/articles/desikan06-parcellation.
 pdf>`_ that you can use:
 
-.. code-block:: python
+.. doctest::
 
    >>> atlas = abagen.fetch_desikan_killiany()
 
 Here, the returned object ``atlas`` is a dictionary with two keys: ``image``,
-which is a filepath to the Nifti containing the atlas data, and ``info``, which
-is a filepath to a CSV file containing auxilliary information about the
+which is a preloaded Nifti image containing the atlas data, and ``info``, which
+is a ``pandas.DataFrame`` containing auxilliary information about the
 parcellation:
 
-.. code-block:: python
+.. doctest::
 
     >>> print(atlas.keys())
     dict_keys(['image', 'info'])
-    >>> atlas['image']
-    '/local/path/to/atlas-desikankilliany.nii.gz'
-    >>> atlas['info']
-    '/local/path/to/atlas-desikankilliany.csv'
+    >>> print(atlas['image'])  # doctest: +ELLIPSIS
+    /.../atlas-desikankilliany.nii.gz
+    >>> print(atlas['info'])  # doctest: +ELLIPSIS
+    /.../atlas-desikankilliany.csv
 
-Additional parcellation info
-----------------------------
+.. _usage_parcellations_additional:
+
+Providing additional parcellation info
+--------------------------------------
 
 While only the image (i.e., Nifti file) is required for processing the
 microarray data, the CSV file with information on the parcellation scheme can
@@ -60,28 +64,34 @@ must ensure it has the following columns:
 
 For example, a valid CSV might look like this:
 
-.. code-block:: python
+.. doctest::
 
     >>> import pandas as pd
-    >>> pd.read_csv(atlas['info']).head()
-       id                    label hemisphere structure
-    0   1  lateralorbitofrontal_rh          R    cortex
-    1   2         parsorbitalis_rh          R    cortex
-    2   3           frontalpole_rh          R    cortex
-    3   4   medialorbitofrontal_rh          R    cortex
-    4   5      parstriangularis_rh          R    cortex
+    >>> atlas_info = pd.read_csv(atlas['info'])
+    >>> print(atlas_info)
+        id                    label hemisphere  structure
+    0    1  lateralorbitofrontal_rh          R     cortex
+    1    2         parsorbitalis_rh          R     cortex
+    2    3           frontalpole_rh          R     cortex
+    ..  ..                      ...        ...        ...
+    80  81           hippocampus_lh          L  subcortex
+    81  82              amygdala_lh          L  subcortex
+    82  83             brainstem_lh          L  subcortex
+    <BLANKLINE>
+    [83 rows x 4 columns]
+
 
 Notice that extra columns (i.e., ``label``) are okay as long as the three
 required columns are present! If you want to confirm your file is formatted
 correctly you can use :func:`abagen.utils.check_atlas_info`:
 
-.. code-block:: python
+.. doctest::
 
     >>> from abagen import utils
     >>> utils.check_atlas_info(atlas['image'], atlas['info'], validate=True)
 
-If something is amiss with the file this function will raise a ``ValueError``
-and try to give some information about what you should check for.
+If something is amiss with the file this function will raise an error and try
+to give some information about what you should check for.
 
 .. important::
 
