@@ -1,19 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+Fixtures for all abagen tests
+"""
+
+import os
 import pytest
+
 from abagen.datasets import fetch_desikan_killiany, fetch_microarray
 
 
 @pytest.fixture(scope='session')
-def testdir(tmpdir_factory):
-    data_dir = tmpdir_factory.mktemp('data')
-    return str(data_dir)
+def datadir():
+    return os.path.join(os.environ['HOME'], 'abagen-data')
 
 
 @pytest.fixture(scope='session')
-def testfiles(testdir):
-    files = fetch_microarray(data_dir=testdir,
-                             donors=['12876', '15496'],
-                             convert=True)
-    return files
+def testfiles():
+    return fetch_microarray(donors=['12876', '15496'])
 
 
 @pytest.fixture(scope='session')

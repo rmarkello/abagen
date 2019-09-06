@@ -14,10 +14,9 @@ from abagen import allen, correct, io
 
 
 @pytest.fixture(scope='module')
-def donor_expression(testdir, testfiles, atlas):
+def donor_expression(testfiles, atlas):
     return allen.get_expression_data(atlas['image'], atlas['info'],
                                      exact=False, return_donors=True,
-                                     data_dir=testdir,
                                      donors=['12876', '15496'])
 
 
