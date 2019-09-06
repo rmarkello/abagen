@@ -9,6 +9,7 @@ Authored by: @effigies and @matthew-brett for `nibabel`, licensed under MIT
 """
 
 import os
+import re
 import runpy
 
 readme_lines = []
@@ -20,9 +21,11 @@ with open('README.rst', 'rt') as fobj:
     else:
         raise ValueError('Expected comment not found')
 
-rel = runpy.run_path(os.path.join('abagen', 'info.py'))
+# strip doctest markers out of README
+rel = runpy.run_path(os.path.join('abagen', 'info.py'))['long_description']
+rel = re.sub(r'(\s)*\# doctest: +(\S)*\n', '\n', rel)
 
-readme = ''.join(readme_lines) + '\n' + rel['long_description']
+readme = ''.join(readme_lines) + '\n' + rel
 
 with open('README.rst', 'wt') as fobj:
     fobj.write(readme)

@@ -78,7 +78,7 @@ At it's core, using ``abagen`` is as simple as:
 .. code-block:: python
 
     >>> import abagen
-    >>> expression = abagen.get_expression_data('myatlas.nii.gz')
+    >>> expression = abagen.get_expression_data('myatlas.nii.gz')  # doctest: +SKIP
 
 where ``'myatlas.nii.gz'`` points to a Nifti file that defines a brain
 parcellation in MNI space.

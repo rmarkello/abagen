@@ -80,7 +80,7 @@ At it's core, using ``abagen`` is as simple as:
 where ``'myatlas.nii.gz'`` points to a Nifti file that defines a brain
 parcellation in MNI space.
 
-The same command can be called from the command line:
+This function can also be called from the command line with:
 
 .. code-block:: bash
 
