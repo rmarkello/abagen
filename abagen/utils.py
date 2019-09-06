@@ -92,7 +92,10 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
     atlas = check_img(atlas)
     ids = get_unique_labels(atlas) if labels is None else labels
     valid_structures = list(ONTOLOGY.value_set('structure'))
-    hemi_swap = dict(lh='L', LH='L', rh='R', RH='R')
+    hemi_swap = {
+        'lh': 'L', 'LH': 'L', 'l': 'L',
+        'rh': 'R', 'RH': 'R', 'r': 'R'
+    }
     expected_cols = ['hemisphere', 'structure']
 
     # load info, if not already
