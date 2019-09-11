@@ -68,9 +68,9 @@ script:
       cd docs;
       pip install -r ./requirements.txt;
       make html;
-      make doctest;
+      travis_wait 40 make doctest;
     elif [ "${CHECK_TYPE}" == "test" ]; then
-      travis_wait 30 python -m pytest --cov-report term-missing --cov=abagen --doctest-modules abagen;
+      travis_wait 40 python -m pytest --cov-report term-missing --cov=abagen --doctest-modules abagen;
     else
       false;
     fi

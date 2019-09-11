@@ -1,52 +1,62 @@
+# -*- coding: utf-8 -*-
+"""
+Tests for abagen.allen module
+"""
+
 import pandas as pd
+import pytest
+
 from abagen import allen
-from abagen.datasets import fetch_desikan_killiany
 from abagen.utils import check_img
 
-ATLAS = fetch_desikan_killiany()
 
-
-def test_vanilla_get_expression_data(testdir, testfiles):
-    out = allen.get_expression_data(ATLAS['image'], data_dir=testdir,
-                                    donors=['12876', '15496'])
+def test_vanilla_get_expression_data(testfiles, atlas):
+    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
 
-def test_extra_get_expression_data(testdir, testfiles):
-    for opts in [{'atlas_info': ATLAS['info']},
-                 {'exact': False},
-                 {'reannotated': False},
-                 {'atlas_info': ATLAS['info'], 'exact': False}]:
-        out = allen.get_expression_data(ATLAS['image'], data_dir=testdir,
-                                        donors=['12876', '15496'], **opts)
-        assert isinstance(out, pd.DataFrame)
-        assert out.index.name == 'label'
-        assert out.columns.name == 'gene_symbol'
+@pytest.mark.parametrize('opts', [
+    ({'atlas_info': True}),
+    ({'exact': False}),
+    ({'reannotated': False}),
+    ({'atlas_info': True, 'exact': False}),
+])
+def test_extra_get_expression_data(testfiles, atlas, opts):
+    if opts.get('atlas_info'):
+        opts['atlas_info'] = atlas['info']
+
+    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'],
+                                    **opts)
+    assert isinstance(out, pd.DataFrame)
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
 
 
-def test_missing_labels(testdir, testfiles):
+def test_missing_labels(testfiles, atlas):
     # remove some labels from atlas image so numbers are non-sequential
     remove = [10, 20, 60]
+
     # subset atlas image
-    atlas = check_img(ATLAS['image'])
-    atlas_data = atlas.get_data()
+    img = check_img(atlas['image'])
+    img_data = img.get_data()
     for i in remove:
-        atlas_data[atlas_data == i] = 0
-    atlas = atlas.__class__(atlas_data, atlas.affine)
+        img_data[img_data == i] = 0
+    img = img.__class__(img_data, img.affine)
+
     # subset atlas info
-    atlas_info = pd.read_csv(ATLAS['info'])
-    atlas_info = atlas_info[~atlas_info['id'].isin(remove)]
+    info = pd.read_csv(atlas['info'])
+    info = info[~info['id'].isin(remove)]
+
     # test get expression
-    out, counts = allen.get_expression_data(atlas, atlas_info,
+    out, counts = allen.get_expression_data(img, info,
                                             exact=False, return_counts=True,
-                                            data_dir=testdir,
                                             donors=['12876', '15496'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
-    assert len(out) == len(atlas_info)
+    assert len(out) == len(info)
 
     assert isinstance(counts, pd.DataFrame)
-    assert counts.shape == (len(atlas_info), len(testfiles['probes']))
+    assert counts.shape == (len(info), len(testfiles['probes']))

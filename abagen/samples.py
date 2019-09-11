@@ -363,7 +363,7 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
                         columns=['label'], index=annotation.index)
 
 
-def mirror_samples(microarray, pacall, annotation, ontology):
+def mirror_samples(microarray, pacall, annotation, ontology, inplace=False):
     """
     Mirrors all tissue samples across hemispheres (L->R and R->L)
 
@@ -372,22 +372,25 @@ def mirror_samples(microarray, pacall, annotation, ontology):
 
     Parameters
     ----------
-    microarray : list of str
+    microarray : list of str or pandas.DataFrame
         List of filepaths to microarray expression files from Allen Brain
         Institute (i.e., as obtained by calling :func:`abagen.fetch_microarray`
         and accessing the `microarray` attribute on the resulting object).
-    pacall : list of str
+    pacall : list of str or pandas.DataFrame
         List of filepaths to pacall files from Allen Brain Institute (i.e., as
         obtained by calling :func:`abagen.fetch_microarray` and accessing the
         `pacall` attribute on the resulting object).
-    annotation : list of str
+    annotation : list of str or pandas.DataFrame
         List of filepaths to annotation files from Allen Brain Institute (i.e.,
         as obtained by calling :func:`abagen.fetch_microarray` and accessing
         the `annotation` attribute on the resulting object).
-    ontology : list of str
+    ontology : list of str or pandas.DataFrame
         List of filepaths to ontology files from Allen Brain Institute (i.e.,
         as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `ontoloy` attribute on the resulting object).
+        the `ontology` attribute on the resulting object).
+    inplace : bool, optional
+        Whether to conserve memory by editing dataframes in-place instead of
+        returning edited copies. Default: False
 
     Returns
     -------
@@ -415,7 +418,7 @@ def mirror_samples(microarray, pacall, annotation, ontology):
             inp[n] = [i]
 
     # flipped will be a list of len-3 tuples: (microarray, pacall, annotation)
-    flipped = [_mirror_samples(*i) for i in zip(*inp)]
+    flipped = [_mirror_samples(*i, inplace=inplace) for i in zip(*inp)]
 
     # unpack so that even if user assigns output to 1 variable they get a tuple
     microarray, pacall, annotation = [list(f) for f in zip(*flipped)]
@@ -423,12 +426,15 @@ def mirror_samples(microarray, pacall, annotation, ontology):
     return microarray, pacall, annotation
 
 
-def _mirror_samples(microarray, pacall, annotation, ontology):
+def _mirror_samples(microarray, pacall, annotation, ontology, inplace=False):
     """
     Mirrors tissue samples across hemispheres for single donor
 
-    microarray,pacall,annotation,ontology : str
+    microarray,pacall,annotation,ontology : str or pandas.DataFrame
         Filepath to {microarray,pacall,annotation,ontology} file
+    inplace : bool, optional
+        Whether to conserve memory by editing dataframes in-place instead of
+        returning edited copies. Default: False
 
     Returns
     -------
@@ -436,9 +442,9 @@ def _mirror_samples(microarray, pacall, annotation, ontology):
         Loaded input data with all samples duplicated across hemispheres
     """
 
-    microarray = io.read_microarray(microarray, copy=True)
-    pacall = io.read_pacall(pacall, copy=True)
-    annotation = io.read_annotation(annotation, copy=True)
+    microarray = io.read_microarray(microarray, copy=not inplace)
+    pacall = io.read_pacall(pacall, copy=not inplace)
+    annotation = io.read_annotation(annotation, copy=not inplace)
     ontology = io.read_ontology(ontology)
 
     # take all lh and rh samples and flip x-coordinate
@@ -446,19 +452,19 @@ def _mirror_samples(microarray, pacall, annotation, ontology):
     # used when dropping mismatched samples later in the workflow
     lh = _mirror_ontology(annotation[annotation['mni_x'] < 0], ontology)
     rh = _mirror_ontology(annotation[annotation['mni_x'] > 0], ontology)
-    flipped = pd.concat([lh, rh])
-    flipped['mni_x'] *= -1
+    for df in [lh, rh]:
+        df['mni_x'] *= -1
 
     # grow microarray and pacall based on duplicated samples
-    annotation = pd.concat([annotation, flipped])
+    annotation = pd.concat([annotation, lh, rh])
     microarray = microarray.loc[:, annotation.index]
     pacall = pacall.loc[:, annotation.index]
 
     # now reset index / columns of all dataframes to be consecutive
     sids = pd.Series(range(len(annotation)), name='sample_id')
-    annotation.index = sids
     microarray.columns = sids
     pacall.columns = sids
+    annotation.index = sids
 
     return microarray, pacall, annotation
 

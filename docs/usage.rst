@@ -23,3 +23,4 @@ abagen/issues>`_.
    user_guide/download.rst
    user_guide/parcellations.rst
    user_guide/expression.rst
+   user_guide/probes.rst

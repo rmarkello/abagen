@@ -77,6 +77,7 @@ Reference API
 
    abagen.remove_distance
    abagen.keep_stable_genes
+   abagen.normalize_expression
 
 :mod:`abagen.utils` - Utility functions
 ---------------------------------------

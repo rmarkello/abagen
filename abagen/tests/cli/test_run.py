@@ -11,7 +11,7 @@ from abagen import __version__ as version
 from abagen.cli import run
 
 
-def test_run_get_parser(capsys, atlas, testdir):
+def test_run_get_parser(capsys, atlas, datadir):
     parser = run.get_parser()
 
     # since we have a positional argument this fails, hard
@@ -54,7 +54,7 @@ def test_run_get_parser(capsys, atlas, testdir):
         '--debug',
         '--atlas-info', atlas['info'],
         '--donors', '12876', '15496',
-        '--data-dir', testdir,
+        '--data-dir', datadir,
         '--inexact',
         '--tol', '5',
         '--ibf-threshold', '0.6',
@@ -69,12 +69,12 @@ def test_run_get_parser(capsys, atlas, testdir):
     ])
 
 
-def test_run_main(capsys, atlas, testdir):
-    outputfile = os.path.join(str(testdir), 'abagen_expression.csv')
+def test_run_main(capsys, atlas, datadir):
+    outputfile = os.path.join(datadir, 'abagen_expression.csv')
 
     # check basic usage
     run.main([
-        '--data-dir', testdir,
+        '--data-dir', datadir,
         '--donors', '12876', '15496',
         '--output-file', outputfile,
         atlas['image']
@@ -83,7 +83,7 @@ def test_run_main(capsys, atlas, testdir):
 
     # check that save donors/counts outputs desired files
     run.main([
-        '--data-dir', testdir,
+        '--data-dir', datadir,
         '--donors', '12876', '15496',
         '--output-file', outputfile,
         '--save-donors', '--save-counts',
@@ -94,7 +94,7 @@ def test_run_main(capsys, atlas, testdir):
 
     # check stdout (BLARGH)
     run.main([
-        '--data-dir', testdir,
+        '--data-dir', datadir,
         '--donors', '12876', '15496',
         '--output-file', outputfile,
         '--stdout',

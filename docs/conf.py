@@ -106,3 +106,12 @@ intersphinx_mapping = {
     'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
 }
+
+doctest_global_setup = """
+import abagen
+abagen.fetch_microarray(donors='all', verbose=0)
+atlas = abagen.fetch_desikan_killiany()
+
+import pandas as pd
+pd.set_option('max_rows', 6)
+"""
