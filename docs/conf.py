@@ -109,7 +109,9 @@ intersphinx_mapping = {
 
 doctest_global_setup = """
 import abagen
-import pandas as pd
+abagen.fetch_microarray(donors='all', verbose=0)
 atlas = abagen.fetch_desikan_killiany()
+
+import pandas as pd
 pd.set_option('max_rows', 6)
 """

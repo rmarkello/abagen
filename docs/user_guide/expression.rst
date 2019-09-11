@@ -145,6 +145,7 @@ return a dense matrix (at the expense of some anatomical precision):
 .. insert figure demonstration matching of samples with ``exact`` parameter
 
 .. doctest::
+    :options: +SKIP
 
     >>> exp_exact = abagen.get_expression_data(atlas['image'], atlas['info'], exact=False)
     >>> print(exp_exact)
@@ -182,6 +183,7 @@ but it will dramatically increase the likelihood that this will happen:
 .. insert figure demonstrating duplication of samples across hemispheres
 
 .. doctest::
+    :options: +SKIP
 
     >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'], lr_mirror=True)
     >>> print(exp_mirror)

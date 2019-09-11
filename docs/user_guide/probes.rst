@@ -3,4 +3,6 @@
 Probe selection options
 =======================
 
-The AHBA data
+<COMING SOON>
+
+(For now, refer to the :ref:`api_ref`)
