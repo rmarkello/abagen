@@ -4,6 +4,10 @@ dist: xenial
 notifications:
   email: change
 
+branches:
+  only:
+    - master
+
 python:
   - 3.5
   - 3.6
@@ -70,7 +74,10 @@ script:
       make html;
       travis_wait 40 make doctest;
     elif [ "${CHECK_TYPE}" == "test" ]; then
-      travis_wait 40 python -m pytest --cov-report term-missing --cov=abagen --doctest-modules abagen;
+      mkdir for_testing && cd for_testing;
+      cp ../setup.cfg .;
+      args="--cov-report term-missing --cov=abagen --doctest-modules --pyargs";
+      travis_wait 40 python -m pytest ${args} ${rootdir} abagen;
     else
       false;
     fi
