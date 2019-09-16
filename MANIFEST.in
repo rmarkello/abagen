@@ -1,3 +1,5 @@
 include README.* LICENSE setup* MANIFEST.in CHANGELOG requirements.txt
+recursive-include abagen/data *
+recursive-include abagen/tests/data *
 include versioneer.py
 include abagen/_version.py
