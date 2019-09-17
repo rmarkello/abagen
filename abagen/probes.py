@@ -518,86 +518,87 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
     References
     ----------
     .. [PR1] Anderson, K. M., Krienen, F. M., Choi, E. Y., Reinen, J. M., Yeo,
-    B. T., & Holmes, A. J. (2018). Gene expression links functional networks
-    across cortex and striatum. Nature Communications, 9(1), 1428.
+       B. T., & Holmes, A. J. (2018). Gene expression links functional networks
+       across cortex and striatum. Nature Communications, 9(1), 1428.
 
     .. [PR2] Burt, J. B., Demirtaş, M., Eckner, W. J., Navejar, N. M., Ji, J.
-    L., Martin, W. J., ... & Murray, J. D. (2018). Hierarchy of transcriptomic
-    specialization across human cortex captured by structural neuroimaging
-    topography. Nature Neuroscience, 21(9), 1251.
+       L., Martin, W. J., ... & Murray, J. D. (2018). Hierarchy of
+       transcriptomic specialization across human cortex captured by structural
+       neuroimaging topography. Nature Neuroscience, 21(9), 1251.
 
     .. [PR3] Eising, E., Huisman, S. M., Mahfouz, A., Vijfhuizen, L. S.,
-    Anttila, V., Winsvold, B. S., ... & Boomsma, D. I. (2016). Gene
-    co-expression analysis identifies brain regions and cell types involved in
-    migraine pathophysiology: a GWAS-based study using the Allen Human Brain
-    Atlas. Human Genetics, 135(4), 425-439.
+       Anttila, V., Winsvold, B. S., ... & Boomsma, D. I. (2016). Gene
+       co-expression analysis identifies brain regions and cell types involved
+       in migraine pathophysiology: a GWAS-based study using the Allen Human
+       Brain Atlas. Human Genetics, 135(4), 425-439.
 
     .. [PR4] Forest, M., Iturria‐Medina, Y., Goldman, J. S., Kleinman, C. L.,
-    Lovato, A., Oros Klein, K., ... & Greenwood, C. M. (2017). Gene networks
-    show associations with seed region connectivity. Human Brain Mapping,
-    38(6), 3126-3140.
+       Lovato, A., Oros Klein, K., ... & Greenwood, C. M. (2017). Gene networks
+       show associations with seed region connectivity. Human Brain Mapping,
+       38(6), 3126-3140.
 
     .. [PR5] French, L., & Paus, T. (2015). A FreeSurfer view of the cortical
-    transcriptome generated from the Allen Human Brain Atlas. Frontiers in
-    Neuroscience, 9, 323.
+       transcriptome generated from the Allen Human Brain Atlas. Frontiers in
+       Neuroscience, 9, 323.
 
     .. [PR6] Hawrylycz, M. J., Lein, E. S., Guillozet-Bongaarts, A. L., Shen,
-    E. H., Ng, L., Miller, J. A., ... & Abajian, C. (2012). An anatomically
-    comprehensive atlas of the adult human brain transcriptome. Nature,
-    489(7416), 391.
+       E. H., Ng, L., Miller, J. A., ... & Abajian, C. (2012). An anatomically
+       comprehensive atlas of the adult human brain transcriptome. Nature,
+       489(7416), 391.
 
     .. [PR7] Hawrylycz, M., Miller, J. A., Menon, V., Feng, D., Dolbeare, T.,
-    Guillozet-Bongaarts, A. L., ... & Glasser, M. F. (2015). Canonical genetic
-    signatures of the adult human brain. Nature Neuroscience, 18(12), 1832.
+       Guillozet-Bongaarts, A. L., ... & Glasser, M. F. (2015). Canonical
+       genetic signatures of the adult human brain. Nature Neuroscience,
+       18(12), 1832.
 
     .. [PR8] Kirsch, L., & Chechik, G. (2016). On expression patterns and
-    developmental origin of human brain regions. PLoS Computational Biology,
-    12(8), e1005064.
+       developmental origin of human brain regions. PLoS Computational Biology,
+       12(8), e1005064.
 
     .. [PR9] Krienen, F. M., Yeo, B. T., Ge, T., Buckner, R. L., & Sherwood, C.
-    C. (2016). Transcriptional profiles of supragranular-enriched genes
-    associate with corticocortical network architecture in the human brain.
-    Proceedings of the National Academy of Sciences, 113(4), E469-E478.
+       C. (2016). Transcriptional profiles of supragranular-enriched genes
+       associate with corticocortical network architecture in the human brain.
+       Proceedings of the National Academy of Sciences, 113(4), E469-E478.
 
     .. [PR10] McColgan, P., Gregory, S., Seunarine, K. K., Razi, A., Papoutsi,
-    M., Johnson, E., ... & Scahill, R. I. (2018). Brain regions showing white
-    matter loss in Huntington’s disease are enriched for synaptic and metabolic
-    genes. Biological Psychiatry, 83(5), 456-465.
+       M., Johnson, E., ... & Scahill, R. I. (2018). Brain regions showing
+       white matter loss in Huntington’s disease are enriched for synaptic and
+       metabolic genes. Biological Psychiatry, 83(5), 456-465.
 
     .. [PR11] Myers, E. M., Bartlett, C. W., Machiraju, R., & Bohland, J. W.
-    (2015). An integrative analysis of regional gene expression profiles in the
-    human brain. Methods, 73, 54-70.S
+       (2015). An integrative analysis of regional gene expression profiles in
+       the human brain. Methods, 73, 54-70.S
 
     .. [PR12] Negi, S. K., & Guda, C. (2017). Global gene expression profiling
-    of healthy human brain and its application in studying neurological
-    disorders. Scientific Reports, 7(1), 897.
+       of healthy human brain and its application in studying neurological
+       disorders. Scientific Reports, 7(1), 897.
 
     .. [PR13] Parkes, L., Fulcher, B. D., Yücel, M., & Fornito, A. (2017).
-    Transcriptional signatures of connectomic subregions of the human striatum.
-    Genes, Brain and Behavior, 16(7), 647-663.
+       Transcriptional signatures of connectomic subregions of the human
+       striatum. Genes, Brain and Behavior, 16(7), 647-663.
 
     .. [PR14] Romero-Garcia, R., Whitaker, K. J., Váša, F., Seidlitz, J.,
-    Shinn, M., Fonagy, P., ... & Vértes, P. E. (2018). Structural covariance
-    networks are coupled to expression of genes enriched in supragranular
-    layers of the human cortex. NeuroImage, 171, 256-267.
+       Shinn, M., Fonagy, P., ... & Vértes, P. E. (2018). Structural covariance
+       networks are coupled to expression of genes enriched in supragranular
+       layers of the human cortex. NeuroImage, 171, 256-267.
 
     .. [PR15] Tan, P. P. C., French, L., & Pavlidis, P. (2013). Neuron-enriched
-    gene expression patterns are regionally anti-correlated with
-    oligodendrocyte-enriched patterns in the adult mouse and human brain.
-    Frontiers in Neuroscience, 7, 5.
+       gene expression patterns are regionally anti-correlated with
+       oligodendrocyte-enriched patterns in the adult mouse and human brain.
+       Frontiers in Neuroscience, 7, 5.
 
     .. [PR16] Vértes, P. E., Rittman, T., Whitaker, K. J., Romero-Garcia, R.,
-    Váša, F., Kitzbichler, M. G., ... & Goodyer, I. M. (2016). Gene
-    transcription profiles associated with inter-modular hubs and connection
-    distance in human functional magnetic resonance imaging networks.
-    Philosophical Transactions of the Royal Society B: Biological Sciences,
-    371(1705), 20150362.
+       Váša, F., Kitzbichler, M. G., ... & Goodyer, I. M. (2016). Gene
+       transcription profiles associated with inter-modular hubs and connection
+       distance in human functional magnetic resonance imaging networks.
+       Philosophical Transactions of the Royal Society B: Biological Sciences,
+       371(1705), 20150362.
 
     .. [PR17] Whitaker, K. J., Vértes, P. E., Romero-Garcia, R., Váša, F.,
-    Moutoussis, M., Prabhu, G., ... & Tait, R. (2016). Adolescence is
-    associated with genomically patterned consolidation of the hubs of the
-    human brain connectome. Proceedings of the National Academy of Sciences,
-    113(32), 9105-9110.
+       Moutoussis, M., Prabhu, G., ... & Tait, R. (2016). Adolescence is
+       associated with genomically patterned consolidation of the hubs of the
+       human brain connectome. Proceedings of the National Academy of Sciences,
+       113(32), 9105-9110.
     """
 
     try:
