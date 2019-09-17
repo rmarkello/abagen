@@ -12,6 +12,14 @@ Once you've downladed the microarray data and selected your parcellation you
 can process the data. This is as simple as:
 
 .. doctest::
+    :options: +SKIP
+
+    >>> expression = abagen.get_expression_data(atlas['image'])
+
+But it is highly recommended you provide the additional information on your
+parcellation, which can be done with:
+
+.. doctest::
 
     >>> expression = abagen.get_expression_data(atlas['image'], atlas['info'])
 
@@ -116,9 +124,9 @@ consider tuning to try and achieve this.
 Inexact matching with the ``exact`` parameter
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the :func:`~.get_expression_data` function will attempt to be as
-precise as possible in matching microarray samples with brain regions. It takes
-the following steps to do this for each tissue sample:
+By default, the :func:`abagen.get_expression_data` function will attempt to be
+as precise as possible in matching microarray samples with brain regions. It
+takes the following steps to do this for each tissue sample:
 
     1. Determine if the sample falls directly within a region of ``atlas``.
     2. Check to see if the sample is close to any regions by slowly expanding
@@ -139,8 +147,8 @@ check for any remaining "empty" regions and assign them the expression values
 of the sample falling closest to the center of mass of that region. In this
 way every brain region is matched to *at least* one sample.
 
-Thus, passing ``exact=False`` when calling :func:`~.get_expression_data` will
-return a dense matrix (at the expense of some anatomical precision):
+Thus, passing ``exact=False`` when calling :func:`abagen.get_expression_data`
+will return a dense matrix (at the expense of some anatomical precision):
 
 .. insert figure demonstration matching of samples with ``exact`` parameter
 
@@ -173,10 +181,10 @@ will be matched to at least one sample, whereas regions in the right hemisphere
 may come up short.
 
 To remedy this you can try setting the ``lr_mirror`` parameter to ``True`` when
-calling :func:`~.get_expression_data`. This, as the name suggests, performs a
-left/right mirroring of all the tissue samples from all donors. That is, all
-samples in the left hemisphere are duplicated and mirrored onto the right
-hemisphere, and vice-versa for right to left. Unlike the ``exact=False``
+calling :func:`abagen.get_expression_data`. This, as the name suggests,
+performs a left/right mirroring of all the tissue samples from all donors. That
+is, all samples in the left hemisphere are duplicated and mirrored onto the
+right hemisphere, and vice-versa for right to left. Unlike the ``exact=False``
 parameter this will not *guarantee* that all regions are matched to a sample,
 but it will dramatically increase the likelihood that this will happen:
 
