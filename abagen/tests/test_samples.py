@@ -17,6 +17,8 @@ from abagen import samples
 
 @pytest.fixture(scope='module')
 def ontology():
+    """ Fake ontology dataframe
+    """
     sid = [4251, 4260, 4322, 4323, 9422]
     hemi = ['L', 'R', 'L', 'R', np.nan]
     acronym = ['S', 'S', 'Cl', 'Cl', 'CC']
@@ -40,6 +42,8 @@ def ontology():
 
 @pytest.fixture(scope='module')
 def mm_annotation():
+    """ Fake annotation dataframe with some samples mislabelled
+    """
     mni_x = [-10, -20, 30, 40, 0]
     sid = [4251, 4323, 4323, 4251, 9422]
     sacr = ['S', 'Cl', 'Cl', 'S', 'CC']
@@ -58,6 +62,8 @@ def mm_annotation():
 
 @pytest.fixture(scope='module')
 def annotation(mm_annotation):
+    """ Fake annotation dataframe
+    """
     out = mm_annotation.loc[[0, 2, 4]].reset_index(drop=True)
     out.index.name = 'sample_id'
     return out
@@ -65,6 +71,8 @@ def annotation(mm_annotation):
 
 @pytest.fixture(scope='module')
 def microarray():
+    """ Fake microarray dataframe
+    """
     data = np.arange(9).reshape(3, 3)
     cols = pd.Series(range(3), name='sample_id')
     ind = pd.Series([1058685, 1058684, 1058683], name='probe_id')
@@ -73,6 +81,8 @@ def microarray():
 
 @pytest.fixture(scope='module')
 def pacall(microarray):
+    """ Fake PACall dataframe
+    """
     data = [[0, 0, 1], [0, 1, 1], [1, 1, 1]]
     return pd.DataFrame(data, columns=microarray.columns,
                         index=microarray.index)
@@ -84,7 +94,7 @@ def pacall(microarray):
 
 
 def test_update_mni_coords():
-    # mni values are getting replaced so who cares about original
+    # xyz coordinates are getting replaced so who cares about the original
     # but ids are important and need to be real!
     x = y = z = [-10, 20, 30, 40]
     ids = [594, 2985, 1058, 1145]

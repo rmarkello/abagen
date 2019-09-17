@@ -3,6 +3,7 @@
 Tests for abagen.allen module
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -12,7 +13,7 @@ from abagen.utils import check_img
 
 def test_vanilla_get_expression_data(testfiles, atlas):
     out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
-    assert isinstance(out, pd.DataFrame)
+    assert np.allclose(out.index, range(1, 84))
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
@@ -29,7 +30,6 @@ def test_extra_get_expression_data(testfiles, atlas, opts):
 
     out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'],
                                     **opts)
-    assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
@@ -53,7 +53,6 @@ def test_missing_labels(testfiles, atlas):
     out, counts = allen.get_expression_data(img, info,
                                             exact=False, return_counts=True,
                                             donors=['12876', '15496'])
-    assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
     assert len(out) == len(info)
