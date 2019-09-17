@@ -336,23 +336,21 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                  'Arnatkevic̆iūtė et al., 2019, NeuroImage')
         probe_info = probes.reannotate_probes(probe_info)
 
-    # intensity-based filtering of probes
-    probe_info = probes.filter_probes(pacall, probe_info, ibf_threshold)
-    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
-             .format(len(probe_info), ibf_threshold))
-
-    # subset microarray + pacall with filtered probes to save on memory
+    # when probes are reannotated there are a few that are removed due to their
+    # not being matched to a gene. in this case, it's good to subset microarray
+    # and pacall data to save a bit on memory
     for n in range(len(microarray)):
         microarray[n] = io.read_microarray(microarray[n]).loc[probe_info.index]
         pacall[n] = io.read_pacall(pacall[n]).loc[probe_info.index]
 
-    # if we're mirroring the samples we need to do it for microarray, pacall,
-    # and annotation dataframes
-    # the other data (ontology and probes) are redundant across subjects and
-    # have no specific sample information (though we do need to pass ontology
-    # for info on the structures / hemisphere associated with each sample)
-    # once we've mirrored, we need to reassign the outputs of the procedure
-    # back to these variables so we can use them in the rest of the pipeline
+    # if we're mirroring samples across hemispheres we need to modify the
+    # microarray, pacall, and annotation dataframes. the other data (ontology
+    # and probes) are redundant across subjects and have no sample-specific
+    # information.
+    # if this is done with uncorrected MNI coords (i.e., corrected_mni=False)
+    # then mirroring will change the number of probes / genes in the generated
+    # microarray expression dataframes. with corrected MNI coords the number of
+    # probes and genes is consistent regardless of whether samples are mirrored
     if lr_mirror:
         lgr.info('Left/right mirroring requested; mirroring samples across '
                  'hemispheres')
@@ -361,7 +359,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                                                 annotation,
                                                                 ontology,
                                                                 inplace=True)
-        del pacall  # we don't need this here...
+
+    # intensity-based filtering of probes
+    probe_info = probes.filter_probes(pacall, probe_info, ibf_threshold)
+    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
+             .format(len(probe_info), ibf_threshold))
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
