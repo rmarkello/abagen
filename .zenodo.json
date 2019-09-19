@@ -1,0 +1,28 @@
+{
+  "title": "abagen: A toolbox for the Allen Brain Atlas genetics data",
+  "description": "abagen is a Python toolbox that provides reproducible workflows for fetching and processing the Allen Human Brain Atlas microarray expression data for analysis.",
+  "creators": [
+    {
+      "name": "Markello, Ross",
+      "affiliation": "Montreal Neurological Institute, McGill University",
+      "orcid": "0000-0003-1057-1336"
+    },
+    {
+      "name": "Shafiei, Golia",
+      "affiliation": "Montreal Neurological Institute, McGill University",
+      "orcid": "0000-0002-2036-5571"
+    },
+    {
+      "name": "Ying-Qiu Zheng",
+      "affiliation": "Montreal Neurological Institute, McGill University",
+      "orcid": "0000-0003-1236-0700"
+    }
+  ],
+  "keywords": [
+    "neuroimaging",
+    "genetics",
+    "allen institute"
+  ],
+  "license": "BSD-3-Clause",
+  "upload_type": "software"
+}

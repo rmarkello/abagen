@@ -12,6 +12,7 @@ from datetime import datetime
 import os
 import sys
 
+
 # -- Project information -----------------------------------------------------
 
 # Add project name, copyright holder, and author(s)
@@ -26,6 +27,7 @@ import abagen  # noqa
 version = abagen.__version__
 # The full version, including alpha/beta/rc tags
 release = abagen.__version__
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -73,6 +75,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
 
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -91,13 +94,17 @@ html_theme_options = {}
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# CSS files to include
-html_css_files = ['theme_overrides.css']
+# https://github.com/rtfd/sphinx_rtd_theme/issues/117
+def setup(app):  # noqa
+    app.add_stylesheet('theme_overrides.css')
+    app.add_javascript('https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js')  # noqa
+
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'abagendoc'
+
 
 # -- Extension configuration -------------------------------------------------
 intersphinx_mapping = {
