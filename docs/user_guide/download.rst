@@ -74,7 +74,7 @@ microarray dataset:
 You can load the data in these files using the :mod:`abagen.io` functions.
 There are IO functions for each of the five file types; you can get more
 information on the functions and the data contained in each file type by
-looking at the ref:`api_ref`. Notably, all IO functions return
+looking at the :ref:`api_ref`. Notably, all IO functions return
 ``pandas.DataFrame`` objects for ease-of-use.
 
 For example, you can load the annotation file for the first donor with:

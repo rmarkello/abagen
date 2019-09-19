@@ -55,15 +55,13 @@ def update_mni_coords(annotation):
     modification, are permitted provided that the following conditions are met:
 
     * Redistributions of source code must retain the above copyright notice,
-    this list of conditions and the following disclaimer.
-
+      this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimer in the documentation
-    and/or other materials provided with the distribution.
-
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
     * Neither the name of the copyright holder nor the names of its
-    contributors may be used to endorse or promote products derived from
-    this software without specific prior written permission.
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
     AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -318,7 +316,7 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
         unique integer ID
     atlas_info : pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must have _at least_ columns 'id', 'hemisphere', and
+        `atlas`. Must have *at least* columns 'id', 'hemisphere', and
         'structure' containing information mapping atlas IDs to hemisphere and
         broad structural class (i.e., "cortex", "subcortex", "cerebellum").
         Default: None
@@ -400,14 +398,15 @@ def mirror_samples(microarray, pacall, annotation, ontology, inplace=False):
     References
     ----------
     .. [SA1] Gryglewski, G., Seiger, R., James, G. M., Godbersen, G. M.,
-    Komorowski, A., Unterholzner, J., ... & Kasper, S. (2018). Spatial analysis
-    and high resolution mapping of the human whole-brain transcriptome for
-    integrative analysis in neuroimaging. NeuroImage, 176, 259-267.
+       Komorowski, A., Unterholzner, J., ... & Kasper, S. (2018). Spatial
+       analysis and high resolution mapping of the human whole-brain
+       transcriptome for integrative analysis in neuroimaging. NeuroImage, 176,
+       259-267.
 
     .. [SA2] Romero-Garcia, R., Whitaker, K. J., Váša, F., Seidlitz, J., Shinn,
-    M., Fonagy, P., ... & Vértes, P. E. (2018). Structural covariance networks
-    are coupled to expression of genes enriched in supragranular layers of the
-    human cortex. NeuroImage, 171, 256-267.
+       M., Fonagy, P., ... & Vértes, P. E. (2018). Structural covariance
+       networks are coupled to expression of genes enriched in supragranular
+       layers of the human cortex. NeuroImage, 171, 256-267.
     """
 
     # FIXME: seems like there should be a better way to do this, but both str
