@@ -34,6 +34,18 @@ def test_extra_get_expression_data(testfiles, atlas, opts):
     assert out.columns.name == 'gene_symbol'
 
 
+def test_get_expression_data_errors(testfiles, atlas):
+    # invalid probe_selection method
+    with pytest.raises(ValueError):
+        allen.get_expression_data(atlas['image'], donors=['12876', '15496'],
+                                  probe_selection='nonsense')
+
+    # cannot use diff_stability with only one donor
+    with pytest.raises(ValueError):
+        allen.get_expression_data(atlas['image'], donors=['12876'],
+                                  probe_selection='diff_stability')
+
+
 def test_missing_labels(testfiles, atlas):
     # remove some labels from atlas image so numbers are non-sequential
     remove = [10, 20, 60]

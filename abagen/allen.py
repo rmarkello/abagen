@@ -307,15 +307,16 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose)
-    for key in ['microarray', 'probes', 'annotation', 'pacall', 'ontology']:
-        if key not in files:
-            raise KeyError('Provided `files` dictionary is missing {}. '
-                           'Please check inputs.'.format(key))
     microarray = files['microarray']
     annotation = files['annotation']
     pacall = files['pacall']
     ontology = files['ontology']
     probe_info = files['probes'][0]
+
+    if probe_selection == 'diff_stability' and len(microarray) == 1:
+        raise ValueError('Cannot use diff_stability for probe_selection with '
+                         'only one donor. Please specify a different probe_'
+                         'selection method or use more donors.')
 
     # get some info on labels in `atlas_img`
     all_labels = utils.get_unique_labels(atlas)
