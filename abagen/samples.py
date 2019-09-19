@@ -22,7 +22,8 @@ ONTOLOGY = Recoder(
      ('9131', 'pons', 'brainstem'),
      ('9512', 'myelencephalon', 'brainstem'),
      ('9218', 'white matter', 'white matter'),
-     ('9352', 'sulci & spaces', 'other')),
+     ('9352', 'sulci & spaces', 'other'),
+     ('4219', 'hippocampal formation', 'subcortex')),
     fields=('id', 'name', 'structure')
 )
 
@@ -122,11 +123,12 @@ def _get_struct(structure_path):
         Structure, or None if unable to identify a corresponding structure
     """
 
-    structure_path = set(structure_path.strip('/').split('/'))
-    ids = list(set(ONTOLOGY.value_set('id')) & structure_path)
+    structures = set(structure_path.strip('/').split('/'))
+    ids = sorted(set(ONTOLOGY.value_set('id')) & structures,
+                 key=lambda x: structure_path.index(x))
 
     try:
-        return ONTOLOGY.structure[ids[0]]
+        return ONTOLOGY.structure[ids[-1]]
     except IndexError:
         return
 
