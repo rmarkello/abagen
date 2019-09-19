@@ -10,4 +10,5 @@ Contents
    changes
    cli
    usage
+   contributing
    api
