@@ -145,7 +145,7 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
     expected = pd.DataFrame(dict(hemisphere=['L', 'R', np.nan],
                                  mni_x=[-10, 30, 0],
                                  structure_acronym=['S', 'Cl', 'CC'],
-                                 structure=['cortex', 'subcortex', 'other'],
+                                 structure=['subcortex', 'subcortex', 'other'],
                                  structure_id=[4251, 4323, 9422],
                                  structure_name=['subiculum, left',
                                                  'claustrum, right',
