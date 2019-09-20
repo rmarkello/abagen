@@ -1,3 +1,72 @@
+0.0.2 (September 19, 2019)
+==========================
+This release comes with a **lot** of new changes, including:
+
+- Several new arguments for ``abagen.get_expression_data()``, including new
+  probe selection methods, donor normalization techniques, and hemispheric
+  mirroring of tissue samples;
+- A command-line version of the primary workflow accessible via the ``abagen``
+  command;
+- Improved data handling, using $HOME/abagen-data as the default storage
+  location for data from the AHBA;
+- New functionality for fetching raw AHBA donor MRI scans;
+- Zenodo integration to make it easy to cite ``abagen``; and,
+- Massive documentation overhauls, with a dramatically updated user guide and
+  API reference!
+
+Special thanks to Golia Shafiei (@gshafiei), Ying-Qiu Zheng (@yingqiuz), James
+Frierson (@JamesFrierson1), and Arda Kosar (@abkosar) for their contributions.
+
+  * [MNT] Finishes Zenodo integration (#109), @rmarkello
+  * [MNT] Adds framework for Zenodo integration (#108), @rmarkello
+  * [REF] Fixes one-donor bug in get_expression_data() (#107), @rmarkello
+  * [REF] Identifies hippocampus as subcortex in Allen ontology (#106), @rmarkello
+  * [DOC] Updates documentation + contributing (#105), @rmarkello
+  * [REF] Mirroring before probe filtering (#101), @rmarkello
+  * [FIX] Installation not correctly bundling package data (#102), @rmarkello
+  * [MNT] Docs / package structure updates in prep for 0.2.0 (#95), @rmarkello
+  * [REF] abagen.io functions don't copy dataframes by default (#94), @rmarkello
+  * [FIX] Fixes broken include directive in API reference (#91), @rmarkello
+  * [ENH] Adds parameter for normalizing donor microarray expression values (#90), @rmarkello
+  * [ENH] Adds option to mirror samples across L/R hemispheres (#87), @rmarkello
+  * [ENH] Adds CLI for `abagen.get_expression_data` functionality (#82), @rmarkello
+  * [ENH] Adds ability to fetch raw AHBA MRIs (#85), @rmarkello
+  * [ENH] Adds ability to query gene groups (#83), @rmarkello
+  * [MNT,REF] Updates install, versioning, dependencies (#84), @rmarkello
+  * [REF] Adds brainstem to abagen.process ontology (#81), @rmarkello
+  * [DOC] Updates API documentation (#76), @rmarkello
+  * [REF,ENH] Adds new abagen.probes module (#67), @rmarkello
+  * [REF] Changes data directory locator for abagen data (#66), @rmarkello
+  * [FIX] Fixes doctest in abagen.mouse (#65), @rmarkello
+  * [REF] Removes .get_values() references (#64), @rmarkello
+  * [DOC] Adds logging to workflow functions (#61), @rmarkello
+  * Fixed abagen.mouse column ordering (#62), @abkosar
+  * [DOC] Update refs and http (#60), @rmarkello
+  * [REF] Use cached alleninf coordinates only (#59), @rmarkello
+  * [FIX] Removes RuntimeWarning in example code (#58), @rmarkello
+  * Updated README to include Allen Institute citations and disclaimers (#57), @JamesFrierson1
+  * [FIX] Catches AttributeError w/pandas fastparquet (#41), @rmarkello
+  * [REF] Updates get_expression_data() (#38), @rmarkello
+  * [TEST] Fixes tests (#34), @rmarkello
+  * Add mouse features (#32), @yingqiuz
+  * [TEST] Fix pytest version and update travis (#33), @rmarkello
+  * [TEST] Update travis testing (#31), @rmarkello
+  * [FIX] More fixes for atlas numbering (#30), @rmarkello
+  * [FIX] Allow non-sequential atlas numbering (#29), @rmarkello
+  * [ENH] Adds input check for remove_distance() (#28), @rmarkello
+  * [ENH] Allow label exclusion in `remove_distance()` (#27), @rmarkello
+  * [REF] Changes `remove_distance()` inputs (#26), @rmarkello
+  * [ENH] Add function for aggregating donors (#25), @rmarkello
+  * [ENH] Adds reannotated probe information  (#24), @rmarkello
+  * [ENH] Adds `abagen.correct` for postprocessing (#20), @rmarkello
+  * [TEST] Removes pytest capturing (#23), @rmarkello
+  * [TEST] Calculates coverage only for extras (#22), @rmarkello
+  * [DOC] Updates doc-strings for primary functions (#19), @rmarkello
+  * [TEST] Add early test to reduce timeouts (#21), @rmarkello
+  * [FIX] Adds updated MNI coordinates file as backup (#17), @rmarkello
+  * [DOC] Updates default tolerance (#16), @gshafiei
+
+
 0.0.1 (September 7, 2018)
 ==========================
 Initial release of ``abagen``, a toolbox for working with the `Allen Brain Atlas
