@@ -11,4 +11,5 @@ Contents
    cli
    usage
    contributing
+   citing
    api

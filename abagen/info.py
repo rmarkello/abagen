@@ -22,6 +22,8 @@ for backwards compatibility, so please use carefully. |warning| |warning|
    :target: https://abagen.readthedocs.io/en/stable
 .. image:: https://img.shields.io/badge/License-BSD%203--Clause-blue.svg
    :target: https://opensource.org/licenses/BSD-3-Clause
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.3451463.svg
+   :target: https://doi.org/10.5281/zenodo.3451463
 
 .. _readme_overview:
 
@@ -30,19 +32,20 @@ Overview
 
 In 2013, the Allen Institute for Brain Science released the `Allen Human Brain
 Atlas`_, a dataset containing microarray expression data collected from six
-human brains [2]_ . This dataset has offered an unprecedented opportunity to
-examine the genetic underpinnings of the human brain, and has already yielded
-novel insight into e.g., `adolescent brain development <https://www.pnas.org/
-content/113/32/9105.long>`__ and `functional brain organization <https://
-science.sciencemag.org/content/348/6240/1241.long>`__.
+human brains (Hawrylycz et al., 2012) . This dataset has offered an
+unprecedented opportunity to examine the genetic underpinnings of the human
+brain, and has already yielded novel insight into e.g., `adolescent brain
+development <https://www.pnas.org/content/113/32/9105.long>`__ and `functional
+brain organization <https://science.sciencemag.org/content/348/6240/
+1241.long>`__.
 
 However, in order to be effectively used in most analyses, the AHBA microarray
 expression data often needs to be (1) collapsed into regions of interest (e.g.,
 parcels or networks), and (2) combined across donors. While this may
 potentially seem trivial, there are a number of analytic choices in these steps
 that can dramatically influence the resulting data and any downstream analyses.
-Arnatkevičiūte et al., 2019 [1]_ provided a thorough treatment of this in a
-`recent manuscript <https://www.sciencedirect.com/science/article/pii/
+Arnatkevičiūte et al., 2019 provided a thorough treatment of this in a `recent
+`manuscript <https://www.sciencedirect.com/science/article/pii/
 S1053811919300114>`__, demonstrating how the techniques and code used to
 prepare the raw AHBA data have varied widely across published reports.
 
@@ -117,23 +120,11 @@ anything you might like to work on.
 
 .. _readme_acknowledgments:
 
-Acknowledgments
----------------
+Citing ``abagen``
+-----------------
 
-Many of the current functions in ``abagen`` were inspired by the workflow laid
-out in Arnatkevičiūte et al., 2019. As such, if you use this code it would be
-good to (1) provide a link back to the ``abagen`` repository with the version
-of the code used, and (2) cite their paper:
-
-.. [1] Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). A practical
-   guide to linking brain-wide gene expression and neuroimaging data.
-   NeuroImage, 189, 353-367.
-
-Additionally, please cite the following paper as the source of all microarray
-expression data from the `Allen Human Brain Atlas`_:
-
-.. [2] Hawrylycz, M.J. et al. (2012) An anatomically comprehensive atlas of the
-   adult human transcriptome. Nature, 489, 391-399. doi:10.1038/nature11405
+For up-to-date instructions on how to cite abagen please refer to our
+`documentation <https://abagen.readthedocs.io/en/stable/citing.html>`_.
 
 .. _readme_licensing:
 
