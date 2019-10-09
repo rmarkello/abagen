@@ -178,7 +178,8 @@ def drop_mismatch_samples(annotation, ontology):
     annot = annot.assign(hemisphere=hemisphere, structure=structure) \
                  .query('(hemisphere == "L" & mni_x < 0) '
                         '| (hemisphere == "R" & mni_x > 0) '
-                        '| (hemisphere.isna() & mni_x == 0)')
+                        '| (hemisphere.isna() & mni_x == 0)',
+                        engine='python')
 
     return annot
 
