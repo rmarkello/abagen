@@ -52,14 +52,44 @@ def _batch_correct(data):
     return residualized
 
 
-def _srs(data, axis=0):
+def _rescale(data, low=0, high=1, axis=0):
     """
-    Normalizes `data` with a scaled robust sigmoid function
+    Rescales `data` to range [`low`, `high`]
 
     Parameters
     ----------
     data : array_like
-        Input data to be passed through SRS function
+        Input data array to be rescaled
+    low : float, optional
+        Lower bound for rescaling. Default: 0
+    high : float, optional
+        Upper bound for rescaling. Default: 1
+    axis : int, optional
+        Axis of `data` to scale along. Default: 0
+
+    Returns
+    -------
+    rescaled : np.ndarray
+        Rescaled data
+    """
+
+    data = np.asarray(data)
+
+    dmin = data.min(axis=axis, keepdims=True)
+    dmax = data.max(axis=axis, keepdims=True)
+    rescaled = ((data - dmin) / (dmax - dmin)) * (high - low) + low
+
+    return rescaled
+
+
+def _rs(data, axis=0):
+    """
+    Normalizes `data` with a robust sigmoid function
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
     axis : int, optional
         Axis of `data` to be normalized
 
@@ -74,12 +104,34 @@ def _srs(data, axis=0):
     # calculate sigmoid normalization
     med = np.median(data, axis=axis, keepdims=True)
     iqr = sstats.iqr(data, axis=axis, scale='normal', keepdims=True)
-    srs = 1 / (1 + np.exp(-(data - med) / iqr))
+    rs = 1 / (1 + np.exp(-(data - med) / iqr))
 
-    # rescale normalized values to a unit interval
-    srs_min = srs.min(axis=axis, keepdims=True)
-    srs_max = srs.max(axis=axis, keepdims=True)
-    normed = (srs - srs_min) / (srs_max - srs_min)
+    return rs
+
+
+def _srs(data, low=0, high=1, axis=0):
+    """
+    Normalizes `data` with a scaled robust sigmoid function
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
+    low : float, optional
+        Lower bound for rescaling. Default: 0
+    high : float, optional
+        Upper bound for rescaling. Default: 1
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    srs = _rs(np.asarray(data), axis=axis)  # robust sigmoid transform
+    normed = _rescale(srs, low=low, high=high, axis=axis)  # scales data
 
     return normed
 
@@ -93,8 +145,8 @@ def normalize_expression(expression, norm='srs'):
     expression : list of (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples (or regions) and `G`
         is genes
-    norm : {'srs', 'zscore', 'batch'}, optional
-        Function by which to normalize expression data; see Notes for more
+    norm : {'rs', 'srs', 'center', 'zscore', 'minmax', 'batch'}, optional
+        Function with which to normalize expression data. See Notes for more
         information. Default: 'srs'
 
     Returns
@@ -105,36 +157,48 @@ def normalize_expression(expression, norm='srs'):
     Notes
     -----
     The following methods can be used for normalizing gene expression values
-    for each donor:
+    for each donor (adapted from [PC2]_):
 
-    1. ``norm='srs'``
+    1. ``norm=='rs'``
 
-    Uses a scaled robust sigmoid function as in [PC1]_ to normalize expression
-    values for each gene across regions to within the unit normal (i.e., in the
-    range 0-1).
+    Uses a robust sigmoid function ([PC1]_) to normalize data in each column
 
-    2. ``norm='zscore'``
+    2. ``norm='srs'``
+
+    Same as 'rs' but scales output to the unit normal (i.e., range 0-1)
+
+    3. ``norm='center'``
+
+    Removes the mean of data in each column
+
+    4. ``norm='zscore'``
 
     Applies a basic z-score (subtract mean, divide by standard deviation) to
-    expression values for each gene across regions. Uses degrees of freedom
-    equal to one for standard deviation calculation.
+    each column; uses degrees of freedom equal to one for standard deviation
 
-    3. ``norm='batch'``
+    5. ``norm='minmax'``
 
-    Uses a linear model to remove donor effects from expression values. Differs
-    from other methods in that all donors are simultaneously fit to the same
-    model and expression values are residualized based on estimated betas.
-    Linear model includes the intercept but the residualization does not remove
-    it.
+    Scales data in each column to the unit normal (i.e., range 0-1)
+
+    6. ``norm='batch'``
+
+    Uses a linear model to remove donor effects from data. Differs from other
+    methods in that all donors are simultaneously fit to the same model and
+    data are residualized based on estimated betas. Linear model includes the
+    intercept but it is not removed during residualization
 
     References
     ----------
     .. [PC1] Fulcher, B. D., & Fornito, A. (2016). A transcriptional signature
        of hub connectivity in the mouse connectome. Proceedings of the National
        Academy of Sciences, 113(5), 1435-1440.
+    .. [PC2] Fulcher, B. D., Little, M. A., & Jones, N. S. (2013). Highly
+       comparative time-series analysis: the empirical structure of time series
+       and their methods. Journal of the Royal Society Interface, 10(83),
+       20130048
     """
 
-    norms = ['srs', 'zscore', 'batch']
+    norms = ['rs', 'srs', 'center', 'zscore', 'batch', 'minmax']
     if norm not in norms:
         raise ValueError('Provided value for `norm` not recognized. Must be '
                          'one of {}. Received: {}'.format(norms, norm))
@@ -152,10 +216,16 @@ def normalize_expression(expression, norm='srs'):
         notna = exp.notna().all(axis=1)
         data = np.asarray(exp)[notna]
 
+        if norm == 'rs':
+            normed = _rs(data, axis=0)
         if norm == 'srs':
-            normed = _srs(data, axis=0)
+            normed = _srs(data, low=0, high=1, axis=0)
+        elif norm == 'center':
+            normed = data - data.mean(axis=0, keepdims=True)
         elif norm == 'zscore':
             normed = sstats.zscore(data, axis=0, ddof=1)
+        elif norm == 'minmax':
+            normed = _rescale(data, low=0, high=1, axis=0)
         elif norm == 'batch':
             normed = corrected[n]
 
