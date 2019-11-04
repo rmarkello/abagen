@@ -65,8 +65,8 @@ def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
 
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
-                        probe_selection='diff_stability',
-                        lr_mirror=False, donor_norm='srs',
+                        probe_selection='diff_stability', lr_mirror=False,
+                        sample_norm='srs', donor_norm='srs',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1, n_proc=1):
@@ -160,11 +160,17 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
+    sample_norm : {'srs', 'zscore', None}, optional
+        Method by which to normalize microarray expression values for each
+        sample. Expression values are normalized separately for each sample for
+        each donor across all genes; see Notes for more information on
+        different methods. If None is specified no normalization is performed.
+        Default: 'srs'
     donor_norm : {'srs', 'zscore', 'batch', None}, optional
         Method by which to normalize microarray expression values for each
         donor. Expression values are normalized separately for each gene for
         each donor across all regions in `atlas`; see Notes for more
-        information on different methods. If not specified no normalization
+        information on different methods. If None is specified no normalization
         is performed. Default: 'srs'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
