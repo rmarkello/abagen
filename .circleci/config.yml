@@ -29,6 +29,8 @@ jobs:
   makeenv_py37:
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
     working_directory: /tmp/src/abagen
     steps:
       - checkout
@@ -46,13 +48,40 @@ jobs:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
           paths:
               - /opt/conda/envs/abagen_py37
+     - persist_to_workspace:
+          root: /tmp
+          paths:
+              - src/abagen
+
+  fetch_ahba:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
+      - run:
+          name: Download data
+          command: |
+            python -c "import abagen; abagen.fetch_microarray(donors='all')"
+     - persist_to_workspace:
+          root: /tmp
+          paths:
+              - src/data/allenbrain
 
   unittest_py35:
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
     working_directory: /tmp/src/abagen
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp
       - restore_cache:
           key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
       - run:
@@ -78,9 +107,12 @@ jobs:
   unittest_py36:
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
     working_directory: /tmp/src/abagen
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp
       - restore_cache:
           key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
       - run:
@@ -106,9 +138,12 @@ jobs:
   unittest_py37:  # depends on makeenv_py37
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
     working_directory: /tmp/src/abagen
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
       - run:
@@ -125,9 +160,12 @@ jobs:
   style_check:  # depends on makeenv_py37
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
     working_directory: /tmp/src/abagen
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
       - run:
@@ -137,13 +175,14 @@ jobs:
             flake8 abagen
 
   merge_coverage:   # depends on everything
-    working_directory: /tmp/src/abagen
     docker:
       - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
     steps:
       - attach_workspace:
           at: /tmp
-      - checkout
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
       - run:
@@ -164,11 +203,18 @@ workflows:
   build_test:
     jobs:
       - makeenv_37
-      - unittest_35
-      - unittest_36
-      - unittest_37:
+      - fetch_ahba:
           requires:
             - makeenv_37
+      - unittest_35:
+          requires:
+            - fetch_ahba
+      - unittest_36:
+          requires:
+            - fetch_ahba
+      - unittest_37:
+          requires:
+            - fetch_ahba
       - style_check:
           requires:
             - makeenv_37
