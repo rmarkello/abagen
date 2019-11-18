@@ -13,6 +13,24 @@ from scipy.spatial.distance import cdist
 from . import utils
 
 
+def _unpack(var):
+    """
+    Returns first entry if var has only one entry
+
+    Parameters
+    ----------
+    var : array_like
+
+    Returns
+    -------
+    var
+    """
+
+    if len(var) == 1:
+        return var[0]
+    return var
+
+
 def _batch_correct(data):
     """
     Performs batch correction on `data`
@@ -234,7 +252,7 @@ def normalize_expression(expression, norm='srs'):
         normalized.loc[notna] = normed
         normexp.append(normalized)
 
-    return normexp
+    return _unpack(normexp)
 
 
 def remove_distance(coexpression, atlas, atlas_info=None, labels=None):

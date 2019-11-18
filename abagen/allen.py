@@ -394,13 +394,21 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         annotation[subj] = samples.drop_mismatch_samples(annotation[subj],
                                                          ontology[subj])
 
-        # subset representative probes + samples from microarray data
-        microarray[subj] = microarray[subj].loc[annotation[subj].index]
-
-        # assign samples to regions and aggregate samples w/i the same region
+        # assign samples to regions
         labels = samples.label_samples(annotation[subj], atlas,
                                        atlas_info=atlas_info,
                                        tolerance=tolerance)
+
+        # subset representative probes + samples from microarray data
+        microarray[subj] = microarray[subj].loc[annotation[subj].index]
+        if donor_norm is not None:
+            lgr.info('Normalizing sample expression data with function: {}'
+                     .format(donor_norm))
+            # get rid of unassigned samples and normalize w.r.t remaining
+            microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
+            microarray[subj] = correct.normalize_expression(microarray[subj],
+                                                            norm=donor_norm)
+        # aggregate normalized samples within regions
         expression += [groupby_label(microarray[subj], labels,
                                      all_labels, metric=metric)]
         lgr.info('{:>3} / {} samples matched to regions for donor #{}'
@@ -441,12 +449,6 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             # assign expression data from that sample and add to count
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts.loc[roi, ind] += 1
-
-    # normalize data with SRS
-    if donor_norm is not None:
-        lgr.info('Normalizing donor expression data with function: "{}"'
-                 .format(donor_norm))
-        expression = correct.normalize_expression(expression, norm=donor_norm)
 
     # aggregate across donors if individual donor dataframes not requested
     if not return_donors:
