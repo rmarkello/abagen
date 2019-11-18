@@ -90,7 +90,7 @@ expression data normalized and aggregated across donors:
     82           0.756134  0.391646  0.421420  ...  0.292576  0.379677  0.674880
     83           0.428424  0.222963  0.660437  ...  0.411786  0.661593  0.439605
     <BLANKLINE>
-    [83 rows x 15656 columns]
+    [83 rows x 15655 columns]
 
 
 By default the data are normalized using a scaled robust sigmoid function such
@@ -159,15 +159,15 @@ will return a dense matrix (at the expense of some anatomical precision):
     >>> print(exp_exact)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    1            0.584804  0.680186  0.407087  ...  0.628665  0.371389  0.488942
-    2            0.518708  0.647558  0.418932  ...  0.553781  0.290940  0.564853
-    3            0.662968  0.803830  0.310737  ...  0.639978  0.138759  0.628807
+    1            0.578008  0.688770  0.406520  ...  0.556295  0.374005  0.497330
+    2            0.510950  0.655648  0.420663  ...  0.481134  0.296428  0.569186
+    3            0.664877  0.818036  0.319912  ...  0.538502  0.147872  0.624574
     ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.495329  0.341752  0.508363  ...  0.266736  0.573451  0.490982
-    82           0.756134  0.391646  0.421420  ...  0.292576  0.379677  0.674880
-    83           0.428424  0.222963  0.660437  ...  0.411786  0.661593  0.439605
+    81           0.486826  0.354870  0.517001  ...  0.251989  0.566561  0.498105
+    82           0.749263  0.412805  0.440311  ...  0.270990  0.376689  0.667931
+    83           0.416738  0.239668  0.661322  ...  0.389969  0.654765  0.448254
     <BLANKLINE>
-    [83 rows x 15656 columns]
+    [83 rows x 15655 columns]
 
 
 .. _usage_expression_lrmirror:
@@ -205,7 +205,7 @@ but it will dramatically increase the likelihood that this will happen:
     82           0.762843  0.409607  0.423332  ...  0.249643  0.389806  0.686732
     83           0.417837  0.219333  0.676730  ...  0.404555  0.675958  0.458144
     <BLANKLINE>
-    [83 rows x 15656 columns]
+    [83 rows x 15655 columns]
 
 
 Note that since this effectively duplicates the number of tissue samples the
