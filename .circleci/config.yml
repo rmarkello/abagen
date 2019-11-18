@@ -18,11 +18,12 @@ commands:
           no_output_timeout: 40m
           command: |
             source activate abagen_<< parameters.env >>
+            pip install -e .
             mkdir for_testing && cd for_testing
             cp ../setup.cfg .
             pytest --cov-report term-missing --cov=abagen --doctest-modules --pyargs abagen
             mkdir /tmp/src/coverage
-            mv .coverage /tmp/src/coverage/.coverage.py<< parameters.env >>
+            mv .coverage /tmp/src/coverage/.coverage.<< parameters.env >>
 
 jobs:
 
@@ -94,10 +95,9 @@ jobs:
               conda create -yq -n abagen_py35 python=3.5
               source activate abagen_py35
               pip install -r dev_requirements.txt
-              pip install -e .
             fi
       - rununit:
-          env: "35"
+          env: "py35"
       - save_cache:
           key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
           paths:
@@ -126,10 +126,9 @@ jobs:
               conda create -yq -n abagen_py36 python=3.6
               source activate abagen_py36
               pip install -r dev_requirements.txt
-              pip install -e .
             fi
       - rununit:
-          env: "36"
+          env: "py36"
       - save_cache:
           key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
           paths:
@@ -150,12 +149,8 @@ jobs:
           at: /tmp
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
-      - run:
-          name: Install abagen
-          command: |
-            pip install -e .
       - rununit:
-          env: "37"
+          env: "py37"
       - persist_to_workspace:
           root: /tmp
           paths:
@@ -183,7 +178,7 @@ jobs:
       - image: continuumio/miniconda3
     environment:
       ABAGEN_DATA: /tmp/src/data
-    working_directory: /tmp/src/abagen
+    working_directory: /tmp/src/coverage
     steps:
       - attach_workspace:
           at: /tmp
@@ -194,7 +189,6 @@ jobs:
           command: |
             apt-get install -yqq curl
             source activate abagen_py37
-            cd /tmp/src/coverage/
             coverage combine
             coverage xml
       - store_artifacts:
