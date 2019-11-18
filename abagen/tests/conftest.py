@@ -11,7 +11,10 @@ from abagen.datasets import fetch_desikan_killiany, fetch_microarray
 
 @pytest.fixture(scope='session')
 def datadir():
-    return os.path.join(os.environ['HOME'], 'abagen-data')
+    dd = os.environ.get('ABAGEN_DATA')
+    if dd is None:
+        return os.path.join(os.environ['HOME'], 'abagen-data')
+    return dd
 
 
 @pytest.fixture(scope='session')
