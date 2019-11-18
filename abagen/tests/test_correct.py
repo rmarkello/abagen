@@ -102,6 +102,7 @@ def test_normalize_expression_real(testfiles):
 
 def test_remove_distance(donor_expression, atlas):
     expr = pd.concat(donor_expression).groupby('label').aggregate(np.mean)
+    expr = expr.dropna(axis=1, how='any')
     coexpr = np.corrcoef(expr)
     for atlas_info in [None, atlas['info']]:
         out = correct.remove_distance(coexpr, atlas['image'], atlas_info)
