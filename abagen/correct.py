@@ -122,7 +122,8 @@ def _rs(data, axis=0):
     # calculate sigmoid normalization
     med = np.median(data, axis=axis, keepdims=True)
     iqr = sstats.iqr(data, axis=axis, scale='normal', keepdims=True)
-    rs = 1 / (1 + np.exp(-(data - med) / iqr))
+    with np.errstate(divide='ignore', invalid='ignore'):
+        rs = 1 / (1 + np.exp(-(data - med) / iqr))
 
     return rs
 
@@ -231,7 +232,7 @@ def normalize_expression(expression, norm='srs'):
     normexp = []
     for n, exp in enumerate(expression):
         # get non-NaN values
-        notna = exp.notna().all(axis=1)
+        notna = np.logical_not(exp.isna().all(axis=1))
         data = np.asarray(exp)[notna]
 
         if norm == 'rs':

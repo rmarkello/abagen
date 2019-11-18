@@ -401,11 +401,18 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
         # subset representative probes + samples from microarray data
         microarray[subj] = microarray[subj].loc[annotation[subj].index]
+        microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
+        if sample_norm is not None:
+            if subj == 0:
+                lgr.info('Normalizing expression across genes with function: '
+                         '{}'.format(sample_norm))
+            microarray[subj] = correct.normalize_expression(microarray[subj].T,
+                                                            norm=sample_norm).T
         if donor_norm is not None:
-            lgr.info('Normalizing sample expression data with function: {}'
-                     .format(donor_norm))
+            if subj == 0:
+                lgr.info('Normalizing expression across sample with function: '
+                         '{}'.format(donor_norm))
             # get rid of unassigned samples and normalize w.r.t remaining
-            microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
             microarray[subj] = correct.normalize_expression(microarray[subj],
                                                             norm=donor_norm)
         # aggregate normalized samples within regions
