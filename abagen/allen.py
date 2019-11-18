@@ -401,20 +401,23 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
         # subset representative probes + samples from microarray data
         microarray[subj] = microarray[subj].loc[annotation[subj].index]
-        microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
+
+        if exact:  # remove all samples not assigned a label before norming
+            microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
+
         if sample_norm is not None:
-            if subj == 0:
+            if subj == 0:  # only provide norm log once
                 lgr.info('Normalizing expression across genes with function: '
                          '{}'.format(sample_norm))
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
                                                             norm=sample_norm).T
         if donor_norm is not None:
-            if subj == 0:
+            if subj == 0:  # only provide norm log once
                 lgr.info('Normalizing expression across sample with function: '
                          '{}'.format(donor_norm))
-            # get rid of unassigned samples and normalize w.r.t remaining
             microarray[subj] = correct.normalize_expression(microarray[subj],
                                                             norm=donor_norm)
+
         # aggregate normalized samples within regions
         expression += [groupby_label(microarray[subj], labels,
                                      all_labels, metric=metric)]
@@ -433,7 +436,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         if not exact:
             cols = ['mni_x', 'mni_y', 'mni_z']
             coords = utils.xyz_to_ijk(annotation[subj][cols], atlas.affine)
-            empty = ~np.in1d(all_labels, labs)
+            empty = np.logical_not(np.in1d(all_labels, labs))
             idx, dist = utils.closest_centroid(coords, centroids[empty],
                                                return_dist=True)
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
@@ -462,6 +465,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         lgr.info('Aggregating donor expression data with function: "{}"'
                  .format(metric))
         expression = pd.concat(expression).groupby('label').aggregate(metric)
+        # some genes may have been poorly normalized; remove these
+        expression = expression.dropna(axis=1, how='any')
 
     # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:
