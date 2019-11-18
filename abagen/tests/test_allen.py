@@ -52,7 +52,7 @@ def test_missing_labels(testfiles, atlas):
 
     # subset atlas image
     img = check_img(atlas['image'])
-    img_data = img.get_data()
+    img_data = np.asarray(img.dataobj)
     for i in remove:
         img_data[img_data == i] = 0
     img = img.__class__(img_data, img.affine)

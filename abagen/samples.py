@@ -215,7 +215,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     """
 
     # pull relevant info from atlas
-    label_data = utils.check_img(atlas).get_data()
+    label_data = np.asarray(utils.check_img(atlas).dataobj)
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
@@ -337,7 +337,7 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
     # get annotation and atlas data
     annotation = io.read_annotation(annotation)
     atlas = utils.check_img(atlas)
-    label_data, affine = atlas.get_data(), atlas.affine
+    label_data, affine = np.asarray(atlas.dataobj), atlas.affine
 
     # load atlas_info, if provided
     if atlas_info is not None:

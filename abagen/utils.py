@@ -38,20 +38,20 @@ def check_img(img):
 
     # ensure 3D or squeezable to 3D (this is a faster check than type casting)
     if len(img.shape) == 4 and img.shape[3] == 1:
-        data = img.get_data()
+        data = np.asarray(img.dataobj)
         affine = img.affine
         img = img.__class__(data[:, :, :, 0], affine, header=img.header)
     elif len(img.shape) != 3:
         raise ValueError('Provided image must be 3D')
 
     # check if atlas is int or castable to int
-    if img.get_data().dtype.kind != 'i':
-        cast = all([float(f).is_integer() for f in np.unique(img.get_data())])
+    if np.asarray(img.dataobj).dtype.kind != 'i':
+        cast = all([float(f).is_integer() for f in np.unique(img.dataobj)])
         if not cast:
             raise ValueError('Provided image should have integer values or '
                              'be safely castable to integer')
-        img = img.__class__(img.get_data().astype(np.int32), img.affine,
-                            header=img.header)
+        img = img.__class__(np.asarray(img.dataobj).astype(np.int32),
+                            img.affine, header=img.header)
         img.header.set_data_dtype(np.int32)
 
     return img
@@ -220,7 +220,7 @@ def get_unique_labels(label_image):
     """
 
     label_image = check_img(label_image)
-    return np.trim_zeros(np.unique(label_image.get_data())).astype(int)
+    return np.trim_zeros(np.unique(label_image.dataobj)).astype(int)
 
 
 def get_centroids(image, labels=None, image_space=False):
@@ -245,7 +245,7 @@ def get_centroids(image, labels=None, image_space=False):
     """
 
     image = check_img(image)
-    data = image.get_data()
+    data = np.asarray(image.dataobj)
 
     # if no labels of interest provided, get all possible labels
     if labels is None:
