@@ -40,7 +40,7 @@ jobs:
           name: Generate environment
           command: |
             if [ ! -d /opt/conda/envs/abagen_py37 ]; then
-              apt-get install -yqq build-essential
+              apt-get install -yqq build-essential libsnappy-dev
               conda create -yq -n abagen_py37 python=3.7
               source activate abagen_py37
               pip install -r dev_requirements.txt
@@ -90,7 +90,7 @@ jobs:
           name: Generate environment
           command: |
             if [ ! -d /opt/conda/envs/abagen_py35 ]; then
-              apt-get install -yqq build-essential
+              apt-get install -yqq build-essential libsnappy-dev
               conda create -yq -n abagen_py35 python=3.5
               source activate abagen_py35
               pip install -r dev_requirements.txt
@@ -122,7 +122,7 @@ jobs:
           name: Generate environment
           command: |
             if [ ! -d /opt/conda/envs/abagen_py36 ]; then
-              apt-get install -yqq build-essential
+              apt-get install -yqq build-essential libsnappy-dev
               conda create -yq -n abagen_py36 python=3.6
               source activate abagen_py36
               pip install -r dev_requirements.txt
