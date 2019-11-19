@@ -79,7 +79,7 @@ jobs:
           name: Download data
           command: |
             pip install -e .
-            python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
+            python -c "import abagen; abagen.fetch_microarray(donors=['12876', '15496'], n_proc=2)"
       - persist_to_workspace:
           root: /tmp
           paths:
@@ -118,8 +118,9 @@ jobs:
             apt-get install -yqq make
             cd docs/
             source activate abagen_py37
-            make html
-            make doctest
+            # need to download the rest of the donors
+            python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
+            make html doctest
       - store_artifacts:
           path: /tmp/src/abagen/docs/_build
   unittest_py35:
