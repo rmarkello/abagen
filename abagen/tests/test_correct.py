@@ -20,6 +20,15 @@ def donor_expression(testfiles, atlas):
                                      donors=['12876', '15496'])
 
 
+def test__unpack_tuple():
+    assert correct._unpack_tuple((3,)) == 3
+    assert correct._unpack_tuple((3, 3)) == (3, 3)
+    assert correct._unpack_tuple([2]) == 2
+    assert correct._unpack_tuple([2, 4]) == [2, 4]
+    assert correct._unpack_tuple(np.array([3])) == 3
+    assert np.all(correct._unpack_tuple(np.array([3, 3])) == [3, 3])
+
+
 def test__batch():
     rs = np.random.RandomState(1234)
     # p-values for ANOVA should all be ~0 (large group differences) before
@@ -37,6 +46,19 @@ def test__batch():
 
     with pytest.raises(ValueError):
         correct._batch_correct([y[0]])
+
+
+def test__rescale():
+    rs = np.random.RandomState(1234)
+    y = rs.normal(size=(100, 1000)) + 10
+    out = correct._rescale(y)
+    assert np.allclose(out.max(axis=0), 1) and np.allclose(out.min(axis=0), 0)
+
+    out = correct._rescale(y, low=5, high=6)
+    assert np.allclose(out.max(axis=0), 6) and np.allclose(out.min(axis=0), 5)
+
+    out = correct._rescale(y, axis=1)
+    assert np.allclose(out.max(axis=1), 1) and np.allclose(out.min(axis=1), 0)
 
 
 def test__srs():

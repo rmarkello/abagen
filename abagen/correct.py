@@ -13,13 +13,13 @@ from scipy.spatial.distance import cdist
 from . import utils
 
 
-def _unpack(var):
+def _unpack_tuple(var):
     """
-    Returns first entry if var has only one entry
+    Returns first entry of var if there is only one entry
 
     Parameters
     ----------
-    var : array_like
+    var : tuple
 
     Returns
     -------
@@ -253,7 +253,7 @@ def normalize_expression(expression, norm='srs'):
         normalized.loc[notna] = normed
         normexp.append(normalized)
 
-    return _unpack(normexp)
+    return _unpack_tuple(normexp)
 
 
 def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
