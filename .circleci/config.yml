@@ -79,7 +79,7 @@ jobs:
           name: Download data
           command: |
             pip install -e .
-            python -c "import abagen; abagen.fetch_microarray(donors=['12876', '15496'])"
+            python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
       - persist_to_workspace:
           root: /tmp
           paths:
