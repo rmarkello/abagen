@@ -178,7 +178,7 @@ jobs:
       - image: continuumio/miniconda3
     environment:
       ABAGEN_DATA: /tmp/src/data
-    working_directory: /tmp/src/coverage
+    working_directory: /tmp/src/abagen
     steps:
       - attach_workspace:
           at: /tmp
@@ -189,6 +189,7 @@ jobs:
           command: |
             apt-get install -yqq curl
             source activate abagen_py37
+            cd /tmp/src/coverage
             coverage combine
             coverage xml
       - store_artifacts:

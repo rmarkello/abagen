@@ -10,16 +10,16 @@ from abagen.datasets import fetch_desikan_killiany, fetch_microarray
 
 
 @pytest.fixture(scope='session')
-def datadir():
+def datadir(tmp_path_factory):
     dd = os.environ.get('ABAGEN_DATA')
     if dd is None:
-        return os.path.join(os.environ['HOME'], 'abagen-data')
+        dd = tmp_path_factory.mktemp('abagen-data')
     return dd
 
 
 @pytest.fixture(scope='session')
-def testfiles():
-    return fetch_microarray(donors=['12876', '15496'])
+def testfiles(datadir):
+    return fetch_microarray(data_dir=datadir, donors=['12876', '15496'])
 
 
 @pytest.fixture(scope='session')
