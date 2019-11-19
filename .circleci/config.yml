@@ -8,6 +8,23 @@ orbs:
   codecov: codecov/codecov@1.0.5
 
 commands:
+  buildenv:
+    description: "Build environment"
+    parameters:
+      env:
+        type: string
+      version:
+        type: string
+    steps:
+      - run:
+          name: Generate environment
+          command: |
+            if [ ! -d /opt/conda/envs/abagen_<< parameters.env >> ]; then
+              apt-get install -yqq build-essential libsnappy-dev
+              conda create -yq -n abagen_<< parameters.env >> python=<< parameters.version >>
+              source activate abagen_<< parameters.env >>
+              pip install -r dev_requirements.txt
+            fi
   rununit:
     description: "Run unit tests for abagen"
     parameters:
@@ -26,7 +43,6 @@ commands:
             mv .coverage /tmp/src/coverage/.coverage.<< parameters.env >>
 
 jobs:
-
   makeenv_py37:
     docker:
       - image: continuumio/miniconda3
@@ -37,15 +53,9 @@ jobs:
       - checkout
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
-      - run:
-          name: Generate environment
-          command: |
-            if [ ! -d /opt/conda/envs/abagen_py37 ]; then
-              apt-get install -yqq build-essential libsnappy-dev
-              conda create -yq -n abagen_py37 python=3.7
-              source activate abagen_py37
-              pip install -r dev_requirements.txt
-            fi
+      - buildenv:
+          env: "py37"
+          version: "3.7"
       - save_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
           paths:
@@ -54,7 +64,6 @@ jobs:
           root: /tmp
           paths:
               - src/abagen
-
   fetch_ahba:
     docker:
       - image: continuumio/miniconda3
@@ -75,88 +84,7 @@ jobs:
           root: /tmp
           paths:
               - src/data/allenbrain
-
-  unittest_py35:
-    docker:
-      - image: continuumio/miniconda3
-    environment:
-      ABAGEN_DATA: /tmp/src/data
-    working_directory: /tmp/src/abagen
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - restore_cache:
-          key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
-      - run:
-          name: Generate environment
-          command: |
-            if [ ! -d /opt/conda/envs/abagen_py35 ]; then
-              apt-get install -yqq build-essential libsnappy-dev
-              conda create -yq -n abagen_py35 python=3.5
-              source activate abagen_py35
-              pip install -r dev_requirements.txt
-            fi
-      - rununit:
-          env: "py35"
-      - save_cache:
-          key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
-          paths:
-              - /opt/conda/envs/abagen_py35
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-              - src/coverage/.coverage.py35
-
-  unittest_py36:
-    docker:
-      - image: continuumio/miniconda3
-    environment:
-      ABAGEN_DATA: /tmp/src/data
-    working_directory: /tmp/src/abagen
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - restore_cache:
-          key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
-      - run:
-          name: Generate environment
-          command: |
-            if [ ! -d /opt/conda/envs/abagen_py36 ]; then
-              apt-get install -yqq build-essential libsnappy-dev
-              conda create -yq -n abagen_py36 python=3.6
-              source activate abagen_py36
-              pip install -r dev_requirements.txt
-            fi
-      - rununit:
-          env: "py36"
-      - save_cache:
-          key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
-          paths:
-              - /opt/conda/envs/abagen_py36
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-              - src/coverage/.coverage.py36
-
-  unittest_py37:  # depends on makeenv_py37
-    docker:
-      - image: continuumio/miniconda3
-    environment:
-      ABAGEN_DATA: /tmp/src/data
-    working_directory: /tmp/src/abagen
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - restore_cache:
-          key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
-      - rununit:
-          env: "py37"
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-              - src/coverage/.coverage.py37
-
-  style_check:  # depends on makeenv_py37
+  style_check:
     docker:
       - image: continuumio/miniconda3
     environment:
@@ -172,7 +100,6 @@ jobs:
           command: |
             source activate abagen_py37
             flake8 abagen
-
   build_docs:
     docker:
       - image: continuumio/miniconda3
@@ -193,7 +120,71 @@ jobs:
             make doctest
       - store_artifacts:
           path: /tmp/src/abagen/docs/_build
-
+  unittest_py35:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
+      - buildenv:
+          env: "py35"
+          version: "3.5"
+      - rununit:
+          env: "py35"
+      - save_cache:
+          key: conda-py35-v1-{{ checksum "dev_requirements.txt" }}
+          paths:
+              - /opt/conda/envs/abagen_py35
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+              - src/coverage/.coverage.py35
+  unittest_py36:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
+      - buildenv:
+          env: "py36"
+          version: "3.6"
+      - rununit:
+          env: "py36"
+      - save_cache:
+          key: conda-py36-v1-{{ checksum "dev_requirements.txt" }}
+          paths:
+              - /opt/conda/envs/abagen_py36
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+              - src/coverage/.coverage.py36
+  unittest_py37:  # depends on makeenv_py37
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
+      - rununit:
+          env: "py37"
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+              - src/coverage/.coverage.py37
   merge_coverage:   # depends on everything
     docker:
       - image: continuumio/miniconda3
