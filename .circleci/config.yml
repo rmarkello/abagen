@@ -116,10 +116,11 @@ jobs:
           no_output_timeout: 40m
           command: |
             apt-get install -yqq make
-            cd docs/
             source activate abagen_py37
-            # need to download the rest of the donors
+            pip install -e .
+            # need to download the rest of the donors for docs
             python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
+            cd docs/
             make html doctest
       - store_artifacts:
           path: /tmp/src/abagen/docs/_build
@@ -182,8 +183,15 @@ jobs:
           at: /tmp
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
+      - buildenv:
+          env: "py37"
+          version: "3.7"
       - rununit:
           env: "py37"
+      - save_cache:
+          key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
+          paths:
+              - /opt/conda/envs/abagen_py37
       - persist_to_workspace:
           root: /tmp
           paths:
