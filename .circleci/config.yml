@@ -117,6 +117,7 @@ jobs:
           command: |
             apt-get install -yqq make
             cd docs/
+            source activate abagen_py37
             make html
             make doctest
       - store_artifacts:
