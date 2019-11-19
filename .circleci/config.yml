@@ -173,6 +173,27 @@ jobs:
             source activate abagen_py37
             flake8 abagen
 
+  build_docs:
+    docker:
+      - image: continuumio/miniconda3
+    environment:
+      ABAGEN_DATA: /tmp/src/data
+    working_directory: /tmp/src/abagen
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
+      - run:
+          name: Build documentation and run doctests
+          no_output_timeout: 40m
+          command: |
+            cd docs/
+            make html
+            make doctest
+      - store_artifacts:
+          path: /tmp/src/abagen/docs/_build
+
   merge_coverage:   # depends on everything
     docker:
       - image: continuumio/miniconda3
@@ -208,6 +229,9 @@ workflows:
       - fetch_ahba:
           requires:
             - makeenv_py37
+      - build_docs:
+          requires:
+            - fetch_ahba
       - unittest_py35:
           requires:
             - fetch_ahba
