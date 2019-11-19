@@ -120,5 +120,7 @@ abagen.fetch_microarray(donors='all', verbose=0)
 atlas = abagen.fetch_desikan_killiany()
 
 import pandas as pd
+pd.set_option('display.width', 1000)
 pd.set_option('max_rows', 6)
+pd.set_option('max_columns', 6)
 """
