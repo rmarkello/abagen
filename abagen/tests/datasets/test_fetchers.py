@@ -15,6 +15,9 @@ def test_fetch_microarray():
     f3 = fetchers.fetch_microarray(donors='H0351.1009')
     f4 = fetchers.fetch_microarray(donors=None)
 
+    # test n_proc
+    fetchers.fetch_microarray(donors=['12876', '15496'], n_proc=2)
+
     # don't test this -- it will take a wicked long time
     # f5 = datasets.fetch_microarray(donors='all')
 

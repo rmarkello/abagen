@@ -3,7 +3,6 @@
 Functions for downloading the Allen Brain Atlas human microarray dataset.
 """
 
-import itertools
 import multiprocessing as mp
 import os
 from pkg_resources import resource_filename
@@ -49,6 +48,9 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
         Whether to convert downloaded CSV files into parquet format for faster
         loading in the future; only available if ``fastparquet`` and ``python-
         snappy`` are installed. Default: True
+    n_proc : int, optional
+        Number of processes to parallelize download if multiple donors are
+        specified. Default: 1
 
     Returns
     -------
@@ -74,6 +76,9 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
                  'Ontology.csv', 'PACall.csv',
                  'Probes.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
+
+    if n_proc < 0:
+        n_proc = mp.cpu_count() + n_proc + 1
 
     if donors is None:
         donors = ['12876']
@@ -101,11 +106,15 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
 
     if n_proc > 1:
         with mp.Pool(n_proc) as pool:
-            res = [pool.apply_async(_fetch_files, (data_dir, f),
-                                    dict(resume=resume, verbose=verbose))
-                   for f in files]
-            files = list(itertools.chain.from_iterable([r.get() for r in res]))
+            results = [pool.apply_async(_fetch_files,
+                                        (data_dir, f),
+                                        dict(resume=resume, verbose=verbose))
+                       for f in files]
+            # flatten outputs into single list
+            files = [l for res in results for l in res.get()]
     else:
+        # flatten list of lists into single list
+        files = [l for f in files for l in f]
         files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
     # if we want to convert files to parquet format it's good to do that now
