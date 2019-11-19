@@ -13,7 +13,7 @@ from abagen.datasets import fetch_desikan_killiany, fetch_microarray
 def datadir(tmp_path_factory):
     dd = os.environ.get('ABAGEN_DATA')
     if dd is None:
-        dd = tmp_path_factory.mktemp('abagen-data')
+        dd = str(tmp_path_factory.mktemp('abagen-data'))
     return dd
 
 
