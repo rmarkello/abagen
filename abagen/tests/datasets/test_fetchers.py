@@ -39,12 +39,10 @@ def test_fetch_raw_mri():
     f2 = fetchers.fetch_raw_mri(donors='12876')
     f3 = fetchers.fetch_raw_mri(donors='H0351.1009')
     f4 = fetchers.fetch_raw_mri(donors=None)
-    f5 = fetchers.fetch_raw_mri(donors='all')
 
     assert f1 == f2 == f3 == f4
     for k in ['t1w', 't2w']:
         assert len(f1.get(k)) == 1
-        assert len(f5.get(k)) == 6
 
     # check downloading incorrect donor
     with pytest.raises(ValueError):
