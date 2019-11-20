@@ -4,6 +4,7 @@ Functions for processing and correcting gene expression data
 """
 
 import itertools
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -415,8 +416,12 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
         gene_corrs[:, n] = utils.efficient_corr(for_corr[s1].loc[regions],
                                                 for_corr[s2].loc[regions])
 
-    # average similarity across donors
-    gene_corrs = gene_corrs.mean(axis=1)
+    # average similarity across donors (ignore NaNs)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=RuntimeWarning,
+                                message='Mean of empty slice')
+        gene_corrs = np.nan_to_num(np.nanmean(gene_corrs, axis=1))
+
     # calculate absolute threshold if percentile is desired
     if percentile:
         threshold = np.percentile(gene_corrs, threshold * 100)
