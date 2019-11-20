@@ -112,16 +112,15 @@ jobs:
       - restore_cache:
           key: conda-py37-v1-{{ checksum "dev_requirements.txt" }}
       - run:
-          name: Build documentation and run doctests
+          name: Build documentation
           no_output_timeout: 40m
           command: |
             apt-get install -yqq make
             source activate abagen_py37
             pip install -e .
-            # need to download the rest of the donors for docs
-            python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
+            # python -c "import abagen; abagen.fetch_microarray(donors='all', n_proc=6)"
             cd docs/
-            make html doctest
+            make html  # doctest
       - store_artifacts:
           path: /tmp/src/abagen/docs/_build
   unittest_py35:
