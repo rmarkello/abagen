@@ -56,9 +56,12 @@ def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
                                .groupby('label')
                                .aggregate(metric)
                                .append(labels)
-                               .drop([0])
                                .sort_index()
                                .rename_axis('label'))
+
+    # remove "zero" label (if it exists)
+    if 0 in gene_by_label.index:
+        gene_by_label = gene_by_label.drop([0], axis=0)
 
     return gene_by_label
 
@@ -403,7 +406,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         microarray[subj] = microarray[subj].loc[annotation[subj].index]
 
         if exact:  # remove all samples not assigned a label before norming
-            microarray[subj].loc[np.asarray(labels == 0).squeeze()] = np.nan
+            nz = np.asarray(labels != 0).squeeze()
+            microarray[subj] = microarray[subj].loc[nz]
+            labels = labels[nz]
 
         if sample_norm is not None:
             if subj == 0:  # only provide norm log once
