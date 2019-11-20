@@ -10,7 +10,7 @@ from abagen.datasets import utils
 
 
 def test_get_dataset_dir(datadir):
-    os.environ.pop('ABAGEN_DATA', None)
+    old = os.environ.pop('ABAGEN_DATA', None)
 
     # check that data dir defaults to $HOME/abagen-data assuming no env var
     expected_base = os.path.expanduser('~/abagen-data')
@@ -38,3 +38,6 @@ def test_get_dataset_dir(datadir):
                                        verbose=0)
     assert data_dir == data_dir2
     shutil.rmtree(data_dir)
+
+    if old is not None:
+        os.environ['ABAGEN_DATA'] = old

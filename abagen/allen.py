@@ -69,7 +69,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         lr_mirror=False, donor_norm='srs',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
-                        donors='all', data_dir=None, verbose=1):
+                        donors='all', data_dir=None, verbose=1, n_proc=1):
     """
     Assigns microarray expression data to ROIs defined in `atlas`
 
@@ -193,6 +193,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         Specifies verbosity of status messages to display during workflow.
         Higher numbers increase verbosity of messages while zero suppresses all
         messages. Default: 1
+    n_proc : int, optional
+        Number of processors to use to download AHBA data. Can parallelize up
+        to six times. Default: 1
 
     Returns
     -------
@@ -306,7 +309,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
 
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
-                                      verbose=verbose)
+                                      verbose=verbose, n_proc=n_proc)
     microarray = files['microarray']
     annotation = files['annotation']
     pacall = files['pacall']

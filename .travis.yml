@@ -15,74 +15,17 @@ python:
 
 env:
   matrix:
-    - CHECK_TYPE=linting
     - CHECK_TYPE=docdoctest
-    - CHECK_TYPE=test
-  global:
-    - INSTALL_TYPE=setup
-
-matrix:
-  include:
-  - python: 3.6
-    env:
-      - INSTALL_TYPE=sdist
-      - CHECK_TYPE=test
-  - python: 3.6
-    env:
-      - INSTALL_TYPE=wheel
-      - CHECK_TYPE=test
-  - python: 3.6
-    sudo: required
-    env:
-      - INSTALL_PARQUET=true
-      - CHECK_TYPE=test
 
 before_install:
   - python -m pip install --upgrade pip
-  - if [ "${CHECK_TYPE}" == "linting" ]; then
-      pip install flake8;
-    fi
-  - if [ "${CHECK_TYPE}" == "test" ]; then
-      pip install "pytest>=3.6" pytest-cov coverage coveralls codecov;
-    fi
-  - if [ ! -z "${INSTALL_PARQUET}"]; then
-      sudo apt-get install libsnappy-dev;
-      pip install fastparquet python-snappy;
-    fi
 
 install:
-  - |
-    if [ "${INSTALL_TYPE}" == "setup" ]; then
-      python setup.py install;
-    elif [ "${INSTALL_TYPE}" == "sdist" ]; then
-      python setup.py sdist;
-      pip install dist/*.tar.gz;
-    elif [ "${INSTALL_TYPE}" == "wheel" ]; then
-      python setup.py bdist_wheel;
-      pip install dist/*.whl;
-    else
-      false;
-    fi
+  - python setup.py install;
 
 script:
   - |
-    if [ "${CHECK_TYPE}" == "linting" ]; then
-      flake8 abagen;
-    elif [ "${CHECK_TYPE}" == "docdoctest" ]; then
-      cd docs;
-      pip install -r ./requirements.txt;
-      make html;
-      travis_wait 40 make doctest;
-    elif [ "${CHECK_TYPE}" == "test" ]; then
-      mkdir for_testing && cd for_testing;
-      cp ../setup.cfg .;
-      args="--cov-report term-missing --cov=abagen --doctest-modules --pyargs";
-      travis_wait 40 python -m pytest ${args} ${rootdir} abagen;
-    else
-      false;
-    fi
-
-after_success:
-  - if [ "${CHECK_TYPE}" == "test" ]; then
-      coveralls; codecov;
-    fi
+    cd docs;
+    pip install -r ./requirements.txt;
+    make html;
+    travis_wait 40 make doctest;
