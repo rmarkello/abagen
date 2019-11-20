@@ -20,6 +20,15 @@ def donor_expression(testfiles, atlas):
                                      donors=['12876', '15496'])
 
 
+def test__unpack_tuple():
+    assert correct._unpack_tuple((3,)) == 3
+    assert correct._unpack_tuple((3, 3)) == (3, 3)
+    assert correct._unpack_tuple([2]) == 2
+    assert correct._unpack_tuple([2, 4]) == [2, 4]
+    assert correct._unpack_tuple(np.array([3])) == 3
+    assert np.all(correct._unpack_tuple(np.array([3, 3])) == [3, 3])
+
+
 def test__batch():
     rs = np.random.RandomState(1234)
     # p-values for ANOVA should all be ~0 (large group differences) before
@@ -39,26 +48,69 @@ def test__batch():
         correct._batch_correct([y[0]])
 
 
-def test__srs():
+def test__rescale():
+    rs = np.random.RandomState(1234)
+    y = rs.normal(size=(100, 1000)) + 10
+    out = correct._rescale(y)
+
+    # default max = 1, min =0
+    assert np.allclose(out.max(axis=0), 1) and np.allclose(out.min(axis=0), 0)
+
+    # can specify alternative min/max
+    out = correct._rescale(y, low=5, high=6)
+    assert np.allclose(out.max(axis=0), 6) and np.allclose(out.min(axis=0), 5)
+
+    # different axis works, too!
+    out = correct._rescale(y, axis=1)
+    assert np.allclose(out.max(axis=1), 1) and np.allclose(out.min(axis=1), 0)
+
+
+@pytest.mark.parametrize('a', [0, 1])
+def test__rs(a):
     rs = np.random.RandomState(1234)
 
     # create an array with a pretty ridiculous outlier effect to try and fix
     y = rs.normal(size=(100, 1000))
     y[0] += 1000
-    out = correct._srs(y)
+    y[:, 0] += 1000
+    out = correct._rs(y, axis=a)
 
-    # basic check for scaling
-    assert np.allclose(out.max(0), 1) and np.allclose(out.min(), 0)
+    # max will always be less than one, min will always be greater than zero
+    assert np.all(out.max(axis=a) <= 1) and np.all(out.min(axis=a) >= 0)
 
     # we should have reduced skewness / kurtosis compared to the original
-    assert np.all(sstats.skew(out) < sstats.skew(y))
-    assert np.all(sstats.kurtosis(out) < sstats.kurtosis(y))
+    assert np.all(sstats.skew(out, axis=a) < sstats.skew(y, axis=a))
+    assert np.all(sstats.kurtosis(out, axis=a) < sstats.kurtosis(y, axis=a))
 
     # this is a weird test; we're gonna bin the data at 0.2 intervals and make
     # sure no bins are empty. if one is something probably went wrong, right?
     for low in np.arange(0, 1, 0.2):
         hi = low + 0.2 + np.spacing(1)  # include 1
-        assert np.all(np.sum(np.logical_and(out >= low, out < hi), axis=0) > 0)
+        assert np.all(np.sum(np.logical_and(out >= low, out < hi), axis=a) > 0)
+
+
+@pytest.mark.parametrize('a', [0, 1])
+def test__srs(a):
+    rs = np.random.RandomState(1234)
+
+    # create an array with a pretty ridiculous outlier effect to try and fix
+    y = rs.normal(size=(100, 1000))
+    y[0] += 1000
+    y[:, 0] += 1000
+    out = correct._srs(y, axis=a)
+
+    # max will always be one, min will always be zero
+    assert np.allclose(out.max(axis=a), 1) and np.allclose(out.min(axis=a), 0)
+
+    # we should have reduced skewness / kurtosis compared to the original
+    assert np.all(sstats.skew(out, axis=a) < sstats.skew(y, axis=a))
+    assert np.all(sstats.kurtosis(out, axis=a) < sstats.kurtosis(y, axis=a))
+
+    # this is a weird test; we're gonna bin the data at 0.2 intervals and make
+    # sure no bins are empty. if one is something probably went wrong, right?
+    for low in np.arange(0, 1, 0.2):
+        hi = low + 0.2 + np.spacing(1)  # include 1
+        assert np.all(np.sum(np.logical_and(out >= low, out < hi), axis=a) > 0)
 
 
 def test_normalize_expression_real(testfiles):
@@ -68,27 +120,55 @@ def test_normalize_expression_real(testfiles):
     for n, idx in enumerate(inds):
         micro[n].iloc[idx] = np.nan
 
-    # min-max scaling (with some extra pizzazz)
-    srs = correct.normalize_expression(micro, norm='srs')
-    for exp, idx in zip(srs, inds):
+    # min-max scaling
+    out = correct.normalize_expression(micro, norm='minmax')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.max(axis=0), 1)
         assert np.allclose(exp.min(axis=0), 0)
+    del out
+
+    # robust sigmoid
+    out = correct.normalize_expression(micro, norm='rs')
+    for exp, idx in zip(out, inds):
+        assert np.all(np.isnan(exp.iloc[idx]))
+        exp = exp.dropna(axis=1, how='all')
+        assert np.all(exp.max(axis=0) <= 1)
+        assert np.all(exp.min(axis=0) >= 0)
+    del out
+
+    # scaled robust sigmoid
+    out = correct.normalize_expression(micro, norm='srs')
+    for exp, idx in zip(out, inds):
+        assert np.all(np.isnan(exp.iloc[idx]))
+        exp = exp.dropna(axis=1, how='all')
+        assert np.allclose(exp.max(axis=0), 1)
+        assert np.allclose(exp.min(axis=0), 0)
+    del out
+
+    # centering
+    out = correct.normalize_expression(micro, norm='center')
+    for exp, idx in zip(out, inds):
+        assert np.all(np.isnan(exp.iloc[idx]))
+        exp = exp.dropna(axis=1, how='all')
+        assert np.allclose(exp.mean(axis=0), 0)
+    del out
 
     # z-scoring: mean = 0, std = 1
-    zscore = correct.normalize_expression(micro, norm='zscore')
-    for exp, idx in zip(zscore, inds):
+    out = correct.normalize_expression(micro, norm='zscore')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.mean(axis=0), 0)
         assert np.allclose(exp.std(axis=0, ddof=1), 1)
+    del out
 
     # batch correct: force means identical
-    batch = correct.normalize_expression(micro, norm='batch')
-    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in batch])
+    out = correct.normalize_expression(micro, norm='batch')
+    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in out])
     # the NaN values should still be there, though
-    for exp, idx in zip(batch, inds):
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
 
     # invalid norm parameter
@@ -102,6 +182,7 @@ def test_normalize_expression_real(testfiles):
 
 def test_remove_distance(donor_expression, atlas):
     expr = pd.concat(donor_expression).groupby('label').aggregate(np.mean)
+    expr = expr.dropna(axis=1, how='any')
     coexpr = np.corrcoef(expr)
     for atlas_info in [None, atlas['info']]:
         out = correct.remove_distance(coexpr, atlas['image'], atlas_info)

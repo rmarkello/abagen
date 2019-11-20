@@ -56,17 +56,20 @@ def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
                                .groupby('label')
                                .aggregate(metric)
                                .append(labels)
-                               .drop([0])
                                .sort_index()
                                .rename_axis('label'))
+
+    # remove "zero" label (if it exists)
+    if 0 in gene_by_label.index:
+        gene_by_label = gene_by_label.drop([0], axis=0)
 
     return gene_by_label
 
 
 def get_expression_data(atlas, atlas_info=None, *, exact=True,
                         tolerance=2, metric='mean', ibf_threshold=0.5,
-                        probe_selection='diff_stability',
-                        lr_mirror=False, donor_norm='srs',
+                        probe_selection='diff_stability', lr_mirror=False,
+                        sample_norm='srs', donor_norm='srs',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1, n_proc=1):
@@ -110,9 +113,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     parameter; see the parameter description for more information.
 
     Once all samples have been matched to parcels for all supplied donors, the
-    microarray expression data are optionally normalized within-donor via the
-    provided `donor_norm` function before being combined across donors via the
-    supplied `metric`.
+    microarray expression data are optionally normalized via the provided
+    `sample_norm` and `donor_norm` functions before being combined within
+    parcels and across donors via the supplied `metric.
 
     Parameters
     ----------
@@ -160,12 +163,18 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
-    donor_norm : {'srs', 'zscore', 'batch', None}, optional
+    sample_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
+        Method by which to normalize microarray expression values for each
+        sample. Expression values are normalized separately for each sample for
+        each donor across all genes; see Notes for more information on
+        different methods. If None is specified then no normalization is
+        performed. Default: 'srs'
+    donor_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
         donor. Expression values are normalized separately for each gene for
         each donor across all regions in `atlas`; see Notes for more
-        information on different methods. If not specified no normalization
-        is performed. Default: 'srs'
+        information on different methods. If None is specified then no
+        normalization is performed. Default: 'srs'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -257,25 +266,26 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     The following methods can be used for normalizing microarray expression
     values for each donor prior to aggregating:
 
-        1. ``donor_norm='srs'``
+        1. ``norm=='rs'``
 
-        Uses a scaled robust sigmoid function as in [A3]_ to normalize
-        expression values for each gene across regions to within the unit
-        normal (i.e., in the range 0-1).
+        Uses a robust sigmoid function as in [A3]_ to normalize values
 
-        2. ``donor_norm='zscore'``
+        2. ``norm='srs'``
 
-        Applies a basic z-score (subtract mean, divide by standard deviation)
-        to expression values for each gene across regions. Uses degrees of
-        freedom equal to one for standard deviation calculation.
+        Same as 'rs' but scales output to the unit normal (i.e., range 0-1)
 
-        3. ``donor_norm='batch'``
+        3. ``norm='minmax'``
 
-        Uses a linear model to remove donor effects from expression values.
-        Differs from other methods in that all donors are simultaneously fit
-        to the same model and expression values are residualized based on
-        estimated betas. Linear model includes the intercept but the
-        residualization does not remove it.
+        Scales data in each column to the unit normal (i.e., range 0-1)
+
+        4. ``norm='center'``
+
+        Removes the mean of expression values
+
+        5. ``norm='zscore'``
+
+        Applies a basic z-score (subtract mean, divide by standard deviation);
+        uses degrees of freedom equal to one for standard deviation
 
     References
     ----------
@@ -388,13 +398,33 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         annotation[subj] = samples.drop_mismatch_samples(annotation[subj],
                                                          ontology[subj])
 
-        # subset representative probes + samples from microarray data
-        microarray[subj] = microarray[subj].loc[annotation[subj].index]
-
-        # assign samples to regions and aggregate samples w/i the same region
+        # assign samples to regions
         labels = samples.label_samples(annotation[subj], atlas,
                                        atlas_info=atlas_info,
                                        tolerance=tolerance)
+
+        # subset representative probes + samples from microarray data
+        microarray[subj] = microarray[subj].loc[annotation[subj].index]
+
+        if exact:  # remove all samples not assigned a label before norming
+            nz = np.asarray(labels != 0).squeeze()
+            microarray[subj] = microarray[subj].loc[nz]
+            labels = labels[nz]
+
+        if sample_norm is not None:
+            if subj == 0:  # only provide norm log once
+                lgr.info('Normalizing expression across genes with function: '
+                         '{}'.format(sample_norm))
+            microarray[subj] = correct.normalize_expression(microarray[subj].T,
+                                                            norm=sample_norm).T
+        if donor_norm is not None:
+            if subj == 0:  # only provide norm log once
+                lgr.info('Normalizing expression across sample with function: '
+                         '{}'.format(donor_norm))
+            microarray[subj] = correct.normalize_expression(microarray[subj],
+                                                            norm=donor_norm)
+
+        # aggregate normalized samples within regions
         expression += [groupby_label(microarray[subj], labels,
                                      all_labels, metric=metric)]
         lgr.info('{:>3} / {} samples matched to regions for donor #{}'
@@ -412,7 +442,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         if not exact:
             cols = ['mni_x', 'mni_y', 'mni_z']
             coords = utils.xyz_to_ijk(annotation[subj][cols], atlas.affine)
-            empty = ~np.in1d(all_labels, labs)
+            empty = np.logical_not(np.in1d(all_labels, labs))
             idx, dist = utils.closest_centroid(coords, centroids[empty],
                                                return_dist=True)
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
@@ -436,17 +466,14 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
             expression[ind].loc[roi] = missing[ind][0].loc[roi]
             counts.loc[roi, ind] += 1
 
-    # normalize data with SRS
-    if donor_norm is not None:
-        lgr.info('Normalizing donor expression data with function: "{}"'
-                 .format(donor_norm))
-        expression = correct.normalize_expression(expression, norm=donor_norm)
-
     # aggregate across donors if individual donor dataframes not requested
     if not return_donors:
         lgr.info('Aggregating donor expression data with function: "{}"'
                  .format(metric))
         expression = pd.concat(expression).groupby('label').aggregate(metric)
+        # some genes may have been poorly normalized; remove these
+        drop = expression.dropna(axis=0, how='all').isna().any(axis=0)
+        expression = expression.drop(drop[drop].index, axis=1)
 
     # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:
