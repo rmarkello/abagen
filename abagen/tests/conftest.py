@@ -19,7 +19,8 @@ def datadir(tmp_path_factory):
 
 @pytest.fixture(scope='session')
 def testfiles(datadir):
-    return fetch_microarray(data_dir=datadir, donors=['12876', '15496'])
+    return fetch_microarray(data_dir=datadir, donors=['12876', '15496'],
+                            n_proc=2)
 
 
 @pytest.fixture(scope='session')
