@@ -121,49 +121,54 @@ def test_normalize_expression_real(testfiles):
         micro[n].iloc[idx] = np.nan
 
     # min-max scaling
-    minmax = correct.normalize_expression(micro, norm='minmax')
-    for exp, idx in zip(minmax, inds):
+    out = correct.normalize_expression(micro, norm='minmax')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.max(axis=0), 1)
         assert np.allclose(exp.min(axis=0), 0)
+    del out
 
     # robust sigmoid
-    rs = correct.normalize_expression(micro, norm='rs')
-    for exp, idx in zip(rs, inds):
+    out = correct.normalize_expression(micro, norm='rs')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.all(exp.max(axis=0) <= 1)
         assert np.all(exp.min(axis=0) >= 0)
+    del out
 
     # scaled robust sigmoid
-    srs = correct.normalize_expression(micro, norm='srs')
-    for exp, idx in zip(srs, inds):
+    out = correct.normalize_expression(micro, norm='srs')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.max(axis=0), 1)
         assert np.allclose(exp.min(axis=0), 0)
+    del out
 
     # centering
-    centered = correct.normalize_expression(micro, norm='center')
-    for exp, idx in zip(centered, inds):
+    out = correct.normalize_expression(micro, norm='center')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.mean(axis=0), 0)
+    del out
 
     # z-scoring: mean = 0, std = 1
-    zscore = correct.normalize_expression(micro, norm='zscore')
-    for exp, idx in zip(zscore, inds):
+    out = correct.normalize_expression(micro, norm='zscore')
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
         assert np.allclose(exp.mean(axis=0), 0)
         assert np.allclose(exp.std(axis=0, ddof=1), 1)
+    del out
 
     # batch correct: force means identical
-    batch = correct.normalize_expression(micro, norm='batch')
-    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in batch])
+    out = correct.normalize_expression(micro, norm='batch')
+    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in out])
     # the NaN values should still be there, though
-    for exp, idx in zip(batch, inds):
+    for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
 
     # invalid norm parameter
