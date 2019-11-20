@@ -113,9 +113,9 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     parameter; see the parameter description for more information.
 
     Once all samples have been matched to parcels for all supplied donors, the
-    microarray expression data are optionally normalized within-donor via the
-    provided `donor_norm` function before being combined across donors via the
-    supplied `metric`.
+    microarray expression data are optionally normalized via the provided
+    `sample_norm` and `donor_norm` functions before being combined within
+    parcels and across donors via the supplied `metric.
 
     Parameters
     ----------
@@ -163,18 +163,18 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
-    sample_norm : {'srs', 'zscore', None}, optional
+    sample_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
         sample. Expression values are normalized separately for each sample for
         each donor across all genes; see Notes for more information on
-        different methods. If None is specified no normalization is performed.
-        Default: 'srs'
-    donor_norm : {'srs', 'zscore', 'batch', None}, optional
+        different methods. If None is specified then no normalization is
+        performed. Default: 'srs'
+    donor_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
         donor. Expression values are normalized separately for each gene for
         each donor across all regions in `atlas`; see Notes for more
-        information on different methods. If None is specified no normalization
-        is performed. Default: 'srs'
+        information on different methods. If None is specified then no
+        normalization is performed. Default: 'srs'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -266,25 +266,26 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     The following methods can be used for normalizing microarray expression
     values for each donor prior to aggregating:
 
-        1. ``donor_norm='srs'``
+        1. ``norm=='rs'``
 
-        Uses a scaled robust sigmoid function as in [A3]_ to normalize
-        expression values for each gene across regions to within the unit
-        normal (i.e., in the range 0-1).
+        Uses a robust sigmoid function as in [A3]_ to normalize values
 
-        2. ``donor_norm='zscore'``
+        2. ``norm='srs'``
 
-        Applies a basic z-score (subtract mean, divide by standard deviation)
-        to expression values for each gene across regions. Uses degrees of
-        freedom equal to one for standard deviation calculation.
+        Same as 'rs' but scales output to the unit normal (i.e., range 0-1)
 
-        3. ``donor_norm='batch'``
+        3. ``norm='minmax'``
 
-        Uses a linear model to remove donor effects from expression values.
-        Differs from other methods in that all donors are simultaneously fit
-        to the same model and expression values are residualized based on
-        estimated betas. Linear model includes the intercept but the
-        residualization does not remove it.
+        Scales data in each column to the unit normal (i.e., range 0-1)
+
+        4. ``norm='center'``
+
+        Removes the mean of expression values
+
+        5. ``norm='zscore'``
+
+        Applies a basic z-score (subtract mean, divide by standard deviation);
+        uses degrees of freedom equal to one for standard deviation
 
     References
     ----------
