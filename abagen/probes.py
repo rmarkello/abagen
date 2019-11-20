@@ -58,7 +58,7 @@ def reannotate_probes(probes):
     return reannotated
 
 
-def filter_probes(pacall, probes, threshold=0.5):
+def filter_probes(pacall, samples, probes, threshold=0.5):
     """
     Performs intensity based filtering (IBF) of expression probes
 
@@ -72,6 +72,8 @@ def filter_probes(pacall, probes, threshold=0.5):
         List of filepaths to PAcall files from Allen Brain Institute (i.e.,
         as obtained by calling :func:`abagen.fetch_microarray` and accessing
         the `pacall` attribute on the resulting object).
+    samples : list of str or pandas.DataFrame
+
     probes : str or pandas.DataFrame
         Dataframe containing information on microarray probes that should be
         considered in filtering (probes not in this dataframe will be ignored)
@@ -89,16 +91,17 @@ def filter_probes(pacall, probes, threshold=0.5):
 
     threshold = np.clip(threshold, 0.0, 1.0)
 
-    probes = io.read_probes(probes, copy=True)
-    signal, samples = [], 0
-    for fname in pacall:
-        data = io.read_pacall(fname).loc[probes.index]
-        samples += data.shape[-1]
+    probes = io.read_probes(probes)
+    signal, n_samp = np.zeros(len(probes), dtype=int), 0
+    for pa, annot in zip(pacall, samples):
+        data = io.read_pacall(pa).loc[probes.index,
+                                      io.read_annotation(annot).index]
+        n_samp += data.shape[-1]
         # sum binary expression indicator across samples for current subject
-        signal.append(data.sum(axis=1).values)
+        signal += np.asarray(data.sum(axis=1))
 
     # calculate proportion of signal to noise for given probe across samples
-    keep = (np.sum(signal, axis=0) / samples) >= threshold
+    keep = (signal / n_samp) >= threshold
 
     return probes[keep]
 
@@ -610,8 +613,9 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
     # read in microarray data for all subjects; this can be quite slow...
     probes = io.read_probes(probes)
     exp = [
-        io.read_microarray(m, copy=not inplace).loc[probes.index]
-        for m in microarray
+        (io.read_microarray(m, copy=not inplace)
+           .loc[probes.index, io.read_annotation(a, copy=not inplace).index])
+        for m, a in zip(microarray, annotation)
     ]
 
     return [e.T for e in collfunc(exp, probes, annotation)]

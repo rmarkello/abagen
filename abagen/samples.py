@@ -141,8 +141,6 @@ def drop_mismatch_samples(annotation, ontology):
     hemisphere designation in `ontology`; samples who do not match (e.g., L
     hemisphere designation in `ontology` but X coordinate < 0) are removed.
 
-    Optionally updates MNI coordinates in `annotation` (see `corrected`).
-
     Parameters
     ----------
     annotation : str
@@ -153,10 +151,6 @@ def drop_mismatch_samples(annotation, ontology):
         Ontology file from Allen Brain Institute. Optimally obtained by
         calling `abagen.fetch_microarray()` and accessing the `ontology`
         attribute on the resulting object
-    corrected : bool, optional
-        Whether to use the "corrected" MNI coordinates shipped with the
-        `alleninf` package instead of the coordinates provided with the AHBA
-        data. Default: True
 
     Returns
     -------
@@ -165,23 +159,42 @@ def drop_mismatch_samples(annotation, ontology):
     """
 
     # read in data files
-    annot = io.read_annotation(annotation)
-    ont = io.read_ontology(ontology).set_index('id')
+    annotation = io.read_annotation(annotation)
+    ontology = io.read_ontology(ontology).set_index('id')
+    sid = np.asarray(annotation['structure_id'])
 
     # get hemisphere and structure path
-    hemisphere = np.asarray(ont.loc[annot['structure_id'], 'hemisphere'])
-    structure = np.asarray(ont.loc[annot['structure_id'], 'structure_id_path']
-                              .apply(_get_struct))
+    hemisphere = np.asarray(ontology.loc[sid, 'hemisphere'])
+    structure = np.asarray(ontology.loc[sid, 'structure_id_path']
+                                   .apply(_get_struct))
 
     # add hemisphere + brain "structure" designation to annotation data and
     # only keep samples with consistent hemisphere + MNI coordinate designation
-    annot = annot.assign(hemisphere=hemisphere, structure=structure) \
-                 .query('(hemisphere == "L" & mni_x < 0) '
-                        '| (hemisphere == "R" & mni_x > 0) '
-                        '| (hemisphere.isna() & mni_x == 0)',
-                        engine='python')
+    annot = annotation.assign(hemisphere=hemisphere, structure=structure) \
+                      .query('(hemisphere == "L" & mni_x < 0) '
+                             '| (hemisphere == "R" & mni_x > 0) '
+                             '| (hemisphere.isna() & mni_x == 0)',
+                             engine='python')
 
     return annot
+
+
+def update_samples(annotation, ontology, lr_mirror=False, corrected_mni=True):
+    """
+    """
+
+    # update MNI coordinates first; this will affect all later stages
+    if corrected_mni:
+        annotation = update_mni_coords(annotation)
+
+    # drop samples where (new?) MNI coords don't match hemisphere in ontology
+    annotation = drop_mismatch_samples(annotation, ontology)
+
+    # optionally duplicate samples across hemisphere
+    if lr_mirror:
+        annotation = mirror_samples(annotation, ontology)
+
+    return annotation
 
 
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
@@ -428,7 +441,25 @@ def mirror_samples(microarray, pacall, annotation, ontology, inplace=False):
     return microarray, pacall, annotation
 
 
-def _mirror_samples(microarray, pacall, annotation, ontology, inplace=False):
+def _mirror_samples(annotation, ontology):
+    annotation = io.read_annotation(annotation)
+    ontology = io.read_ontology(ontology)
+
+    # take all lh and rh samples and flip x-coordinate
+    # also update ontology information (structure_id/acronym/name) as this is
+    # used when dropping mismatched samples later in the workflow
+    lh = _mirror_ontology(annotation[annotation['mni_x'] < 0], ontology)
+    rh = _mirror_ontology(annotation[annotation['mni_x'] > 0], ontology)
+    for df in [lh, rh]:
+        df['mni_x'] *= -1
+
+    # grow microarray and pacall based on duplicated samples
+    annotation = pd.concat([annotation, lh, rh])
+
+    return annotation
+
+
+def _mirror_samples2(microarray, pacall, annotation, ontology, inplace=False):
     """
     Mirrors tissue samples across hemispheres for single donor
 
