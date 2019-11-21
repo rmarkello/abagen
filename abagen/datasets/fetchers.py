@@ -254,3 +254,21 @@ def fetch_gene_group(group):
     genes = pd.read_csv(fn).query('group == "{}"'.format(group))['acronym']
 
     return sorted(list(genes))
+
+
+def fetch_donor_info():
+    """
+    Returns dataframe with donor demographic information
+
+    Returns
+    -------
+    info : pandas.DataFrame
+        With columns ['donor', 'age', 'sex', 'ethnicity', 'medical_conditions', 
+        'post_mortem_interval_hours'] detailing basic demographic info about 
+        donors
+    """
+
+    fn = resource_filename('abagen', 'data/donor_info.csv')
+    donors = pd.read_csv(fn)
+
+    return donors
