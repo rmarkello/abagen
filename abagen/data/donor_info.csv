@@ -1,0 +1,7 @@
+donor,age,sex,ethnicity,medical_conditions,post_mortem_interval_hours
+H0351 2001,24,M,African American,History of asthma,23
+H0351 2002,39,M,African American,Possible small pituitary adenoma; single neurofibrillary tangle in entorhinal cortex,10
+H0351 1009,57,M,Caucasian,History of atherosclerotic cardiovascular disease,25.5
+H0351 1012,31,M,Caucasian,Sudden cardiac arrest; benign spindle cell proliferation and dystrophic calcification in temporal horn of lateral ventricle,17.5
+H0351 1015,49,F,Hispanic,"Splenectomy, hypothyroidism treated with Levothroid; modest numbers of hemosiderin laden macrophages noted in Virchow-Robin spaces in parietal and occipital lobes, mild arteriosclerosis",30
+H0351 1016,55,M,Caucasian,"Coronary artery atherosclerosis, prescriptions for clotting and high cholesterol",18
