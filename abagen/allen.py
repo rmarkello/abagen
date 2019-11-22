@@ -391,7 +391,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
              .format(microarray[0].shape[-1]))
 
     expression, missing = [], []
-    counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray))),
+    counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
+                                   dtype=int),
                           index=np.append([0], all_labels))
     for subj in range(len(microarray)):
         # get rid of samples whose coordinates don't match ontological profile
