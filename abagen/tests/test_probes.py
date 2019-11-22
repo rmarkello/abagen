@@ -44,13 +44,15 @@ def test_filter_probes(testfiles, threshold, expected_length):
     # set up a few useful variables
     pacall = testfiles['pacall']
     probe_file = testfiles['probes'][0]
+    samples = testfiles['annotation']
     probe_df = abagen.io.read_probes(probe_file)
 
     # should work with either a filename _or_ a dataframe
-    filtered = probes.filter_probes(pacall, probe_file, threshold=threshold)
+    filtered = probes.filter_probes(pacall, samples, probe_file,
+                                    threshold=threshold)
     pd.testing.assert_frame_equal(
         filtered,
-        probes.filter_probes(pacall, probe_df, threshold=threshold)
+        probes.filter_probes(pacall, samples, probe_df, threshold=threshold)
     )
 
     # provided threshold returns expected output

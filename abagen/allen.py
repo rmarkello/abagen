@@ -338,44 +338,24 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                  .format(len(all_labels)))
         centroids = utils.get_centroids(atlas, labels=all_labels)
 
-    # are we using corrected MNI coordinates? update the annotation "files"
-    if corrected_mni:
-        for n, annot in enumerate(annotation):
-            annotation[n] = samples.update_mni_coords(annot)
+    # update the annotation "files"
+    # this handles updating the MNI coordinates, dropping mistmatched samples
+    # (where MNI coordinates don't match ontology), and mirror samples across
+    # hemisphere, as applicable.
+    for n, (annot, ont) in enumerate(zip(annotation, ontology)):
+        annotation[n] = samples.update_samples(annot, ont, lr_mirror=lr_mirror,
+                                               corrected_mni=corrected_mni)
 
     # get dataframe of probe information (reannotated or otherwise)
     probe_info = io.read_probes(probe_info, copy=True)
     if reannotated:
-        lgr.info('Reannotating microarray probes with information from '
-                 'Arnatkevic̆iūtė et al., 2019, NeuroImage')
+        lgr.info('Reannotating probes with information from Arnatkevic̆iūtė '
+                 'et al., 2019, NeuroImage')
         probe_info = probes.reannotate_probes(probe_info)
 
-    # when probes are reannotated there are a few that are removed due to their
-    # not being matched to a gene. in this case, it's good to subset microarray
-    # and pacall data to save a bit on memory
-    for n in range(len(microarray)):
-        microarray[n] = io.read_microarray(microarray[n]).loc[probe_info.index]
-        pacall[n] = io.read_pacall(pacall[n]).loc[probe_info.index]
-
-    # if we're mirroring samples across hemispheres we need to modify the
-    # microarray, pacall, and annotation dataframes. the other data (ontology
-    # and probes) are redundant across subjects and have no sample-specific
-    # information.
-    # if this is done with uncorrected MNI coords (i.e., corrected_mni=False)
-    # then mirroring will change the number of probes / genes in the generated
-    # microarray expression dataframes. with corrected MNI coords the number of
-    # probes and genes is consistent regardless of whether samples are mirrored
-    if lr_mirror:
-        lgr.info('Left/right mirroring requested; mirroring samples across '
-                 'hemispheres')
-        microarray, pacall, annotation = samples.mirror_samples(microarray,
-                                                                pacall,
-                                                                annotation,
-                                                                ontology,
-                                                                inplace=True)
-
     # intensity-based filtering of probes
-    probe_info = probes.filter_probes(pacall, probe_info, ibf_threshold)
+    probe_info = probes.filter_probes(pacall, annotation, probe_info,
+                                      threshold=ibf_threshold)
     lgr.info('{} probes survive intensity-based filtering with threshold of {}'
              .format(len(probe_info), ibf_threshold))
 
@@ -395,17 +375,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                    dtype=int),
                           index=np.append([0], all_labels))
     for subj in range(len(microarray)):
-        # get rid of samples whose coordinates don't match ontological profile
-        annotation[subj] = samples.drop_mismatch_samples(annotation[subj],
-                                                         ontology[subj])
+        if lr_mirror:  # reset index (duplicates will cause issues if we don't)
+            annotation[subj] = annotation[subj].reset_index(drop=True)
+            microarray[subj] = microarray[subj].reset_index(drop=True)
 
         # assign samples to regions
         labels = samples.label_samples(annotation[subj], atlas,
-                                       atlas_info=atlas_info,
-                                       tolerance=tolerance)
-
-        # subset representative probes + samples from microarray data
-        microarray[subj] = microarray[subj].loc[annotation[subj].index]
+                                       atlas_info, tolerance=tolerance)
 
         if exact:  # remove all samples not assigned a label before norming
             nz = np.asarray(labels != 0).squeeze()
@@ -474,6 +450,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         expression = pd.concat(expression).groupby('label').aggregate(metric)
         # some genes may have been poorly normalized; remove these
         drop = expression.dropna(axis=0, how='all').isna().any(axis=0)
+        lgr.info('Dropping {} gene from concatenated expression data due to '
+                 'poor normalization'.format(drop.sum()))
         expression = expression.drop(drop[drop].index, axis=1)
 
     # drop the "zero" label from the counts dataframe (this is background)
