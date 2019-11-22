@@ -263,8 +263,8 @@ def fetch_donor_info():
     Returns
     -------
     info : pandas.DataFrame
-        With columns ['donor', 'age', 'sex', 'ethnicity', 'medical_conditions', 
-        'post_mortem_interval_hours'] detailing basic demographic info about 
+        With columns ['donor', 'age', 'sex', 'ethnicity', 'medical_conditions',
+        'post_mortem_interval_hours'] detailing basic demographic info about
         donors
     """
 
