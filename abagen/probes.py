@@ -187,7 +187,7 @@ def _max_loading(df):
     """
 
     if len(df) == 1:
-        return np.squeeze(df.index)
+        return df.index[0]
 
     data = np.asarray(df)
     data = data - data.mean(axis=0, keepdims=True)
@@ -389,12 +389,11 @@ def _collapse(expression, probes, *args, method='variance', **kwargs):
     # determine aggregation function based on provided method; also reduce
     # probe expression if required (i.e., max_variance, max_intensity)
     if method == 'max_variance':
-        probe_exp = probe_exp.std(axis=1)
-        probe_exp.name = method
+        probe_exp = pd.DataFrame(probe_exp.std(axis=1), columns=[method])
         agg = functools.partial(_max_idx, column=method)
     elif method == 'max_intensity':
-        probe_exp = probe_exp.mean(axis=1)
-        probe_exp.name = method
+        probe_exp = pd.DataFrame(probe_exp.mean(axis=1), columns=[method])
+        # probe_exp.name = method
         agg = functools.partial(_max_idx, column=method)
     elif method == 'pc_loading':
         agg = _max_loading
@@ -404,8 +403,7 @@ def _collapse(expression, probes, *args, method='variance', **kwargs):
         raise ValueError('Provided method {} invalid. Please check inputs '
                          'and try again.'.format(method))
 
-    info = pd.merge(probes['gene_symbol'], probe_exp, on='probe_id')
-
+    info = pd.merge(probes[['gene_symbol']], probe_exp, on='probe_id')
     return _groupby_and_apply(expression, probes, info, agg)
 
 
