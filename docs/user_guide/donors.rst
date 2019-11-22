@@ -1,7 +1,7 @@
-.. _usage_donor_norm:
+.. _usage_data_norm:
 
-Donor normalization options
-===========================
+Data normalization options
+==========================
 
 The microarray expression data provided by the AHBA has been subjected to some
 `normalization procedures <help.brain-map.org/display/humanbrain/
@@ -16,34 +16,100 @@ parameter). Prior to aggregation, the function performs a within-donor
 normalization procedure to attempt to mitigate donor-specific effects; however,
 there are a number of ways to do that.
 
-Currently, ``abagen`` supports three options for normalizing donor data:
+Currently, ``abagen`` supports five options for normalizing data:
 
-    1. :ref:`usage_donors_srs`,
-    2. :ref:`usage_donors_zscore`, and
-    3. :ref:`usage_donors_batch`
+    1. :ref:`usage_norm_center`,
+    2. :ref:`usage_norm_zscore`,
+    3. :ref:`usage_norm_minmax`,
+    4. :ref:`usage_norm_rs`, and
+    5. :ref:`usage_norm_srs`
 
 All the options have been used at various points throughout the published
 record, so while there is no "right" choice we do encourage using the default
-option (:ref:`scaled robust sigmoid <usage_donors_srs>`) due to recent work by
-Arnatkevičiūte et al., 2019 showing that it is---as the name would
+option (:ref:`scaled robust sigmoid <usage_norm_srs>`) due to recent work by
+Arnatkevičiūte et al., 2019 showing that it is---as the name might
 suggest---robust to outlier effects commonly observed in microarray data.
 
 We describe all the methods in detail here; these can be implemented by passing
-the ``donor_norm`` keyword argument to :func:`abagen.get_expression_data`. For
-a selection of references to published works that have used these different
-methods please see the documentation of :func:`abagen.normalize_expression`.
+the ``sample_norm`` and ``gene_norm`` keyword arguments to
+:func:`abagen.get_expression_data`. For a selection of references to published
+works that have used these different methods please see the documentation of
+:func:`abagen.normalize_expression`.
 
-.. _usage_donors_srs:
+.. _usage_norm_sampledonor:
 
-Scaled robust sigmoid
----------------------
+``sample_norm`` vs ``gene_norm``
+---------------------------------
+
+Microarray expression data can be normalized in two directions:
+
+    1. Each sample can be normalized across all genes, or
+    2. Each gene can be normalized across all samples
+
+These are controlled by two parameters: ``sample_norm`` and ``gene_norm``.
+
+.. _usage_norm_center:
+
+Centering
+---------
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], donor_norm='srs')
+    >>> abagen.get_expression_data(atlas['image'], sample_norm='center', gene_norm='center')
 
-Microarray values are separately normalized for each gene across brain regions
-using a robust sigmoid function:
+Microarray values are centered with:
+
+.. math::
+
+    x_{norm} = x_{y} - \bar{x}
+
+where :math:`\bar{x}` is the mean of the microarray expression values.
+
+.. _usage_norm_zscore:
+
+Z-score
+-------
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], sample_norm='zscore', gene_norm='zscore')
+
+Microarray values are normalized using a basic z-score function:
+
+.. math::
+
+    x_{norm} = \frac{x_{y} - \bar{x}}
+                    {\sigma_{x}}
+
+where :math:`\bar{x}` is the mean and :math:`\sigma_{x}` is the sample standard
+deviation of the microarray expression values.
+
+.. _usage_norm_minmax:
+
+Min-max
+-------
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], sample_norm='minmax', gene_norm='minmax')
+
+Microarray values are rescaled to the unit interval with:
+
+.. math::
+
+   x_{norm} = \frac{x_{y} - \text{min}(x)}
+                   {\text{max}(x) - \text{min}(x)}
+
+.. _usage_norm_rs:
+
+Robust sigmoid
+--------------
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], sample_norm='rs', gene_norm='rs')
+
+Microarray values are normalized using a robust sigmoid function:
 
 .. math::
 
@@ -63,78 +129,58 @@ normalized interquartile range of the microarray expression values given as:
             \approx \frac{Q_{3} - Q_{1}}
                          {1.35}
 
-Once the expression values have been normalized they are rescaled to the unit
-interval with:
+.. _usage_norm_srs:
 
-.. math::
-
-   x_{norm} = \frac{x_{y} - \text{min}(x)}
-                   {\text{max}(x) - \text{min}(x)}
-
-Normalization is performed separately for each donor.
-
-.. _usage_donors_zscore:
-
-Z-score
--------
+Scaled robust sigmoid
+---------------------
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], donor_norm='zscore')
+    >>> abagen.get_expression_data(atlas['image'], sample_norm='rs', gene_norm='srs')
 
-Microarray values are separately normalized for each gene across brain regions
-using a basic z-score function:
+Microarray values are processed with the :ref:`robust sigmoid <usage_norm_rs>`
+function and then passed to then rescaled to the unit interval with the
+:ref:`min-max <usage_norm_minmax>` function.
 
-.. math::
+.. .. _usage_donors_batch:
 
-    x_{norm} = \frac{x_{y} - \bar{x}}
-                    {\sigma_{x}}
+.. Batch correction
+.. ----------------
 
-where :math:`\bar{x}` is the mean and :math:`\sigma_{x}` is the sample standard
-deviation of the microarray expression values.
+.. .. code-block:: python
 
-Normalization is performed separately for each donor.
+..     >>> abagen.get_expression_data(atlas['image'], gene_norm='batch')
 
-.. _usage_donors_batch:
+.. Region by gene expression matrices for each donor are vertically concatenated
+.. (across donors) and donor-specific indicator variables are fit to the resulting
+.. expression data matrix with a simple linear regression. Beta estimates for
+.. donor effects are estimated independently for each gene:
 
-Batch correction
-----------------
+.. .. math::
 
-.. code-block:: python
+..     x = \beta_{0} + \beta_{1} I_{1} + \beta_{1} I_{1} + \ldots + \beta_{n} I_{n} \epsilon
 
-    >>> abagen.get_expression_data(atlas['image'], donor_norm='batch')
+.. where :math:`\beta_{0}` is the intercept and :math:`I_{1}` is the indicator
+.. variable for a given donor. Concatenated expression data are residualized based
+.. on the regression fit and then unstacked into individual donor expression
+.. matrices:
 
-Region by gene expression matrices for each donor are vertically concatenated
-(across donors) and donor-specific indicator variables are fit to the resulting
-expression data matrix with a simple linear regression. Beta estimates for
-donor effects are estimated independently for each gene:
+.. .. math::
 
-.. math::
+..    x_{norm} = x - (\beta_{1} I_{1} + \beta_{2} I_{2} + \ldots + \beta_{n} I_{n})
 
-    x = \beta_{0} + \beta_{1} I_{1} + \beta_{1} I_{1} + \ldots + \beta_{n} I_{n} \epsilon
+.. Note that the linear model fit includes the intercept but the intercept is not
+.. removed during the residualization process.
 
-where :math:`\beta_{0}` is the intercept and :math:`I_{1}` is the indicator
-variable for a given donor. Concatenated expression data are residualized based
-on the regression fit and then unstacked into individual donor expression
-matrices:
-
-.. math::
-
-   x_{norm} = x - (\beta_{1} I_{1} + \beta_{2} I_{2} + \ldots + \beta_{n} I_{n})
-
-Note that the linear model fit includes the intercept but the intercept is not
-removed during the residualization process.
-
-Normalization is performed simultaneously for all donors.
+.. Normalization is performed simultaneously for all donors.
 
 No normalization
 ----------------
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], donor_norm=None)
+    >>> abagen.get_expression_data(atlas['image'], sample_norm=None, gene_norm=None)
 
-Providing ``None`` to the ``donor_norm`` parameter will prevent any
-normalization procedure from being performed on the data. If you use this it
-is **strongly** encouraged that you also specify ``return_donors=True`` so that
-expression data are not aggregated across donors.
+Providing ``None`` to the ``sample_norm`` and ``gene_norm`` parameters will
+prevent any normalization procedure from being performed on the data. Use this
+with caution!

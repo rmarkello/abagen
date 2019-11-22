@@ -7,7 +7,7 @@ The probes used to measure microarray expression levels in the AHBA data are
 often redundant; that is, there are frequently several probes indexing the same
 gene. Since the output of the :func:`abagen.get_expression_data` workflow is a
 region by gene dataframe, at some point we need to transition from indexing
-probe expression level to indexing gene expression levels. Effectively, this
+probe expression levels to indexing gene expression levels. Effectively, this
 means we need to select from or condense the redundant probes for each gene;
 however, there are a number of ways to do that.
 
