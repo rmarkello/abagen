@@ -58,7 +58,7 @@ def test_run_get_parser(capsys, atlas, datadir):
         '--inexact',
         '--tol', '5',
         '--ibf-threshold', '0.6',
-        '--metric', 'median',
+        '--agg-metric', 'median',
         '--probe-selection', 'average',
         '--lr_mirror',
         '--donor-norm', 'srs',
