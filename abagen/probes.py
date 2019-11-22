@@ -187,7 +187,7 @@ def _max_loading(df):
     """
 
     if len(df) == 1:
-        return np.squeeze(df.index)
+        return df.index[0]
 
     data = np.asarray(df)
     data = data - data.mean(axis=0, keepdims=True)
@@ -405,6 +405,7 @@ def _collapse(expression, probes, *args, method='variance', **kwargs):
 
     info = pd.merge(probes[['gene_symbol']], probe_exp, on='probe_id')
     return _groupby_and_apply(expression, probes, info, agg)
+
 
 _max_variance = functools.partial(_collapse, method='max_variance')
 _max_intensity = functools.partial(_collapse, method='max_intensity')
