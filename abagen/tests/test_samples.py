@@ -69,25 +69,6 @@ def annotation(mm_annotation):
     return out
 
 
-@pytest.fixture(scope='module')
-def microarray():
-    """ Fake microarray dataframe
-    """
-    data = np.arange(9).reshape(3, 3)
-    cols = pd.Series(range(3), name='sample_id')
-    ind = pd.Series([1058685, 1058684, 1058683], name='probe_id')
-    return pd.DataFrame(data, columns=cols, index=ind)
-
-
-@pytest.fixture(scope='module')
-def pacall(microarray):
-    """ Fake PACall dataframe
-    """
-    data = [[0, 0, 1], [0, 1, 1], [1, 1, 1]]
-    return pd.DataFrame(data, columns=microarray.columns,
-                        index=microarray.index)
-
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # test all the functions on our generated fake data so we know what to expect #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
