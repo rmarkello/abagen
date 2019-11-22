@@ -90,7 +90,7 @@ parameter; see the parameter description for more information.
 
 Once all samples have been matched to parcels for all supplied donors, the
 microarray expression data are optionally normalized within-donor via the
-provided `donor_norm` function before being combined across donors via the
+provided `gene_norm` function before being combined across donors via the
 supplied `agg_metric`.
 """
     )
@@ -216,7 +216,7 @@ supplied `agg_metric`.
                              'both hemispheres (i.e., L->R and R->L), '
                              'approximately doubling the number of available '
                              'samples. Default: False (i.e., no mirroring)')
-    w_data.add_argument('--donor_norm', '--donor-norm', action='store',
+    w_data.add_argument('--gene_norm', '--gene-norm', action='store',
                         default='srs', metavar='METHOD', type=_resolve_none,
                         choices=sorted(NORMALIZATION_METHODS) + ['None'],
                         help='Method by which to normalize microarray '
@@ -318,7 +318,7 @@ def main(args=None):
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
                                      lr_mirror=opts.lr_mirror,
-                                     donor_norm=opts.donor_norm,
+                                     gene_norm=opts.gene_norm,
                                      sample_norm=opts.sample_norm,
                                      corrected_mni=opts.corrected_mni,
                                      reannotated=opts.reannotated,

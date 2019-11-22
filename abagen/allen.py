@@ -19,7 +19,7 @@ lgr_levels = dict(zip(range(3), [40, 20, 10]))
 def get_expression_data(atlas, atlas_info=None, *,
                         ibf_threshold=0.5, probe_selection='diff_stability',
                         lr_mirror=False, exact=True, tolerance=2,
-                        sample_norm='srs', donor_norm='srs',
+                        sample_norm='srs', gene_norm='srs',
                         region_agg='donors', agg_metric='mean',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
@@ -65,7 +65,7 @@ def get_expression_data(atlas, atlas_info=None, *,
 
     Once all samples have been matched to parcels for all supplied donors, the
     microarray expression data are optionally normalized via the provided
-    `sample_norm` and `donor_norm` functions before being combined within
+    `sample_norm` and `gene_norm` functions before being combined within
     parcels and across donors via the supplied `agg_metric`.
 
     Parameters
@@ -116,7 +116,7 @@ def get_expression_data(atlas, atlas_info=None, *,
         donor across all genes; see Notes for more information on different
         methods. If None is specified then no normalization is performed.
         Default: 'srs'
-    donor_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
+    gene_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
         donor. Expression values are normalized separately for each gene and
         donor across all samples; see Notes for more information on different
@@ -338,9 +338,9 @@ def get_expression_data(atlas, atlas_info=None, *,
         if sample_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
                                                             norm=sample_norm).T
-        if donor_norm is not None:
+        if gene_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj],
-                                                            norm=donor_norm)
+                                                            norm=gene_norm)
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
