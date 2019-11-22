@@ -3,6 +3,7 @@
 Functions for processing and correcting gene expression data
 """
 
+import functools
 import itertools
 import warnings
 
@@ -156,6 +157,15 @@ def _srs(data, low=0, high=1, axis=0):
     return normed
 
 
+NORMALIZATION_METHODS = dict(
+    rs=functools.partial(_rs, axis=0),
+    srs=functools.partial(_srs, low=0, high=1, axis=0),
+    center=lambda x: x - x.mean(axis=0, keepdims=True),
+    zscore=functools.partial(sstats.zscore, axis=0, ddof=1),
+    minmax=functools.partial(_rescale, low=0, high=1, axis=0)
+)
+
+
 def normalize_expression(expression, norm='srs'):
     """
     Performs normalization on `expression` data
@@ -218,10 +228,12 @@ def normalize_expression(expression, norm='srs'):
        20130048
     """
 
-    norms = ['rs', 'srs', 'center', 'zscore', 'batch', 'minmax']
-    if norm not in norms:
+    try:
+        normfunc = NORMALIZATION_METHODS[norm]
+    except KeyError:
         raise ValueError('Provided value for `norm` not recognized. Must be '
-                         'one of {}. Received: {}'.format(norms, norm))
+                         'one of {}. Received: {}'
+                         .format(list(NORMALIZATION_METHODS), norm))
 
     # FIXME: I hate having to do this...
     if isinstance(expression, pd.DataFrame):
@@ -236,18 +248,8 @@ def normalize_expression(expression, norm='srs'):
         notna = np.logical_not(exp.isna().all(axis=1))
         data = np.asarray(exp)[notna]
 
-        if norm == 'rs':
-            normed = _rs(data, axis=0)
-        if norm == 'srs':
-            normed = _srs(data, low=0, high=1, axis=0)
-        elif norm == 'center':
-            normed = data - data.mean(axis=0, keepdims=True)
-        elif norm == 'zscore':
-            normed = sstats.zscore(data, axis=0, ddof=1)
-        elif norm == 'minmax':
-            normed = _rescale(data, low=0, high=1, axis=0)
-        elif norm == 'batch':
-            normed = corrected[n]
+        # normalize the data (however was specified)
+        normed = normfunc(data) if norm != 'batch' else corrected[n]
 
         # recreate dataframe and fill non-NaN values
         normalized = pd.DataFrame(np.nan, columns=exp.columns, index=exp.index)
