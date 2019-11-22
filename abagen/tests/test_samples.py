@@ -172,8 +172,7 @@ def test_label_samples():
     assert False
 
 
-def test_mirror_samples(microarray, pacall, annotation, ontology):
-    sids = pd.Series(range(5), name='sample_id')
+def test_mirror_samples(annotation, ontology):
     # we're changing quite a bit of stuff in the annotation dataframe
     aexp = pd.DataFrame(dict(mni_x=[-10, 30, 0, 10, -30],
                              structure_acronym=['S', 'Cl', 'CC', 'S', 'Cl'],
@@ -183,23 +182,11 @@ def test_mirror_samples(microarray, pacall, annotation, ontology):
                                              'central canal',
                                              'subiculum, right',
                                              'claustrum, left']),
-                        index=sids)
-    # and far less stuff in the microarray/pacall dataframes
-    mexp = pd.DataFrame(microarray.loc[:, [0, 1, 2, 0, 1]].values,
-                        columns=sids, index=microarray.index)
-    pexp = pd.DataFrame(pacall.loc[:, [0, 1, 2, 0, 1]].values,
-                        columns=sids, index=pacall.index)
+                        index=[0, 1, 2, 0, 1])
 
     # but let's confirm all the outputs are as-expected
-    m, p, a = samples.mirror_samples(microarray, pacall, annotation, ontology)
-    pd.testing.assert_frame_equal(a[0], aexp, check_like=True)
-    pd.testing.assert_frame_equal(m[0], mexp)
-    pd.testing.assert_frame_equal(p[0], pexp)
-
-    m, p, a = samples._mirror_samples(microarray, pacall, annotation, ontology)
+    a = samples.mirror_samples(annotation, ontology)
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
-    pd.testing.assert_frame_equal(m, mexp)
-    pd.testing.assert_frame_equal(p, pexp)
 
 
 def test__mirror_ontology(annotation, ontology):
@@ -241,21 +228,12 @@ def test_drop_mismatch_samples_real(testfiles):
 
 
 def test_mirror_samples_real(testfiles):
-    testfiles = {k: v for k, v in testfiles.items() if k != 'probes'}
-
-    original = [363, 470]  # number of original probes
-    for m, p, a, o in zip(*samples.mirror_samples(**testfiles), original):
-        # all the outputs should have same number of samples
-        assert m.shape[-1] == p.shape[-1] == len(a)
-        # which should be more than the original # of samples but less than or
+    orig = [363, 470]
+    for an, on, o in zip(testfiles['annotation'], testfiles['ontology'], orig):
+        out = samples.mirror_samples(an, on)
+        # there should be more than the original # of samples but less than or
         # equal to 2x that number (we can't MORE than duplicate)
-        assert len(a) > o and len(a) <= o * 2
-
-    # we can also supply single filenames, too, and that should work w/o issue
-    samples.mirror_samples(**{k: v[0] for k, v in testfiles.items()})
-
-    # check that the sub-function works too
-    samples._mirror_samples(**{k: v[0] for k, v in testfiles.items()})
+        assert len(out) > o and len(out) <= o * 2
 
 
 def test__mirror_ontology_real(testfiles):

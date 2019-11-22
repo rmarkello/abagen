@@ -375,10 +375,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
                                    dtype=int),
                           index=np.append([0], all_labels))
     for subj in range(len(microarray)):
+        if lr_mirror:  # reset index (duplicates will cause issues if we don't)
+            annotation[subj] = annotation[subj].reset_index(drop=True)
+            microarray[subj] = microarray[subj].reset_index(drop=True)
+
         # assign samples to regions
         labels = samples.label_samples(annotation[subj], atlas,
-                                       atlas_info=atlas_info,
-                                       tolerance=tolerance)
+                                       atlas_info, tolerance=tolerance)
 
         if exact:  # remove all samples not assigned a label before norming
             nz = np.asarray(labels != 0).squeeze()
