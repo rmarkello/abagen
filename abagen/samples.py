@@ -3,6 +3,7 @@
 Functions for cleaning and processing the AHBA microarray dataset
 """
 
+import logging
 from pkg_resources import resource_filename
 
 from nibabel.volumeutils import Recoder
@@ -11,6 +12,8 @@ import pandas as pd
 from scipy.spatial.distance import cdist
 
 from . import io, utils
+
+lgr = logging.getLogger('abagen')
 
 # AHBA structure IDs corresponding to different brain parts
 ONTOLOGY = Recoder(
@@ -418,8 +421,8 @@ def _check_label(label, sample_info, atlas_info):
 
     if label != 0:
         sample_info = sample_info[cols]
-        atlas_info = atlas_info.loc[label][cols]
-        if not np.all(sample_info.values == atlas_info.values):
+        atlas_info = atlas_info.loc[label, cols]
+        if not np.all(np.asarray(sample_info) == np.asarray(atlas_info)):
             label = 0
 
     return label
@@ -499,3 +502,113 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
 
     return pd.DataFrame(labelled, dtype=int,
                         columns=['label'], index=annotation.index)
+
+
+def groupby_index(microarray, labels=None, metric='mean'):
+    """
+    Averages expression data in `microarray` over samples with same label
+
+    Parameters
+    ----------
+    microarray : (S, G) pandas.DataFrame
+        Microarray expression data, where `S` is samples and `G` is genes
+    sample_labels : (S, 1) pandas.DataFrame
+        Parcel labels for `S` samples, as returned by e.g., `label_samples()`
+    labels : (L,) array_like, optional
+        All possible labels for parcellation (to account for possibility that
+        some parcels have NO expression data). Default: None
+    metric : str or func, optional
+        Mechanism by which to collapse across samples within a parcel. If a
+        str, should be in ['mean', 'median']; if a function, should be able to
+        accept an `N`-dimensional input and the `axis` keyword argument and
+        return an `N-1`-dimensional output. Default: 'mean'
+
+    Returns
+    -------
+    gene_by_label : (L, G) pandas.DataFrame
+        Microarray expression data
+    """
+
+    # get combination function
+    metric = utils.check_metric(metric)
+
+    # get missing labels
+    if labels is not None:
+        missing = np.setdiff1d(labels, np.unique(microarray.index))
+        labels = pd.DataFrame(columns=microarray.columns,
+                              index=pd.Series(missing, name='label'))
+
+    gene_by_label = (microarray.groupby('label')
+                               .aggregate(metric)
+                               .append(labels)
+                               .sort_index()
+                               .rename_axis('label'))
+
+    # remove "zero" label (if it exists)
+    if 0 in gene_by_label.index:
+        gene_by_label = gene_by_label.drop([0], axis=0)
+
+    return gene_by_label
+
+
+def aggregate_samples(microarray, labels, region_agg='donors',
+                      agg_metric='mean', return_donors=False):
+    """
+    Aggregates samples in `microarray` belonging to same regions
+
+    Parameters
+    ----------
+    microarray : (S, G) list of pandas.DataFrame
+        Microarray expression data, where `S` is samples and `G` is genes.
+        Index of dataframe should identify to which region each sample was
+        assigned
+    region_agg : {'samples', 'donors'}, optional
+        When multiple samples are identified as belonging to a region in
+        `atlas` this determines how they are aggegated. If 'samples',
+        expression data from all samples for all donors assigned to a given
+        region are combined. If 'donors', expression values for all samples
+        assigned to a given region are combined independently for each donor
+        before being combined across donors. See `agg_metric` for mechanism by
+        which samples are combined. Default: 'donors'
+    agg_metric : {'mean', 'median'} or callable, optional
+        Mechanism by which to reduce sample-level expression data into region-
+        level expression (see `region_agg`). If a callable, should be able to
+        accept an `N`-dimensional input and the `axis` keyword argument and
+        return an `N-1`-dimensional output. Default: 'mean'
+    return_donors : bool, optional
+        Whether to return donor-level expression arrays instead of aggregating
+        expression across donors with provided `agg_metric`. Default: False
+
+    Returns
+    -------
+    microarray : (R, G) pandas.DataFrame or list of (R, G) pandas.DataFrame
+        Microarray expression data aggregated across samples within each of `R`
+        regions. If `return_donors=True` then a list of dataframes is returned
+    """
+
+    region_aggs = ['donors', 'samples']
+    if region_agg not in region_aggs:
+        raise ValueError('Provided `region_agg` {} invalid. Must be one of {}'
+                         .format(region_agg, region_aggs))
+    if region_agg == 'samples' and return_donors:
+        raise ValueError('Cannot use region_agg=\'samples\' when '
+                         '`return_donors=True`.')
+    metric = utils.check_metric(agg_metric)
+
+    lgr.info('Aggregating samples to regions with provided region_agg: {}'
+             .format(region_agg))
+
+    if region_agg == 'donors':
+        microarray = [groupby_index(e, labels, metric) for e in microarray]
+    elif region_agg == 'samples':
+        microarray = [groupby_index(pd.concat(microarray), labels, metric)]
+
+    if not return_donors:
+        microarray = pd.concat(microarray).groupby('label').aggregate(metric)
+        # some genes may have been poorly normalized; remove these
+        drop = microarray.dropna(axis=0, how='all').isna().any(axis=0)
+        lgr.info('Dropping {} gene from concatenated expression data due to '
+                 'poor normalization'.format(drop.sum()))
+        microarray = microarray.drop(drop[drop].index, axis=1)
+
+    return microarray

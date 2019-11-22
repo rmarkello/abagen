@@ -16,60 +16,11 @@ lgr = logging.getLogger('abagen')
 lgr_levels = dict(zip(range(3), [40, 20, 10]))
 
 
-def groupby_label(microarray, sample_labels, labels=None, metric='mean'):
-    """
-    Averages expression data in `microarray` over samples with same label
-
-    Parameters
-    ----------
-    microarray : (S, G) pandas.DataFrame
-        Microarray expression data, where `S` is samples and `G` is genes
-    sample_labels : (S, 1) pandas.DataFrame
-        Parcel labels for `S` samples, as returned by e.g., `label_samples()`
-    labels : (L,) array_like, optional
-        All possible labels for parcellation (to account for possibility that
-        some parcels have NO expression data). Default: None
-    metric : str or func, optional
-        Mechanism by which to collapse across samples within a parcel. If a
-        str, should be in ['mean', 'median']; if a function, should be able to
-        accept an `N`-dimensional input and the `axis` keyword argument and
-        return an `N-1`-dimensional output. Default: 'mean'
-
-    Returns
-    -------
-    gene_by_label : (L, G) pandas.DataFrame
-        Microarray expression data
-    """
-
-    # get combination function
-    metric = utils.check_metric(metric)
-
-    # get missing labels
-    if labels is not None:
-        missing = np.setdiff1d(labels, sample_labels)
-        labels = pd.DataFrame(columns=microarray.columns,
-                              index=pd.Series(missing, name='label'))
-
-    gene_by_label = (microarray.merge(sample_labels,
-                                      left_index=True,
-                                      right_index=True)
-                               .groupby('label')
-                               .aggregate(metric)
-                               .append(labels)
-                               .sort_index()
-                               .rename_axis('label'))
-
-    # remove "zero" label (if it exists)
-    if 0 in gene_by_label.index:
-        gene_by_label = gene_by_label.drop([0], axis=0)
-
-    return gene_by_label
-
-
-def get_expression_data(atlas, atlas_info=None, *, exact=True,
-                        tolerance=2, metric='mean', ibf_threshold=0.5,
-                        probe_selection='diff_stability', lr_mirror=False,
+def get_expression_data(atlas, atlas_info=None, *,
+                        ibf_threshold=0.5, probe_selection='diff_stability',
+                        lr_mirror=False, exact=True, tolerance=2,
                         sample_norm='srs', donor_norm='srs',
+                        region_agg='donors', agg_metric='mean',
                         corrected_mni=True, reannotated=True,
                         return_counts=False, return_donors=False,
                         donors='all', data_dir=None, verbose=1, n_proc=1):
@@ -115,7 +66,7 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     Once all samples have been matched to parcels for all supplied donors, the
     microarray expression data are optionally normalized via the provided
     `sample_norm` and `donor_norm` functions before being combined within
-    parcels and across donors via the supplied `metric.
+    parcels and across donors via the supplied `agg_metric`.
 
     Parameters
     ----------
@@ -127,54 +78,63 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
         and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
-        Default: None
-    exact : bool, optional
-        Whether to use exact matching of donor tissue samples to parcels in
-        `atlas`. If True, this function will match tissue samples to parcels
-        within `threshold` mm of the sample; any samples that are beyond
-        `threshold` mm of a parcel will be discarded. This may result in some
-        parcels having no assigned sample / expression data. If False, the
-        default matching procedure will be performed and followed by a check
-        for parcels with no assigned samples; any such parcels will be matched
-        to the nearest sample (nearest defined as the sample with the closest
-        Euclidean distance to the parcel centroid). Default: True
-    tolerance : int, optional
-        Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. This is only considered if the sample is not
-        directly within a parcel. Default: 2
-    metric : {'mean', 'median'} or callable, optional
-        Mechanism by which to reduce donor-level expression data into a single
-        dataframe. If a callable, should be able to accept an `N`-dimensional
-        input and the `axis` keyword argument and return an `N-1`-dimensional
-        output. Default: 'mean'
+        If provided, this will constrain matching of tissue samples to regions
+        in `atlas`. Default: None
     ibf_threshold : [0, 1] float, optional
-        Threshold for intensity-based filtering specifying. This number should
-        specify the ratio of samples, across all supplied donors, for which a
-        probe must have signal above background noise in order to be retained.
-        Default: 0.5
+        Threshold for intensity-based filtering. This number specifies the
+        ratio of samples, across all supplied donors, for which a probe must
+        have signal significantly greater background noise in order to be
+        retained. Default: 0.5
     probe_selection : str, optional
         Selection method for subsetting (or collapsing across) probes that
         index the same gene. Must be one of 'average', 'max_intensity',
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
-        'diff_stability'; see Notes for more information. Default:
-        'diff_stability'
+        'diff_stability'; see Notes for more information on different options.
+         Default: 'diff_stability'
     lr_mirror : bool, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. This will duplicate samples across both
         hemispheres (i.e., L->R and R->L), approximately doubling the number of
         available samples. Default: False
+    exact : bool, optional
+        Whether to use exact matching of donor tissue samples to parcels in
+        `atlas`. If True, this function will ONLY match tissue samples to
+        parcels within `threshold` mm of the sample; any samples that are
+        beyond `threshold` mm of a parcel will be discarded. This may result
+        in some parcels having no assigned sample / expression data. If False,
+        the default matching procedure will be performed and followed by a
+        check for parcels with no assigned samples; any such parcels will be
+        matched to the nearest sample (defined as the sample with the closest
+        Euclidean distance to the parcel centroid). Default: True
+    tolerance : int, optional
+        Distance (in mm) that a sample must be from a parcel for it to be
+        matched to that parcel. This is only considered if the sample is not
+        directly within a parcel. Default: 2
     sample_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
-        sample. Expression values are normalized separately for each sample for
-        each donor across all genes; see Notes for more information on
-        different methods. If None is specified then no normalization is
-        performed. Default: 'srs'
+        sample. Expression values are normalized separately for each sample and
+        donor across all genes; see Notes for more information on different
+        methods. If None is specified then no normalization is performed.
+        Default: 'srs'
     donor_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
-        donor. Expression values are normalized separately for each gene for
-        each donor across all regions in `atlas`; see Notes for more
-        information on different methods. If None is specified then no
-        normalization is performed. Default: 'srs'
+        donor. Expression values are normalized separately for each gene and
+        donor across all samples; see Notes for more information on different
+        methods. If None is specified then no normalization is performed.
+        Default: 'srs'
+    region_agg : {'samples', 'donors'}, optional
+        When multiple samples are identified as belonging to a region in
+        `atlas` this determines how they are aggegated. If 'samples',
+        expression data from all samples for all donors assigned to a given
+        region are combined. If 'donors', expression values for all samples
+        assigned to a given region are combined independently for each donor
+        before being combined across donors. See `agg_metric` for mechanism by
+        which samples are combined. Default: 'donors'
+    agg_metric : {'mean', 'median'} or callable, optional
+        Mechanism by which to reduce sample-level expression data into region-
+        level expression (see `region_agg`). If a callable, should be able to
+        accept an `N`-dimensional input and the `axis` keyword argument and
+        return an `N-1`-dimensional output. Default: 'mean'
     corrected_mni : bool, optional
         Whether to use the "corrected" MNI coordinates shipped with the
         `alleninf` package instead of the coordinates provided with the AHBA
@@ -185,11 +145,11 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         reannotated information will discard probes that could not be reliably
         matched to genes. Default: True
     return_counts : bool, optional
-        Whether to return how many samples were assigned to each parcel in
-        `atlas` for each donor. Default: False
+        Whether to return dataframe containing information on how many samples
+        were assigned to each parcel in `atlas` for each donor. Default: False
     return_donors : bool, optional
         Whether to return donor-level expression arrays instead of aggregating
-        expression across donors with provided `metric`. Default: False
+        expression across donors with provided `agg_metric`. Default: False
     donors : list, optional
         List of donors to use as sources of expression data. Can be either
         donor numbers or UID. If not specified will use all available donors.
@@ -302,13 +262,13 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     # set logging verbosity level
     lgr.setLevel(lgr_levels.get(int(verbose), 1))
 
-    # load atlas_info, if provided
+    # load atlas and atlas_info, if provided
     atlas = utils.check_img(atlas)
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
     # get combination functions
-    metric = utils.check_metric(metric)
+    agg_metric = utils.check_metric(agg_metric)
 
     # check probe_selection input
     if probe_selection not in probes.SELECTION_METHODS:
@@ -320,13 +280,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose, n_proc=n_proc)
-    microarray = files['microarray']
-    annotation = files['annotation']
-    pacall = files['pacall']
-    ontology = files['ontology']
-    probe_info = files['probes'][0]
 
-    if probe_selection == 'diff_stability' and len(microarray) == 1:
+    if probe_selection == 'diff_stability' and len(files['microarray']) == 1:
         raise ValueError('Cannot use diff_stability for probe_selection with '
                          'only one donor. Please specify a different probe_'
                          'selection method or use more donors.')
@@ -336,41 +291,34 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
     if not exact:
         lgr.info('Pre-calculating centroids for {} regions in provided atlas'
                  .format(len(all_labels)))
-        centroids = utils.get_centroids(atlas, labels=all_labels)
+        centroids = utils.get_centroids(atlas, labels=all_labels,
+                                        image_space=True)
 
-    # update the annotation "files"
-    # this handles updating the MNI coordinates, dropping mistmatched samples
-    # (where MNI coordinates don't match ontology), and mirror samples across
-    # hemisphere, as applicable.
-    for n, (annot, ont) in enumerate(zip(annotation, ontology)):
-        annotation[n] = samples.update_samples(annot, ont, lr_mirror=lr_mirror,
+    # update the annotation "files". this handles updating the MNI coordinates,
+    # dropping mistmatched samples (where MNI coordinates don't match the
+    # provided ontology), and mirroring samples across hemispheres, if desired
+    annotation = files['annotation']
+    for n, annot in enumerate(annotation):
+        annotation[n] = samples.update_samples(annot, files['ontology'][0],
+                                               lr_mirror=lr_mirror,
                                                corrected_mni=corrected_mni)
 
     # get dataframe of probe information (reannotated or otherwise)
-    probe_info = io.read_probes(probe_info, copy=True)
+    probe_info = io.read_probes(files['probes'][0])
     if reannotated:
-        lgr.info('Reannotating probes with information from Arnatkevic̆iūtė '
-                 'et al., 2019, NeuroImage')
         probe_info = probes.reannotate_probes(probe_info)
 
     # intensity-based filtering of probes
-    probe_info = probes.filter_probes(pacall, annotation, probe_info,
+    probe_info = probes.filter_probes(files['pacall'], annotation, probe_info,
                                       threshold=ibf_threshold)
-    lgr.info('{} probes survive intensity-based filtering with threshold of {}'
-             .format(len(probe_info), ibf_threshold))
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
-    lgr.info('Reducing probes indexing same gene with provided method: "{}"'
-             .format(probe_selection))
-    microarray = probes.collapse_probes(microarray, annotation,
-                                        probe_info, method=probe_selection,
-                                        inplace=True)
-    lgr.info('{} genes remain after probe filtering and selection'
-             .format(microarray[0].shape[-1]))
+    microarray = probes.collapse_probes(files['microarray'], annotation,
+                                        probe_info, method=probe_selection)
 
-    expression, missing = [], []
+    missing = []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
                                    dtype=int),
                           index=np.append([0], all_labels))
@@ -382,80 +330,63 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         # assign samples to regions
         labels = samples.label_samples(annotation[subj], atlas,
                                        atlas_info, tolerance=tolerance)
-
         if exact:  # remove all samples not assigned a label before norming
             nz = np.asarray(labels != 0).squeeze()
             microarray[subj] = microarray[subj].loc[nz]
             labels = labels[nz]
 
         if sample_norm is not None:
-            if subj == 0:  # only provide norm log once
-                lgr.info('Normalizing expression across genes with function: '
-                         '{}'.format(sample_norm))
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
                                                             norm=sample_norm).T
         if donor_norm is not None:
-            if subj == 0:  # only provide norm log once
-                lgr.info('Normalizing expression across sample with function: '
-                         '{}'.format(donor_norm))
             microarray[subj] = correct.normalize_expression(microarray[subj],
                                                             norm=donor_norm)
-
-        # aggregate normalized samples within regions
-        expression += [groupby_label(microarray[subj], labels,
-                                     all_labels, metric=metric)]
-        lgr.info('{:>3} / {} samples matched to regions for donor #{}'
-                 .format(np.sum(np.asarray(labels) != 0),
-                         len(annotation[subj]),
-                         datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
+        lgr.info('{:>3} / {} samples matched to regions for donor #{}'
+                 .format(counts.loc[:, subj].sum(), len(annotation[subj]),
+                         datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # if we don't want to do exact matching then cache which parcels are
         # missing data and the expression data for the closest sample to that
         # parcel; we'll use this once we've iterated through all donors
         if not exact:
-            cols = ['mni_x', 'mni_y', 'mni_z']
-            coords = utils.xyz_to_ijk(annotation[subj][cols], atlas.affine)
             empty = np.logical_not(np.in1d(all_labels, labs))
-            idx, dist = utils.closest_centroid(coords, centroids[empty],
+            cols = ['mni_x', 'mni_y', 'mni_z']
+            idx, dist = utils.closest_centroid(annotation[subj][cols],
+                                               centroids[empty],
                                                return_dist=True)
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
             empty = all_labels[empty]
             idx.index = pd.Series(empty, name='label')
             missing += [(idx, dict(zip(empty, np.diag(dist))))]
 
-    # check for missing ROIs and fill in, as needed
-    if not exact:
-        # find labels that are missing across all donors
+        microarray[subj].index = labels['label']
+
+    if not exact:  # check for missing ROIs and fill in, as needed
+        # labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
         lgr.info('Matching {} regions with no data to nearest samples'
                  .format(len(empty)))
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
-            ind = np.argmin([d.get(roi) for f, d in missing])
+            ind = np.argmin([dist.get(roi) for micro, dist in missing])
             donor = datasets.WELL_KNOWN_IDS.value_set("subj")[ind]
             lgr.debug('Assigning sample from donor {} to region id #{}'
                       .format(donor, roi))
             # assign expression data from that sample and add to count
-            expression[ind].loc[roi] = missing[ind][0].loc[roi]
+            microarray[ind] = microarray[ind].append(missing[ind][0].loc[roi])
             counts.loc[roi, ind] += 1
 
-    # aggregate across donors if individual donor dataframes not requested
-    if not return_donors:
-        lgr.info('Aggregating donor expression data with function: "{}"'
-                 .format(metric))
-        expression = pd.concat(expression).groupby('label').aggregate(metric)
-        # some genes may have been poorly normalized; remove these
-        drop = expression.dropna(axis=0, how='all').isna().any(axis=0)
-        lgr.info('Dropping {} gene from concatenated expression data due to '
-                 'poor normalization'.format(drop.sum()))
-        expression = expression.drop(drop[drop].index, axis=1)
+    microarray = samples.aggregate_samples(microarray, all_labels,
+                                           region_agg=region_agg,
+                                           agg_metric=agg_metric,
+                                           return_donors=return_donors)
 
     # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:
-        return expression, counts.iloc[1:]
+        return microarray, counts.iloc[1:]
 
-    return expression
+    return microarray
