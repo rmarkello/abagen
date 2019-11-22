@@ -450,6 +450,8 @@ def get_expression_data(atlas, atlas_info=None, *, exact=True,
         expression = pd.concat(expression).groupby('label').aggregate(metric)
         # some genes may have been poorly normalized; remove these
         drop = expression.dropna(axis=0, how='all').isna().any(axis=0)
+        lgr.info('Dropping {} gene from concatenated expression data due to '
+                 'poor normalization'.format(drop.sum()))
         expression = expression.drop(drop[drop].index, axis=1)
 
     # drop the "zero" label from the counts dataframe (this is background)
