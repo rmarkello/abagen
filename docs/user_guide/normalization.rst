@@ -39,14 +39,20 @@ works that have used these different methods please see the documentation of
 .. _usage_norm_sampledonor:
 
 ``sample_norm`` vs ``gene_norm``
----------------------------------
+--------------------------------
 
 Microarray expression data can be normalized in two directions:
 
     1. Each sample can be normalized across all genes, or
     2. Each gene can be normalized across all samples
 
-These are controlled by two parameters: ``sample_norm`` and ``gene_norm``.
+These different forms of normalization are controlled by two parameters in the
+:func:`abagen.get_expression_data` function: ``sample_norm`` and ``gene_norm``.
+Note that normalization of each sample across all genes occurs before
+normalization of each gene across all samples.
+
+Both parameters can accept the same five arguments (detailed below), and both
+are turned on by default.
 
 .. _usage_norm_center:
 
@@ -142,37 +148,7 @@ Microarray values are processed with the :ref:`robust sigmoid <usage_norm_rs>`
 function and then passed to then rescaled to the unit interval with the
 :ref:`min-max <usage_norm_minmax>` function.
 
-.. .. _usage_donors_batch:
-
-.. Batch correction
-.. ----------------
-
-.. .. code-block:: python
-
-..     >>> abagen.get_expression_data(atlas['image'], gene_norm='batch')
-
-.. Region by gene expression matrices for each donor are vertically concatenated
-.. (across donors) and donor-specific indicator variables are fit to the resulting
-.. expression data matrix with a simple linear regression. Beta estimates for
-.. donor effects are estimated independently for each gene:
-
-.. .. math::
-
-..     x = \beta_{0} + \beta_{1} I_{1} + \beta_{1} I_{1} + \ldots + \beta_{n} I_{n} \epsilon
-
-.. where :math:`\beta_{0}` is the intercept and :math:`I_{1}` is the indicator
-.. variable for a given donor. Concatenated expression data are residualized based
-.. on the regression fit and then unstacked into individual donor expression
-.. matrices:
-
-.. .. math::
-
-..    x_{norm} = x - (\beta_{1} I_{1} + \beta_{2} I_{2} + \ldots + \beta_{n} I_{n})
-
-.. Note that the linear model fit includes the intercept but the intercept is not
-.. removed during the residualization process.
-
-.. Normalization is performed simultaneously for all donors.
+.. _usage_norm_none:
 
 No normalization
 ----------------

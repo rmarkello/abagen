@@ -24,4 +24,4 @@ abagen/issues>`_.
    user_guide/parcellations.rst
    user_guide/expression.rst
    user_guide/probes.rst
-   user_guide/donors.rst
+   user_guide/normalization.rst
