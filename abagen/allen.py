@@ -90,7 +90,7 @@ def get_expression_data(atlas, atlas_info=None, *,
         index the same gene. Must be one of 'average', 'max_intensity',
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
         'diff_stability'; see Notes for more information on different options.
-         Default: 'diff_stability'
+        Default: 'diff_stability'
     lr_mirror : bool, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. This will duplicate samples across both

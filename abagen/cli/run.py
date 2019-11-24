@@ -89,9 +89,9 @@ control over the sample matching can be obtained by setting the `inexact`
 parameter; see the parameter description for more information.
 
 Once all samples have been matched to parcels for all supplied donors, the
-microarray expression data are optionally normalized within-donor via the
-provided `gene_norm` function before being combined across donors via the
-supplied `agg_metric`.
+microarray expression data are optionally normalized via the provided
+`sample_norm` and `gene_norm` functions before being combined within parcels
+and across donors via the supplied `agg_metric`.
 """
     )
 
@@ -257,7 +257,7 @@ supplied `agg_metric`.
                              'to anatomical regions. Default: False (i.e., '
                              'use corrected coordinates)')
 
-    o_data = parser.add_argument_group('Options to modify how data is output')
+    o_data = parser.add_argument_group('Options to modify how data are output')
     o_data.add_argument('--stdout', action='store_true',
                         help='Generated region x gene dataframes will be '
                              'printed to stdout for piping to other things. '
