@@ -1,4 +1,4 @@
-.. _usage_data_norm:
+.. _usage_normalization:
 
 Data normalization options
 ==========================
@@ -14,7 +14,7 @@ By default, :func:`abagen.get_expression_data` aggregates expression data
 across donors (though this can be prevented via the ``return_donors``
 parameter). Prior to aggregation, the function performs a within-donor
 normalization procedure to attempt to mitigate donor-specific effects; however,
-there are a number of ways to do that.
+there are a number of ways to achieve this.
 
 Currently, ``abagen`` supports five options for normalizing data:
 
@@ -145,8 +145,8 @@ Scaled robust sigmoid
     >>> abagen.get_expression_data(atlas['image'], sample_norm='rs', gene_norm='srs')
 
 Microarray values are processed with the :ref:`robust sigmoid <usage_norm_rs>`
-function and then passed to then rescaled to the unit interval with the
-:ref:`min-max <usage_norm_minmax>` function.
+function and then rescaled to the unit interval with the :ref:`min-max
+<usage_norm_minmax>` function.
 
 .. _usage_norm_none:
 

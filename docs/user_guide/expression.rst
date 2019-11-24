@@ -52,7 +52,7 @@ about what's happening as it goes. However, briefly the function:
     6. Selects a representative probe amongst those probes indexing the same
        gene. This occurs by default by selecting the probe with the highest
        differential stability amongst donors; refer to parameter
-       ``probe_selection`` for more info (or see :ref:`usage_probe_selection`).
+       ``probe_selection`` for more info (or see :ref:`usage_probes`).
     7. Matches tissue samples to regions in the user-specified ``atlas``. Refer
        to parameters ``atlas``, ``atlas_info``, ``exact``, and ``tolerance``
        for more info (or see :ref:`usage_expression_exact`).

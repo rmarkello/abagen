@@ -1,4 +1,4 @@
-.. _usage_probe_selection:
+.. _usage_probes:
 
 Probe selection options
 =======================
