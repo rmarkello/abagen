@@ -298,10 +298,13 @@ def get_expression_data(atlas, atlas_info=None, *,
     # dropping mistmatched samples (where MNI coordinates don't match the
     # provided ontology), and mirroring samples across hemispheres, if desired
     annotation = files['annotation']
-    for n, annot in enumerate(annotation):
-        annotation[n] = samples.update_samples(annot, files['ontology'][0],
-                                               lr_mirror=lr_mirror,
-                                               corrected_mni=corrected_mni)
+    ontology = files['ontology']
+    for n, (annot, ontol) in enumerate(zip(annotation, ontology)):
+        if corrected_mni:
+            annotation = samples.update_mni_coords(annotation)
+        annotation = samples.drop_mismatch_samples(annotation, ontol)
+        if lr_mirror:
+            annotation = samples.mirror_samples(annotation, ontol)
 
     # get dataframe of probe information (reannotated or otherwise)
     probe_info = io.read_probes(files['probes'][0])

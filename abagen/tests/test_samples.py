@@ -138,19 +138,20 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
 
-@pytest.mark.xfail
-def test__assign_sample():
-    assert False
+def test__mirror_ontology(annotation, ontology):
+    aexp = pd.DataFrame(dict(mni_x=[-10, 30, 0],
+                             structure_acronym=['S', 'Cl', 'CC'],
+                             structure_id=[4260, 4322, 9422],
+                             structure_name=['subiculum, right',
+                                             'claustrum, left',
+                                             'central canal']),
+                        index=pd.Series(range(3), name='sample_id'))
 
-
-@pytest.mark.xfail
-def test__check_label():
-    assert False
-
-
-@pytest.mark.xfail
-def test_label_samples():
-    assert False
+    # this function doesn't touch mni_x -- it just assumes that all the
+    # hemisphere designation are incorrect and updates the structure id, name,
+    # and acronyms accordingly
+    a = samples._mirror_ontology(annotation, ontology)
+    pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
 def test_mirror_samples(annotation, ontology):
@@ -170,20 +171,29 @@ def test_mirror_samples(annotation, ontology):
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
-def test__mirror_ontology(annotation, ontology):
-    aexp = pd.DataFrame(dict(mni_x=[-10, 30, 0],
-                             structure_acronym=['S', 'Cl', 'CC'],
-                             structure_id=[4260, 4322, 9422],
-                             structure_name=['subiculum, right',
-                                             'claustrum, left',
-                                             'central canal']),
-                        index=pd.Series(range(3), name='sample_id'))
+@pytest.mark.xfail
+def test__assign_sample():
+    assert False
 
-    # this function doesn't touch mni_x -- it just assumes that all the
-    # hemisphere designation are incorrect and updates the structure id, name,
-    # and acronyms accordingly
-    a = samples._mirror_ontology(annotation, ontology)
-    pd.testing.assert_frame_equal(a, aexp, check_like=True)
+
+@pytest.mark.xfail
+def test__check_label():
+    assert False
+
+
+@pytest.mark.xfail
+def test_label_samples():
+    assert False
+
+
+@pytest.mark.xfail
+def test_groupby_index():
+    assert False
+
+
+@pytest.mark.xfail
+def test_aggregate_samples():
+    assert False
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

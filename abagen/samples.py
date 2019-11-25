@@ -282,48 +282,6 @@ def mirror_samples(annotation, ontology):
     return annotation
 
 
-def update_samples(annotation, ontology, lr_mirror=False, corrected_mni=True):
-    """
-    Updates samples in provided `annotation` file
-
-    Sample MNI coordinates are updated (if `corrected_mni`; see
-    :func:`~.update_mni_coords`), mismatched samples are dropped (where MNI
-    x-coordinate does not match hemisphere designation of structure in
-    `ontology`; see :func:`~.drop_mismatch_samples`), and samples are mirrored
-    across hemispheres (if `lr_mirror`; see :func:`mirror_samples`)
-
-    Parameters
-    ----------
-    annotation : str or pandas.DataFrame
-        List of filepaths to annotation files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `annotation` attribute on the resulting object).
-    ontology : str or pandas.DataFrame
-        List of filepaths to ontology files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `ontology` attribute on the resulting object).
-    lr_mirror : bool, optional
-    corrected_mni : bool, optional
-
-    Returns
-    -------
-    annotation : pandas.DataFrame
-    """
-
-    # update MNI coordinates first; this will affect all later stages
-    if corrected_mni:
-        annotation = update_mni_coords(annotation)
-
-    # drop samples where (new?) MNI coords don't match hemisphere in ontology
-    annotation = drop_mismatch_samples(annotation, ontology)
-
-    # optionally duplicate samples across hemisphere
-    if lr_mirror:
-        annotation = mirror_samples(annotation, ontology)
-
-    return annotation
-
-
 def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
                    tolerance=2):
     """
