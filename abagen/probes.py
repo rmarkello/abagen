@@ -7,12 +7,15 @@ import functools
 import gzip
 from io import StringIO
 import itertools
+import logging
 from pkg_resources import resource_filename
 
 import numpy as np
 import pandas as pd
 
 from . import io, utils
+
+lgr = logging.getLogger('abagen')
 
 
 def reannotate_probes(probes):
@@ -40,6 +43,9 @@ def reannotate_probes(probes):
        practical guide to linking brain-wide gene expression and neuroimaging
        data. NeuroImage, 189, 353-367.
     """
+
+    lgr.info('Reannotating probes with information from Arnatkevic̆iūtė '
+             'et al., 2019, NeuroImage')
 
     # load in reannotated probes
     reannot = resource_filename('abagen', 'data/reannotated.csv.gz')
@@ -91,6 +97,9 @@ def filter_probes(pacall, samples, probes, threshold=0.5):
 
     threshold = np.clip(threshold, 0.0, 1.0)
 
+    lgr.info('Filtering probes with intensity-based threshold of {}'
+             .format(threshold))
+
     probes = io.read_probes(probes)
     signal, n_samp = np.zeros(len(probes), dtype=int), 0
     for pa, annot in zip(pacall, samples):
@@ -102,6 +111,8 @@ def filter_probes(pacall, samples, probes, threshold=0.5):
 
     # calculate proportion of signal to noise for given probe across samples
     keep = (signal / n_samp) >= threshold
+
+    lgr.info('{} probes survive intensity-based filtering'.format(keep.sum()))
 
     return probes[keep]
 
@@ -429,8 +440,7 @@ SELECTION_METHODS = dict(
 )
 
 
-def collapse_probes(microarray, annotation, probes, method='diff_stability',
-                    inplace=False):
+def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     """
     Reduces `microarray` to a sample x gene expression dataframe
 
@@ -460,9 +470,6 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
         same gene. Must be one of 'average', 'intensity', 'variance',
         'pc_loading', 'corr_variance', 'corr_intensity', or 'diff_stability';
         see Notes for more information. Default: 'diff_stability'
-    inplace : bool, optional
-        Whether to conserve memory by editing dataframes in-place instead of
-        returning edited copies. Default: False
 
     Returns
     -------
@@ -608,12 +615,18 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
         raise ValueError('Provided method must be one of {}, not: {}'
                          .format(list(SELECTION_METHODS), method))
 
+    lgr.info('Reducing probes indexing same gene with method: "{}"'
+             .format(method))
+
     # read in microarray data for all subjects; this can be quite slow...
     probes = io.read_probes(probes)
     exp = [
-        (io.read_microarray(m, copy=not inplace)
-           .loc[probes.index, io.read_annotation(a, copy=not inplace).index])
+        io.read_microarray(m).loc[probes.index, io.read_annotation(a).index]
         for m, a in zip(microarray, annotation)
     ]
+    exp = [e.T for e in collfunc(exp, probes, annotation)]
 
-    return [e.T for e in collfunc(exp, probes, annotation)]
+    lgr.info('{} genes remain after probe filtering and selection'
+             .format(exp[0].shape[-1]))
+
+    return exp

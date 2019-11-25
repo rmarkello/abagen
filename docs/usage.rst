@@ -17,11 +17,12 @@ abagen/issues>`_.
 
 .. toctree::
    :caption: Table of Contents
-   :maxdepth: 5
+   :maxdepth: 2
    :numbered:
 
    user_guide/download.rst
    user_guide/parcellations.rst
    user_guide/expression.rst
    user_guide/probes.rst
-   user_guide/donors.rst
+   user_guide/normalization.rst
+   user_guide/aggregation.rst

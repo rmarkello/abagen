@@ -164,20 +164,20 @@ def test_normalize_expression_real(testfiles):
         assert np.allclose(exp.std(axis=0, ddof=1), 1)
     del out
 
-    # batch correct: force means identical
-    out = correct.normalize_expression(micro, norm='batch')
-    assert np.allclose(*[e.mean(axis=0, skipna=True) for e in out])
-    # the NaN values should still be there, though
-    for exp, idx in zip(out, inds):
-        assert np.all(np.isnan(exp.iloc[idx]))
+    # # batch correct: force means identical
+    # out = correct.normalize_expression(micro, norm='batch')
+    # assert np.allclose(*[e.mean(axis=0, skipna=True) for e in out])
+    # # the NaN values should still be there, though
+    # for exp, idx in zip(out, inds):
+    #     assert np.all(np.isnan(exp.iloc[idx]))
 
     # invalid norm parameter
     with pytest.raises(ValueError):
         correct.normalize_expression(micro, norm='notanorm')
 
-    # can't do batch correction with only one donor
-    with pytest.raises(ValueError):
-        correct.normalize_expression(micro[0], norm='batch')
+    # # can't do batch correction with only one donor
+    # with pytest.raises(ValueError):
+    #     correct.normalize_expression(micro[0], norm='batch')
 
 
 def test_remove_distance(donor_expression, atlas):

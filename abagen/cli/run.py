@@ -45,6 +45,8 @@ def get_parser():
     """
 
     from .. import __version__
+    from ..correct import NORMALIZATION_METHODS
+    from ..probes import SELECTION_METHODS
 
     verstr = 'abagen {}'.format(__version__)
     parser = argparse.ArgumentParser(
@@ -82,14 +84,14 @@ process:
 
 If at any step a sample can be assigned to a parcel the matching process is
 terminated. If multiple sample are assigned to the same parcel they are
-aggregated with the metric specified via the `metric` parameter. More control
-over the sample matching can be obtained by setting the `inexact` parameter;
-see the parameter description for more information.
+aggregated with the metric specified via the `agg_metric` parameter. More
+control over the sample matching can be obtained by setting the `inexact`
+parameter; see the parameter description for more information.
 
 Once all samples have been matched to parcels for all supplied donors, the
-microarray expression data are optionally normalized within-donor via the
-provided `donor_norm` function before being combined across donors via the
-supplied `metric`.
+microarray expression data are optionally normalized via the provided
+`sample_norm` and `gene_norm` functions before being combined within parcels
+and across donors via the supplied `agg_metric`.
 """
     )
 
@@ -175,8 +177,23 @@ supplied `metric`.
                              'samples, across all supplied donors, for which '
                              'a probe must have signal above background noise '
                              'in order to be retained. Default: 0.5')
-    w_data.add_argument('--metric', action='store', default='mean',
-                        metavar='METHOD', choices=['mean', 'median'],
+    w_data.add_argument('--region_agg', '--region-agg', action='store',
+                        default='donors', metavar='METHOD',
+                        choices=['donors', 'samples'],
+                        help='When multiple samples are identified as '
+                             'belonging to a region in `atlas` this '
+                             'determines how they are aggegated. If '
+                             '\'samples\', expression data from all samples '
+                             'for all donors assigned to a given region are '
+                             'combined. If \'donors\', expression values for '
+                             'all samples assigned to a given region are '
+                             'combined independently for each donor before '
+                             'being combined across donors. See `agg_metric` '
+                             'for mechanism by which samples are combined. '
+                             'Default: \'donors\'')
+    w_data.add_argument('--agg_metric', '--agg-metric', action='store',
+                        default='mean', metavar='METHOD',
+                        choices=['mean', 'median'],
                         help='Mechanism by which to (1) reduce expression '
                              'data of multiple samples in the same `atlas` '
                              'region, and (2) reduce donor-level expression '
@@ -185,10 +202,7 @@ supplied `metric`.
                              'Default: "mean"')
     w_data.add_argument('--probe_selection', '--probe-selection',
                         action='store', default='diff_stability',
-                        metavar='METHOD',
-                        choices=['average', 'mean', 'max_intensity',
-                                 'max_variance', 'pc_loading', 'corr_variance',
-                                 'corr_intensity', 'diff_stability'],
+                        metavar='METHOD', choices=sorted(SELECTION_METHODS),
                         help='Selection method for subsetting (or collapsing '
                              'across) probes that index the same gene. Must '
                              'be one of {"average", "mean", "max_intensity", '
@@ -202,15 +216,25 @@ supplied `metric`.
                              'both hemispheres (i.e., L->R and R->L), '
                              'approximately doubling the number of available '
                              'samples. Default: False (i.e., no mirroring)')
-    w_data.add_argument('--donor_norm', '--donor-norm', action='store',
+    w_data.add_argument('--gene_norm', '--gene-norm', action='store',
                         default='srs', metavar='METHOD', type=_resolve_none,
-                        choices=['srs', 'zscore', 'batch', None],
+                        choices=sorted(NORMALIZATION_METHODS) + ['None'],
                         help='Method by which to normalize microarray '
                              'expression values for each donor prior to '
                              'collapsing across donors. Expression values are '
                              'normalized separately for each gene for each '
-                             'donor across all regions in `atlas`. Must be '
-                             'one of {"srs", "zscore", "batch", None}. '
+                             'donor across all expression samples. If None is '
+                             'specified then no normalization is performed. '
+                             'Default: "srs"')
+    w_data.add_argument('--sample_norm', '--sample-norm', action='store',
+                        default='srs', metavar='METHOD', type=_resolve_none,
+                        choices=sorted(NORMALIZATION_METHODS) + ['None'],
+                        help='Method by which to normalize microarray '
+                             'expression values for each sample prior to '
+                             'collapsing into regions in `atlas`. Expression '
+                             'values are normalized separately for each '
+                             'sample and donor across genes. If None is '
+                             'specified then no normalization is performed. '
                              'Default: "srs"')
 
     p_data = parser.add_argument_group('Options to modify the AHBA data used')
@@ -233,7 +257,7 @@ supplied `metric`.
                              'to anatomical regions. Default: False (i.e., '
                              'use corrected coordinates)')
 
-    o_data = parser.add_argument_group('Options to modify how data is output')
+    o_data = parser.add_argument_group('Options to modify how data are output')
     o_data.add_argument('--stdout', action='store_true',
                         help='Generated region x gene dataframes will be '
                              'printed to stdout for piping to other things. '
@@ -258,7 +282,7 @@ supplied `metric`.
     o_data.add_argument('--save-donors', '--save_donors', action='store_true',
                         help='Whether to save donor-level expression '
                              'dataframes instead of aggregating expression '
-                             'across donosr with provided `metric`. If '
+                             'across donors with provided `agg_metric`. If '
                              'specified, dataframes will be saved to path '
                              'specified by `output-file`, appending donor IDs '
                              'to the end of the filename. Default: False')
@@ -289,11 +313,13 @@ def main(args=None):
                                      atlas_info=opts.atlas_info,
                                      exact=opts.exact,
                                      tolerance=opts.tolerance,
-                                     metric=opts.metric,
+                                     region_agg=opts.region_agg,
+                                     agg_metric=opts.agg_metric,
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
                                      lr_mirror=opts.lr_mirror,
-                                     donor_norm=opts.donor_norm,
+                                     gene_norm=opts.gene_norm,
+                                     sample_norm=opts.sample_norm,
                                      corrected_mni=opts.corrected_mni,
                                      reannotated=opts.reannotated,
                                      return_counts=opts.save_counts,

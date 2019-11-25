@@ -138,19 +138,20 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
 
-@pytest.mark.xfail
-def test__assign_sample():
-    assert False
+def test__mirror_ontology(annotation, ontology):
+    aexp = pd.DataFrame(dict(mni_x=[-10, 30, 0],
+                             structure_acronym=['S', 'Cl', 'CC'],
+                             structure_id=[4260, 4322, 9422],
+                             structure_name=['subiculum, right',
+                                             'claustrum, left',
+                                             'central canal']),
+                        index=pd.Series(range(3), name='sample_id'))
 
-
-@pytest.mark.xfail
-def test__check_label():
-    assert False
-
-
-@pytest.mark.xfail
-def test_label_samples():
-    assert False
+    # this function doesn't touch mni_x -- it just assumes that all the
+    # hemisphere designation are incorrect and updates the structure id, name,
+    # and acronyms accordingly
+    a = samples._mirror_ontology(annotation, ontology)
+    pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
 def test_mirror_samples(annotation, ontology):
@@ -170,20 +171,102 @@ def test_mirror_samples(annotation, ontology):
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
-def test__mirror_ontology(annotation, ontology):
-    aexp = pd.DataFrame(dict(mni_x=[-10, 30, 0],
-                             structure_acronym=['S', 'Cl', 'CC'],
-                             structure_id=[4260, 4322, 9422],
-                             structure_name=['subiculum, right',
-                                             'claustrum, left',
-                                             'central canal']),
-                        index=pd.Series(range(3), name='sample_id'))
+@pytest.mark.xfail
+def test__assign_sample(atlas):
+    atlas = atlas['image']
+    assert samples._assign_sample([[0, 0, 0]], atlas, tolerance=0) == 0
+    assert samples._assign_sample([[26, 96, 66]], atlas, tolerance=0) == 71
+    assert False
 
-    # this function doesn't touch mni_x -- it just assumes that all the
-    # hemisphere designation are incorrect and updates the structure id, name,
-    # and acronyms accordingly
-    a = samples._mirror_ontology(annotation, ontology)
-    pd.testing.assert_frame_equal(a, aexp, check_like=True)
+
+@pytest.mark.xfail
+def test__check_label():
+    assert False
+
+
+@pytest.mark.xfail
+def test_label_samples():
+    assert False
+
+
+def test_groupby_index():
+    # default usage (no params)
+    microarray = pd.DataFrame([[0., 1.], [1., 2.], [5., 6.], [0., 1.]],
+                              index=pd.Series([1, 1, 1, 2], name='label'))
+    expected = pd.DataFrame([[2., 3.], [0., 1.]],
+                            index=pd.Series([1, 2], name='label'))
+    out = samples.groupby_index(microarray)
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+    # supplying `labels` appends NaN rows to output
+    expected = pd.DataFrame([[2., 3.], [0., 1.], [np.nan, np.nan]],
+                            index=pd.Series([1, 2, 3], name='label'))
+    out = samples.groupby_index(microarray, labels=[1, 2, 3])
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+    # changing `metric` works
+    expected = pd.DataFrame([[1., 2.], [0., 1.]],
+                            index=pd.Series([1, 2], name='label'))
+    out = samples.groupby_index(microarray, metric='median')
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+
+def test_aggregate_samples():
+    m1 = pd.DataFrame([[0., 1.], [1., 2.], [5., 6.], [0., 1.]],
+                      index=pd.Series([1, 1, 1, 2], name='label'))
+    m2 = pd.DataFrame([[0., 1.], [1., 2.], [5., 6.], [10., 11.]],
+                      index=pd.Series([1, 1, 2, 3], name='label'))
+
+    # region_agg='donors'
+    expected = pd.DataFrame([[1.25, 2.25],
+                             [2.5, 3.5],
+                             [10., 11.],
+                             [np.nan, np.nan]],
+                            index=pd.Series([1, 2, 3, 4], name='label'))
+    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                    region_agg='donors', agg_metric='mean')
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+    # region_agg = 'samples'
+    expected = pd.DataFrame([[1.4, 2.4],
+                             [2.5, 3.5],
+                             [10., 11.],
+                             [np.nan, np.nan]],
+                            index=pd.Series([1, 2, 3, 4], name='label'))
+    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                    region_agg='samples', agg_metric='mean')
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+    # return_donors=True, agg_metric='median'
+    expected = [
+        pd.DataFrame([[1., 2.], [0., 1.], [np.nan, np.nan], [np.nan, np.nan]],
+                     index=pd.Series([1, 2, 3, 4], name='label')),
+        pd.DataFrame([[0.5, 1.5], [5, 6], [10, 11], [np.nan, np.nan]],
+                     index=pd.Series([1, 2, 3, 4], name='label'))
+    ]
+    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                    return_donors=True, agg_metric='median')
+    for e, o in zip(expected, out):
+        pd.testing.assert_frame_equal(o, e, check_like=True)
+
+    # check that poorly normalized genes are removed
+    m1.loc[2, 1], m2.loc[2, 1] = np.nan, np.nan
+    expected = pd.DataFrame([[1.25],
+                             [2.5],
+                             [10],
+                             [np.nan]],
+                            index=pd.Series([1, 2, 3, 4], name='label'))
+    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                    region_agg='donors', agg_metric='mean')
+    pd.testing.assert_frame_equal(out, expected, check_like=True)
+
+    # invalid method for region_agg
+    with pytest.raises(ValueError):
+        samples.aggregate_samples([m1, m2], region_agg='notamethod')
+    # region_agg='samples' incompatible with return_donors=True
+    with pytest.raises(ValueError):
+        samples.aggregate_samples([m1, m2], region_agg='samples',
+                                  return_donors=True)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

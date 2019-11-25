@@ -138,7 +138,7 @@ def read_ontology(fname, copy=False):
         data = pd.read_csv(fname)
     except ValueError:
         if not isinstance(fname, pd.DataFrame):
-            raise TypeError('Provided fname must be filepath to Ontology.csv'
+            raise TypeError('Provided fname must be filepath to Ontology.csv '
                             'file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
 
@@ -197,7 +197,7 @@ def read_pacall(fname, copy=False, parquet=True):
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
     except (AttributeError, ValueError):
         if not isinstance(fname, pd.DataFrame):
-            raise TypeError('Provided fname must be filepath to PACall.csv'
+            raise TypeError('Provided fname must be filepath to PACall.csv '
                             'file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
 
@@ -236,7 +236,7 @@ def read_probes(fname, copy=False):
         data = pd.read_csv(fname, index_col=0)
     except ValueError:
         if not isinstance(fname, pd.DataFrame):
-            raise TypeError('Provided fname must be filepath to Probes.csv'
+            raise TypeError('Provided fname must be filepath to Probes.csv '
                             'file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
 
@@ -278,7 +278,7 @@ def read_annotation(fname, copy=False):
         data.index.name = 'sample_id'
     except ValueError:
         if not isinstance(fname, pd.DataFrame):
-            raise TypeError('Provided fname must be filepath to Annotation.'
+            raise TypeError('Provided fname must be filepath to Annotation'
                             '.csv file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
 
