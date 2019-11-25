@@ -383,7 +383,7 @@ def get_expression_data(atlas, atlas_info=None, *,
             microarray[ind] = microarray[ind].append(missing[ind][0].loc[roi])
             counts.loc[roi, ind] += 1
 
-    microarray = samples.aggregate_samples(microarray, all_labels,
+    microarray = samples.aggregate_samples(microarray, labels=all_labels,
                                            region_agg=region_agg,
                                            agg_metric=agg_metric,
                                            return_donors=return_donors)

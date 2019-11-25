@@ -313,7 +313,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     """
 
     # pull relevant info from atlas
-    label_data = np.asarray(utils.check_img(atlas).dataobj)
+    atlas = utils.check_img(atlas)
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
@@ -321,7 +321,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     coords = coords[cdist(sample, coords).squeeze() < tolerance]
 
     # grab non-zero labels for expanded coordinates
-    possible_labels = label_data[coords[:, 0], coords[:, 1], coords[:, 2]]
+    possible_labels = atlas.dataobj[coords[:, 0], coords[:, 1], coords[:, 2]]
     nz_labels = possible_labels[possible_labels.nonzero()]
     labels, counts = np.unique(nz_labels, return_counts=True)
 
@@ -509,17 +509,19 @@ def groupby_index(microarray, labels=None, metric='mean'):
     return gene_by_label
 
 
-def aggregate_samples(microarray, labels, region_agg='donors',
+def aggregate_samples(microarray, labels=None, region_agg='donors',
                       agg_metric='mean', return_donors=False):
     """
     Aggregates samples in `microarray` belonging to same regions
 
     Parameters
     ----------
-    microarray : (S, G) list of pandas.DataFrame
-        Microarray expression data, where `S` is samples and `G` is genes.
-        Index of dataframe should identify to which region each sample was
-        assigned
+    microarray : list of (S, G) pandas.DataFrame
+        Microarray expression data for multiple donor, where `S` is samples and
+        `G` is genes. Index of dataframes should identify to which region each
+        sample was assigned
+    labels : array_like
+
     region_agg : {'samples', 'donors'}, optional
         When multiple samples are identified as belonging to a region in
         `atlas` this determines how they are aggegated. If 'samples',
@@ -557,9 +559,13 @@ def aggregate_samples(microarray, labels, region_agg='donors',
              .format(region_agg))
 
     if region_agg == 'donors':
-        microarray = [groupby_index(e, labels, metric) for e in microarray]
+        microarray = [
+            groupby_index(e, labels=labels, metric=metric) for e in microarray
+        ]
     elif region_agg == 'samples':
-        microarray = [groupby_index(pd.concat(microarray), labels, metric)]
+        microarray = [
+            groupby_index(pd.concat(microarray), labels=labels, metric=metric)
+        ]
 
     if not return_donors:
         microarray = pd.concat(microarray).groupby('label').aggregate(metric)
