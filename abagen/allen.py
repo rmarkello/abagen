@@ -301,10 +301,11 @@ def get_expression_data(atlas, atlas_info=None, *,
     ontology = files['ontology']
     for n, (annot, ontol) in enumerate(zip(annotation, ontology)):
         if corrected_mni:
-            annotation = samples.update_mni_coords(annotation)
-        annotation = samples.drop_mismatch_samples(annotation, ontol)
+            annot = samples.update_mni_coords(annot)
+        annot = samples.drop_mismatch_samples(annot, ontol)
         if lr_mirror:
-            annotation = samples.mirror_samples(annotation, ontol)
+            annot = samples.mirror_samples(annot, ontol)
+        annotation[n] = annot
 
     # get dataframe of probe information (reannotated or otherwise)
     probe_info = io.read_probes(files['probes'][0])
