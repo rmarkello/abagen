@@ -341,10 +341,12 @@ def get_expression_data(atlas, atlas_info=None, *,
 
         if sample_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
-                                                            norm=sample_norm).T
+                                                            norm=sample_norm,
+                                                            ignore_warn=True).T
         if gene_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj],
-                                                            norm=gene_norm)
+                                                            norm=gene_norm,
+                                                            ignore_warn=True)
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)

@@ -124,8 +124,7 @@ def _rs(data, axis=0):
     # calculate sigmoid normalization
     med = np.median(data, axis=axis, keepdims=True)
     iqr = sstats.iqr(data, axis=axis, scale='normal', keepdims=True)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        rs = 1 / (1 + np.exp(-(data - med) / iqr))
+    rs = 1 / (1 + np.exp(-(data - med) / iqr))
 
     return rs
 
@@ -166,7 +165,7 @@ NORMALIZATION_METHODS = dict(
 )
 
 
-def normalize_expression(expression, norm='srs'):
+def normalize_expression(expression, norm='srs', ignore_warn=False):
     """
     Performs normalization on `expression` data
 
@@ -178,6 +177,9 @@ def normalize_expression(expression, norm='srs'):
     norm : {'rs', 'srs', 'center', 'zscore', 'minmax', 'batch'}, optional
         Function with which to normalize expression data. See Notes for more
         information. Default: 'srs'
+    ignore_warn : bool, optional
+        Whether to suppress potential warnings raised by normalization.
+        Default: False
 
     Returns
     -------
@@ -248,8 +250,10 @@ def normalize_expression(expression, norm='srs'):
         notna = np.logical_not(exp.isna().all(axis=1))
         data = np.asarray(exp)[notna]
 
-        # normalize the data (however was specified)
-        normed = normfunc(data) if norm != 'batch' else corrected[n]
+        kwargs = dict(divide='ignore', invalid='ignore') if ignore_warn else {}
+        with np.errstate(**kwargs):
+            # normalize the data (however was specified)
+            normed = normfunc(data) if norm != 'batch' else corrected[n]
 
         # recreate dataframe and fill non-NaN values
         normalized = pd.DataFrame(np.nan, columns=exp.columns, index=exp.index)
