@@ -1,3 +1,30 @@
+0.0.3 (November 26, 2019)
+=========================
+A new release with some added features but primarily a good bit of re-arranging
+in the primary ``abagen.get_expression_data()`` workflow. Notable changes
+include:
+
+- New parameters ``region_agg``, ``agg_metric``, ``sample_norm``, and
+``gene_norm`` (the latter of which supplants ``donor_norm``), controlling how
+  microarray samples are normalized and aggregated across donors;
+- Large reductions in memory usage (#130), such that the primary workflow
+  should only use ~2GB of RAM at its peak; and,
+- Migration to CircleCI for all testing purposes!
+
+  * [REF] Adds option to suppress norm warnings (#132), @rmarkello
+  * [ENH,REF] Adds new `region_agg` parameter (#131), @rmarkello
+  * [REF] Massive reduction in memory usage (#130), @rmarkello
+  * [FIX] Solves pandas bug with max_variance method (#128), @gifuni
+  * [STY] Fixes trailing whitespace (#129), @rmarkello
+  * [FIX] Fixes strange TypeError for pc_loading (#1), @rmarkello
+  * [REF] Ensures integer DataFrame when `return_count=True` (#127), @rhannema
+  * [ENH] Add fetcher for donor info (#126), @Ellen8780
+  * [REF,ENH] Modifies and adds normalization procedures (#119), @rmarkello
+  * [TEST] Updating CircleCI build (#122), @rmarkello
+  * [TEST] TravisCI --> CircleCI (#121), @rmarkello
+  * [REF] Removes `.get_data()` nibabel calls (#120), @rmarkello
+  * [FIX] Specify `engine='python'` in pandas queries (#117), @VinceBaz
+
 0.0.2 (September 19, 2019)
 ==========================
 This release comes with a **lot** of new changes, including:
