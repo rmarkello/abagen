@@ -355,7 +355,7 @@ def get_expression_data(atlas, atlas_info=None, *,
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
         lgr.info('{:>3} / {} samples matched to regions for donor #{}'
-                 .format(counts.loc[:, subj].sum(), len(annotation[subj]),
+                 .format(counts.iloc[1:, subj].sum(), len(annotation[subj]),
                          datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
 
         # if we don't want to do exact matching then cache which parcels are
