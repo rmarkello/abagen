@@ -22,6 +22,7 @@ commands:
           name: Generate environment
           command: |
             if [ ! -d /opt/conda/envs/abagen_<< parameters.env >> ]; then
+              apt-get update
               apt-get install -yqq build-essential libsnappy-dev
               conda create -yq -n abagen_<< parameters.env >> python=<< parameters.version >>
               source activate abagen_<< parameters.env >>
@@ -114,6 +115,7 @@ jobs:
           name: Build documentation
           no_output_timeout: 40m
           command: |
+            apt-get update
             apt-get install -yqq make
             source activate abagen_py37
             pip install -e .
@@ -163,6 +165,7 @@ jobs:
       - run:
           name: Merge coverage files
           command: |
+            apt-get update
             apt-get install -yqq curl
             source activate abagen_py37
             cd /tmp/src/coverage
