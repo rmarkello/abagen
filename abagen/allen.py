@@ -312,6 +312,9 @@ def get_expression_data(atlas, atlas_info=None, *,
     if reannotated:
         probe_info = probes.reannotate_probes(probe_info)
 
+    # drop probes with no/invalid Entrez ID
+    probe_info = probe_info.dropna(subset=['entrez_id'])
+
     # intensity-based filtering of probes
     probe_info = probes.filter_probes(files['pacall'], annotation, probe_info,
                                       threshold=ibf_threshold)
