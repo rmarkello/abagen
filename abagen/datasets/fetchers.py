@@ -34,8 +34,8 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
     Parameters
     ----------
     data_dir : str, optional
-        Directory where data should be downloaded and unpacked. Default:
-        current directory
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
         specify 'all' to download all available donors. Default: 12876
@@ -194,8 +194,8 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     Parameters
     ----------
     data_dir : str, optional
-        Directory where data should be downloaded and unpacked. Default:
-        current directory
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
     donors : list, optional
         List of donors to download; can be either donor number or UID. Can also
         specify 'all' to download all available donors. Default: 12876
@@ -275,6 +275,59 @@ def check_donors(donors, default='12876', valid=VALID_DONORS):
     donors = sorted(set(donors), key=lambda x: int(x))
 
     return donors
+
+
+def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
+    """
+    Downloads FreeSurfer reconstructions of the Allen Human Brain Atlas MRIs
+
+    Parameters
+    ----------
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
+    donors : list, optional
+        List of donors to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors. Default: 12876
+    resume : bool, optional
+        Whether to resume download of a partly-downloaded file. Default: True
+    verbose : int, optional
+        Verbosity level (0 means no message). Default: 1
+
+    Returns
+    -------
+    freesurfer : list
+        List to FreeSurfer directories for requested `donors`
+
+    References
+    ----------
+    Romero-Garcia, R., Whitaker, K., Vasa, F., Seidlitz, J., Shinn, M., Fonagy,
+    P., Jones, P., et al. (2017). Data supporting NSPN publication "Structural
+    covariance networks are coupled to expression of genes enriched in
+    supragranular layers of the human cortex " [Dataset].
+    https://doi.org/10.17863/CAM.11392
+    """
+
+    url = "https://www.repository.cam.ac.uk/bitstream/handle/1810/265272/" \
+          "donor{}.zip"
+    dataset_name = 'allenbrain'
+    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
+                                verbose=verbose)
+
+    donors = check_donors(donors)
+    files = [
+        (os.path.join('normalized_microarray_donor{}'.format(sub),
+                      'donor{}'.format(sub)),
+         url.format(sub),
+         dict(uncompress=True,
+              move=os.path.join('normalized_microarray_donor{}'.format(sub),
+                                'freesurfer.tar.gz')))
+        for sub in donors
+    ]
+
+    files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
+
+    return files
 
 
 def fetch_desikan_killiany(*args, **kwargs):
