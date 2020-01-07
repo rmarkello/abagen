@@ -5,7 +5,7 @@ in the primary ``abagen.get_expression_data()`` workflow. Notable changes
 include:
 
 - New parameters ``region_agg``, ``agg_metric``, ``sample_norm``, and
-``gene_norm`` (the latter of which supplants ``donor_norm``), controlling how
+  ``gene_norm`` (the latter of which supplants ``donor_norm``), controlling how
   microarray samples are normalized and aggregated across donors;
 - Large reductions in memory usage (#130), such that the primary workflow
   should only use ~2GB of RAM at its peak; and,
