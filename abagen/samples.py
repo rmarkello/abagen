@@ -314,6 +314,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
 
     # pull relevant info from atlas
     atlas = utils.check_img(atlas)
+    atlas_data = np.asarray(atlas.dataobj)
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
@@ -321,7 +322,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     coords = coords[cdist(sample, coords).squeeze() < tolerance]
 
     # grab non-zero labels for expanded coordinates
-    possible_labels = atlas.dataobj[coords[:, 0], coords[:, 1], coords[:, 2]]
+    possible_labels = atlas_data[coords[:, 0], coords[:, 1], coords[:, 2]]
     nz_labels = possible_labels[possible_labels.nonzero()]
     labels, counts = np.unique(nz_labels, return_counts=True)
 
