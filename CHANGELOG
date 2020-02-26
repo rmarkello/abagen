@@ -1,3 +1,10 @@
+0.0.4 (February 26, 2020)
+=========================
+A release with a small bugfixes (#134) and a small fix-fix (#133)!
+
+  * [FIX] Coerce atlas dataobj to arr before indexing (#134), @rmarkello
+  * [REF] Drop probes with invalid/missing Entrez ID (#133), @rmarkello
+
 0.0.3 (November 26, 2019)
 =========================
 A new release with some added features but primarily a good bit of re-arranging
@@ -10,6 +17,9 @@ include:
 - Large reductions in memory usage (#130), such that the primary workflow
   should only use ~2GB of RAM at its peak; and,
 - Migration to CircleCI for all testing purposes!
+
+Special thanks to @rhannema, @Ellen8780, @gifuni, and @VinceBaz for their
+contributions.
 
   * [REF] Adds option to suppress norm warnings (#132), @rmarkello
   * [ENH,REF] Adds new `region_agg` parameter (#131), @rmarkello
