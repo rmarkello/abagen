@@ -113,56 +113,37 @@ def test__srs(a):
         assert np.all(np.sum(np.logical_and(out >= low, out < hi), axis=a) > 0)
 
 
-def test_normalize_expression_real(testfiles):
+@pytest.mark.parametrize('method', [
+    'center', 'zscore', 'minmax', 'sigmoid', 'scaled_sigmoid',
+    'scaled_sigmoid_quantiles', 'robust_sigmoid', 'scaled_robust_sigmoid',
+    'mixed_sigmoid'
+])
+def test_normalize_expression_real(testfiles, method):
     # load in data and add some NaN values for "realness"
     micro = [io.read_microarray(f).T for f in testfiles['microarray']]
     inds = [[5, 15, 25], [0, 10, 20]]
     for n, idx in enumerate(inds):
         micro[n].iloc[idx] = np.nan
 
-    # min-max scaling
-    out = correct.normalize_expression(micro, norm='minmax')
-    for exp, idx in zip(out, inds):
-        assert np.all(np.isnan(exp.iloc[idx]))
-        exp = exp.dropna(axis=1, how='all')
-        assert np.allclose(exp.max(axis=0), 1)
-        assert np.allclose(exp.min(axis=0), 0)
-    del out
+    minmax = [
+        'minmax', 'scaled_sigmoid', 'scaled_sigmoid_quantiles',
+        'scaled_robust_sigmoid', 'mixed_sigmoid'
+    ]
 
-    # robust sigmoid
-    out = correct.normalize_expression(micro, norm='rs')
+    out = correct.normalize_expression(micro, norm=method)
     for exp, idx in zip(out, inds):
         assert np.all(np.isnan(exp.iloc[idx]))
         exp = exp.dropna(axis=1, how='all')
-        assert np.all(exp.max(axis=0) <= 1)
-        assert np.all(exp.min(axis=0) >= 0)
-    del out
-
-    # scaled robust sigmoid
-    out = correct.normalize_expression(micro, norm='srs')
-    for exp, idx in zip(out, inds):
-        assert np.all(np.isnan(exp.iloc[idx]))
-        exp = exp.dropna(axis=1, how='all')
-        assert np.allclose(exp.max(axis=0), 1)
-        assert np.allclose(exp.min(axis=0), 0)
-    del out
-
-    # centering
-    out = correct.normalize_expression(micro, norm='center')
-    for exp, idx in zip(out, inds):
-        assert np.all(np.isnan(exp.iloc[idx]))
-        exp = exp.dropna(axis=1, how='all')
-        assert np.allclose(exp.mean(axis=0), 0)
-    del out
-
-    # z-scoring: mean = 0, std = 1
-    out = correct.normalize_expression(micro, norm='zscore')
-    for exp, idx in zip(out, inds):
-        assert np.all(np.isnan(exp.iloc[idx]))
-        exp = exp.dropna(axis=1, how='all')
-        assert np.allclose(exp.mean(axis=0), 0)
-        assert np.allclose(exp.std(axis=0, ddof=1), 1)
-    del out
+        if method in minmax:
+            assert np.allclose(exp.max(axis=0), 1)
+            assert np.allclose(exp.min(axis=0), 0)
+        elif method == 'robust_sigmoid':
+            assert np.all(exp.max(axis=0) <= 1)
+            assert np.all(exp.min(axis=0) >= 0)
+        elif method in ['center', 'zscore']:
+            assert np.allclose(exp.mean(axis=0), 0)
+            if method == 'zscore':
+                assert np.allclose(exp.std(axis=0, ddof=1), 1)
 
     # # batch correct: force means identical
     # out = correct.normalize_expression(micro, norm='batch')
