@@ -46,7 +46,7 @@ def get_parser():
 
     from .. import __version__
     from ..correct import NORMALIZATION_METHODS
-    from ..probes import SELECTION_METHODS
+    from ..probes_ import SELECTION_METHODS
 
     verstr = 'abagen {}'.format(__version__)
     parser = argparse.ArgumentParser(

@@ -10,9 +10,17 @@ import pytest
 from abagen import utils
 
 
-@pytest.mark.xfail
-def test_check_img():
-    assert False
+def test_leftify_atlas(atlas):
+    out = utils.leftify_atlas(atlas['image'])
+    assert len(np.unique(out.dataobj)) == 44
+    assert np.all(np.asarray(out.dataobj)[98:] == 0)
+
+
+def test_check_img(atlas):
+    # some really basic, silly checks
+    out = utils.check_img(atlas['image'])
+    assert out.header.get_data_dtype() == np.dtype('int32')
+    assert len(out.shape) == 3
 
 
 def test_check_atlas_info(atlas):
