@@ -16,6 +16,36 @@ AGG_FUNCS = dict(
 )
 
 
+def leftify_atlas(atlas):
+    """
+    Zeroes out all ROIs in the right hemisphere of `atlas`
+
+    Assumes that positive X values indicate the right hemisphere (e.g., RAS+
+    orientation) and that the X-origin is in the middle of the brain
+
+    Parameters
+    ----------
+    atlas : str or niimg-like
+        Filepath to or in-memory loaded image
+
+    Returns
+    -------
+    atlas : niimg-like
+        Loaded image with right hemisphere zeroed out
+    """
+
+    atlas = check_img(atlas)
+
+    # get ijk corresponding to zero-point
+    i, j, k = nib.affines.apply_affine(np.linalg.inv(atlas.affine), [0, 0, 0])
+
+    # zero out all positive voxels; img is RAS+ so positive = right hemisphere
+    data = np.array(atlas.dataobj, copy=True)
+    data[int(i):] = 0
+
+    return atlas.__class__(data, atlas.affine, header=atlas.header)
+
+
 def check_img(img):
     """
     Very basic checker that loads `img`` and ensures it's 3D/int
@@ -30,13 +60,14 @@ def check_img(img):
     img : niimg-like
         Loaded 3D/int image
     """
-    if isinstance(img, str) and os.path.exists(img):
+
+    if isinstance(img, (str, os.PathLike)) and os.path.exists(img):
         img = nib.load(img)
     elif not isinstance(img, nib.spatialimages.SpatialImage):
         raise TypeError('Provided image must be an existing filepath or a '
                         'pre-loaded niimg-like object')
 
-    # ensure 3D or squeezable to 3D (this is a faster check than type casting)
+    # ensure 3D or squeezable to 3D
     if len(img.shape) == 4 and img.shape[3] == 1:
         data = np.asarray(img.dataobj)
         affine = img.affine
@@ -44,14 +75,15 @@ def check_img(img):
     elif len(img.shape) != 3:
         raise ValueError('Provided image must be 3D')
 
-    # check if atlas is int or castable to int
-    if np.asarray(img.dataobj).dtype.kind != 'i':
-        cast = all([float(f).is_integer() for f in np.unique(img.dataobj)])
+    # check if atlas data is int or castable to int
+    if img.header.get_data_dtype().kind != 'i':
+        data = np.asarray(img.dataobj)
+        idata = data.astype('int32')
+        cast = np.allclose(idata, data)
         if not cast:
             raise ValueError('Provided image should have integer values or '
                              'be safely castable to integer')
-        img = img.__class__(np.asarray(img.dataobj).astype(np.int32),
-                            img.affine, header=img.header)
+        img = img.__class__(idata, img.affine, header=img.header)
         img.header.set_data_dtype(np.int32)
 
     return img
