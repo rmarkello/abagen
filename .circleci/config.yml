@@ -180,9 +180,6 @@ workflows:
       - build_docs:
           requires:
             - fetch_ahba
-      - unittest_py35:
-          requires:
-            - fetch_ahba
       - unittest_py36:
           requires:
             - fetch_ahba
@@ -191,6 +188,5 @@ workflows:
             - fetch_ahba
       - merge_coverage:
           requires:
-            - unittest_py35
             - unittest_py36
             - unittest_py37
