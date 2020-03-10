@@ -87,7 +87,7 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
         Loaded dataframe with information on atlas
     """
 
-    from .samples import ONTOLOGY  # avoid circular imports
+    from .samples_ import ONTOLOGY  # avoid circular imports
 
     atlas = check_img(atlas)
     ids = get_unique_labels(atlas) if labels is None else labels
@@ -199,6 +199,7 @@ def efficient_corr(x, y):
     corr : (M,) numpy.ndarray
         Correlations of columns in `x` and `y`
     """
+
     corr = np.sum(zscore(x, ddof=1) * zscore(y, ddof=1), axis=0) / (len(x) - 1)
 
     return corr
@@ -307,6 +308,7 @@ def _check_coord_inputs(coords):
     -------
     coords : (3, N) np.ndarray
     """
+
     coords = np.atleast_2d(coords).T
     if 3 not in coords.shape:
         raise ValueError('Input coordinates must be of shape (3 x N). '
@@ -334,6 +336,7 @@ def ijk_to_xyz(coords, affine):
     xyz : (N, 3) np.ndarray
         Provided ``coords`` in ``affine`` space
     """
+
     coords = _check_coord_inputs(coords)
     aff_coords = np.dot(affine, coords)[:3].T
     return aff_coords
@@ -355,6 +358,7 @@ def xyz_to_ijk(coords, affine):
     ijk : (N, 3) numpy.ndarray
         Provided `coords` in cartesian space
     """
+
     coords = _check_coord_inputs(coords)
     ijk_coords = np.linalg.solve(affine, coords)[:3].T.astype(int)
     return ijk_coords

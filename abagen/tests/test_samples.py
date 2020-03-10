@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from abagen import samples
+from abagen import samples_
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -80,7 +80,7 @@ def test_update_mni_coords():
     x = y = z = [-10, 20, 30, 40]
     ids = [594, 2985, 1058, 1145]
     annotation = pd.DataFrame(dict(mni_x=x, mni_y=y, mni_z=z, well_id=ids))
-    out = samples.update_mni_coords(annotation)
+    out = samples_.update_mni_coords(annotation)
 
     # confirm that no samples were lost / reordered during the update process
     # and that we still have all our columns
@@ -98,7 +98,7 @@ def test_update_mni_coords():
     # if we provide invalid well_ids we should receive an error!
     annotation['well_id'] = [594, 2985, 1058, 99999999999]
     with pytest.raises(KeyError):
-        samples.update_mni_coords(annotation)
+        samples_.update_mni_coords(annotation)
 
 
 @pytest.mark.parametrize('path, expected', [
@@ -116,7 +116,7 @@ def test_update_mni_coords():
     ('thisisnotapath', None),  # TODO: should this error?
 ])
 def test__get_struct(path, expected):
-    out = samples._get_struct(path)
+    out = samples_._get_struct(path)
     assert out == expected if expected is not None else out is None
 
 
@@ -134,7 +134,7 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
                             index=[0, 2, 4])
 
     # do we get what we expect? (ignore ordering of columns / index)
-    out = samples.drop_mismatch_samples(mm_annotation, ontology)
+    out = samples_.drop_mismatch_samples(mm_annotation, ontology)
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
 
@@ -150,7 +150,7 @@ def test__mirror_ontology(annotation, ontology):
     # this function doesn't touch mni_x -- it just assumes that all the
     # hemisphere designation are incorrect and updates the structure id, name,
     # and acronyms accordingly
-    a = samples._mirror_ontology(annotation, ontology)
+    a = samples_._mirror_ontology(annotation, ontology)
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
@@ -167,15 +167,15 @@ def test_mirror_samples(annotation, ontology):
                         index=[0, 1, 2, 0, 1])
 
     # but let's confirm all the outputs are as-expected
-    a = samples.mirror_samples(annotation, ontology)
+    a = samples_.mirror_samples(annotation, ontology)
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
 
 @pytest.mark.xfail
 def test__assign_sample(atlas):
     atlas = atlas['image']
-    assert samples._assign_sample([[0, 0, 0]], atlas, tolerance=0) == 0
-    assert samples._assign_sample([[26, 96, 66]], atlas, tolerance=0) == 71
+    assert samples_._assign_sample([[0, 0, 0]], atlas, tolerance=0) == 0
+    assert samples_._assign_sample([[26, 96, 66]], atlas, tolerance=0) == 71
     assert False
 
 
@@ -195,19 +195,19 @@ def test_groupby_index():
                               index=pd.Series([1, 1, 1, 2], name='label'))
     expected = pd.DataFrame([[2., 3.], [0., 1.]],
                             index=pd.Series([1, 2], name='label'))
-    out = samples.groupby_index(microarray)
+    out = samples_.groupby_index(microarray)
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
     # supplying `labels` appends NaN rows to output
     expected = pd.DataFrame([[2., 3.], [0., 1.], [np.nan, np.nan]],
                             index=pd.Series([1, 2, 3], name='label'))
-    out = samples.groupby_index(microarray, labels=[1, 2, 3])
+    out = samples_.groupby_index(microarray, labels=[1, 2, 3])
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
     # changing `metric` works
     expected = pd.DataFrame([[1., 2.], [0., 1.]],
                             index=pd.Series([1, 2], name='label'))
-    out = samples.groupby_index(microarray, metric='median')
+    out = samples_.groupby_index(microarray, metric='median')
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
 
@@ -223,8 +223,8 @@ def test_aggregate_samples():
                              [10., 11.],
                              [np.nan, np.nan]],
                             index=pd.Series([1, 2, 3, 4], name='label'))
-    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
-                                    region_agg='donors', agg_metric='mean')
+    out = samples_.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                     region_agg='donors', agg_metric='mean')
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
     # region_agg = 'samples'
@@ -233,8 +233,8 @@ def test_aggregate_samples():
                              [10., 11.],
                              [np.nan, np.nan]],
                             index=pd.Series([1, 2, 3, 4], name='label'))
-    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
-                                    region_agg='samples', agg_metric='mean')
+    out = samples_.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                     region_agg='samples', agg_metric='mean')
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
     # return_donors=True, agg_metric='median'
@@ -244,8 +244,8 @@ def test_aggregate_samples():
         pd.DataFrame([[0.5, 1.5], [5, 6], [10, 11], [np.nan, np.nan]],
                      index=pd.Series([1, 2, 3, 4], name='label'))
     ]
-    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
-                                    return_donors=True, agg_metric='median')
+    out = samples_.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                     return_donors=True, agg_metric='median')
     for e, o in zip(expected, out):
         pd.testing.assert_frame_equal(o, e, check_like=True)
 
@@ -256,17 +256,17 @@ def test_aggregate_samples():
                              [10],
                              [np.nan]],
                             index=pd.Series([1, 2, 3, 4], name='label'))
-    out = samples.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
-                                    region_agg='donors', agg_metric='mean')
+    out = samples_.aggregate_samples([m1, m2], labels=[1, 2, 3, 4],
+                                     region_agg='donors', agg_metric='mean')
     pd.testing.assert_frame_equal(out, expected, check_like=True)
 
     # invalid method for region_agg
     with pytest.raises(ValueError):
-        samples.aggregate_samples([m1, m2], region_agg='notamethod')
+        samples_.aggregate_samples([m1, m2], region_agg='notamethod')
     # region_agg='samples' incompatible with return_donors=True
     with pytest.raises(ValueError):
-        samples.aggregate_samples([m1, m2], region_agg='samples',
-                                  return_donors=True)
+        samples_.aggregate_samples([m1, m2], region_agg='samples',
+                                   return_donors=True)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -276,11 +276,11 @@ def test_aggregate_samples():
 
 def test_update_mni_coords_real(testfiles):
     for annotation in testfiles['annotation']:
-        samples.update_mni_coords(annotation)
+        samples_.update_mni_coords(annotation)
 
 
 def test_label_samples_real(testfiles, atlas):
-    out = samples.label_samples(testfiles['annotation'][0], atlas['image'])
+    out = samples_.label_samples(testfiles['annotation'][0], atlas['image'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'sample_id'
     assert out.columns == ['label']
@@ -288,13 +288,13 @@ def test_label_samples_real(testfiles, atlas):
 
 def test_drop_mismatch_samples_real(testfiles):
     for an, on in zip(testfiles['annotation'], testfiles['ontology']):
-        samples.drop_mismatch_samples(an, on)
+        samples_.drop_mismatch_samples(an, on)
 
 
 def test_mirror_samples_real(testfiles):
     orig = [363, 470]
     for an, on, o in zip(testfiles['annotation'], testfiles['ontology'], orig):
-        out = samples.mirror_samples(an, on)
+        out = samples_.mirror_samples(an, on)
         # there should be more than the original # of samples but less than or
         # equal to 2x that number (we can't MORE than duplicate)
         assert len(out) > o and len(out) <= o * 2
@@ -303,5 +303,5 @@ def test_mirror_samples_real(testfiles):
 def test__mirror_ontology_real(testfiles):
     orig = [363, 470]
     for a, o, l in zip(testfiles['annotation'], testfiles['ontology'], orig):
-        annot = samples._mirror_ontology(a, o)
+        annot = samples_._mirror_ontology(a, o)
         assert len(annot) == l

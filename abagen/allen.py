@@ -8,7 +8,7 @@ from functools import reduce
 import numpy as np
 import pandas as pd
 
-from . import correct, datasets, io, probes, samples, utils
+from . import correct, datasets, io, probes_, samples_, utils
 
 import logging
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -224,25 +224,25 @@ def get_expression_data(atlas, atlas_info=None, *,
         brain regions between all pairs of donors).
 
     The following methods can be used for normalizing microarray expression
-    values for each donor prior to aggregating:
+    values prior to aggregating:
 
-        1. ``norm=='rs'``
+        1. ``{sample,gene}_norm=='rs'``
 
         Uses a robust sigmoid function as in [A3]_ to normalize values
 
-        2. ``norm='srs'``
+        2. ``{sample,gene}_norm='srs'``
 
         Same as 'rs' but scales output to the unit normal (i.e., range 0-1)
 
-        3. ``norm='minmax'``
+        3. ``{sample,gene}_norm='minmax'``
 
-        Scales data in each column to the unit normal (i.e., range 0-1)
+        Scales data to the unit normal (i.e., range 0-1)
 
-        4. ``norm='center'``
+        4. ``{sample,gene}_norm='center'``
 
         Removes the mean of expression values
 
-        5. ``norm='zscore'``
+        5. ``{sample,gene}_norm='zscore'``
 
         Applies a basic z-score (subtract mean, divide by standard deviation);
         uses degrees of freedom equal to one for standard deviation
@@ -271,10 +271,10 @@ def get_expression_data(atlas, atlas_info=None, *,
     agg_metric = utils.check_metric(agg_metric)
 
     # check probe_selection input
-    if probe_selection not in probes.SELECTION_METHODS:
+    if probe_selection not in probes_.SELECTION_METHODS:
         raise ValueError('Provided probe_selection method is invalid, must be '
                          'one of {}. Received value: \'{}\''
-                         .format(list(probes.SELECTION_METHODS),
+                         .format(list(probes_.SELECTION_METHODS),
                                  probe_selection))
 
     # fetch files (downloading if necessary) and unpack to variables
@@ -301,29 +301,29 @@ def get_expression_data(atlas, atlas_info=None, *,
     ontology = files['ontology']
     for n, (annot, ontol) in enumerate(zip(annotation, ontology)):
         if corrected_mni:
-            annot = samples.update_mni_coords(annot)
-        annot = samples.drop_mismatch_samples(annot, ontol)
+            annot = samples_.update_mni_coords(annot)
+        annot = samples_.drop_mismatch_samples(annot, ontol)
         if lr_mirror:
-            annot = samples.mirror_samples(annot, ontol)
+            annot = samples_.mirror_samples(annot, ontol)
         annotation[n] = annot
 
     # get dataframe of probe information (reannotated or otherwise)
     probe_info = io.read_probes(files['probes'][0])
     if reannotated:
-        probe_info = probes.reannotate_probes(probe_info)
+        probe_info = probes_.reannotate_probes(probe_info)
 
     # drop probes with no/invalid Entrez ID
     probe_info = probe_info.dropna(subset=['entrez_id'])
 
     # intensity-based filtering of probes
-    probe_info = probes.filter_probes(files['pacall'], annotation, probe_info,
-                                      threshold=ibf_threshold)
+    probe_info = probes_.filter_probes(files['pacall'], annotation, probe_info,
+                                       threshold=ibf_threshold)
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
-    microarray = probes.collapse_probes(files['microarray'], annotation,
-                                        probe_info, method=probe_selection)
+    microarray = probes_.collapse_probes(files['microarray'], annotation,
+                                         probe_info, method=probe_selection)
 
     missing = []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
@@ -331,16 +331,17 @@ def get_expression_data(atlas, atlas_info=None, *,
                           index=np.append([0], all_labels))
     for subj in range(len(microarray)):
         if lr_mirror:  # reset index (duplicates will cause issues if we don't)
+            # TODO: come up
             annotation[subj] = annotation[subj].reset_index(drop=True)
             microarray[subj] = microarray[subj].reset_index(drop=True)
 
         # assign samples to regions
-        labels = samples.label_samples(annotation[subj], atlas,
-                                       atlas_info, tolerance=tolerance)
+        labels = samples_.label_samples(annotation[subj], atlas,
+                                        atlas_info, tolerance=tolerance)
         if exact:  # remove all samples not assigned a label before norming
             nz = np.asarray(labels != 0).squeeze()
             microarray[subj] = microarray[subj].loc[nz]
-            labels = labels[nz]
+            labels = labels.loc[nz]
 
         if sample_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
@@ -389,10 +390,10 @@ def get_expression_data(atlas, atlas_info=None, *,
             microarray[ind] = microarray[ind].append(missing[ind][0].loc[roi])
             counts.loc[roi, ind] += 1
 
-    microarray = samples.aggregate_samples(microarray, labels=all_labels,
-                                           region_agg=region_agg,
-                                           agg_metric=agg_metric,
-                                           return_donors=return_donors)
+    microarray = samples_.aggregate_samples(microarray, labels=all_labels,
+                                            region_agg=region_agg,
+                                            agg_metric=agg_metric,
+                                            return_donors=return_donors)
 
     # drop the "zero" label from the counts dataframe (this is background)
     if return_counts:

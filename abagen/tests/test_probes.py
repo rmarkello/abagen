@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import abagen
-from abagen import probes
+from abagen import probes_
 
 
 def test_reannotate_probes(testfiles):
@@ -16,9 +16,9 @@ def test_reannotate_probes(testfiles):
     probe_file = testfiles['probes'][0]
 
     # should work with either a filename _or_ a dataframe
-    reannot = probes.reannotate_probes(probe_file)
+    reannot = probes_.reannotate_probes(probe_file)
     probe_df = abagen.io.read_probes(probe_file)
-    pd.testing.assert_frame_equal(reannot, probes.reannotate_probes(probe_df))
+    pd.testing.assert_frame_equal(reannot, probes_.reannotate_probes(probe_df))
 
     # expected output
     cols = ['probe_name', 'gene_symbol', 'entrez_id']
@@ -48,11 +48,11 @@ def test_filter_probes(testfiles, threshold, expected_length):
     probe_df = abagen.io.read_probes(probe_file)
 
     # should work with either a filename _or_ a dataframe
-    filtered = probes.filter_probes(pacall, samples, probe_file,
-                                    threshold=threshold)
+    filtered = probes_.filter_probes(pacall, samples, probe_file,
+                                     threshold=threshold)
     pd.testing.assert_frame_equal(
         filtered,
-        probes.filter_probes(pacall, samples, probe_df, threshold=threshold)
+        probes_.filter_probes(pacall, samples, probe_df, threshold=threshold)
     )
 
     # provided threshold returns expected output
@@ -66,7 +66,7 @@ def test_filter_probes(testfiles, threshold, expected_length):
 
 
 @pytest.mark.parametrize('func, a_expected, b_expected', [
-    (probes._max_idx, [2, 4, 5], [10, 8, 7]),
+    (probes_._max_idx, [2, 4, 5], [10, 8, 7]),
     (lambda x: x.index[0], [0, 3, 5], [12, 9, 7]),
 ])
 def test_groupby_and_apply(func, a_expected, b_expected):
@@ -80,7 +80,7 @@ def test_groupby_and_apply(func, a_expected, b_expected):
     prb = pd.DataFrame(dict(gene_symbol=gene_symbol), index=index)
     exp = [info[['a', 'b']].copy()]
 
-    mi = probes._groupby_and_apply(exp, prb, info, func)[0]
+    mi = probes_._groupby_and_apply(exp, prb, info, func)[0]
     expected = pd.DataFrame(dict(a=a_expected, b=b_expected),
                             index=pd.Series(['a', 'b', 'c'],
                                             name='gene_symbol'))
@@ -93,21 +93,21 @@ def test_max_idx():
                       index=['one', 'two', 'three'])
 
     # should return max index of column specified
-    assert probes._max_idx(df, column='a') == 'three'
-    assert probes._max_idx(df, column='b') == 'one'
+    assert probes_._max_idx(df, column='a') == 'three'
+    assert probes_._max_idx(df, column='b') == 'one'
 
     # not specifying column should use first numerical column (i.e., 'a')
-    assert probes._max_idx(df) == 'three'
+    assert probes_._max_idx(df) == 'three'
 
     # what if we only have a single column dataframe?
     dfa = df[['a']]
-    assert probes._max_idx(dfa, column='a') == 'three'
-    assert probes._max_idx(dfa) == 'three'
+    assert probes_._max_idx(dfa, column='a') == 'three'
+    assert probes_._max_idx(dfa) == 'three'
 
     # string column anywhere in dataframe is bad news bears
     with pytest.raises(TypeError):
         df['b'] = df['b'].astype(str)
-        probes._max_idx(df)
+        probes_._max_idx(df)
 
 
 @pytest.mark.parametrize('angles, index', [
@@ -131,7 +131,7 @@ def test_max_loading(angles, index):
     # grab a few points from a rotated ellipse and make a dataframe of it
     # the max loading should be wherever angle = 0
     df = pd.DataFrame([_get_ellipse_coords(f, rotate=45) for f in angles])
-    assert probes._max_loading(df) == index
+    assert probes_._max_loading(df) == index
 
 
 @pytest.mark.parametrize('from_row, method, expected', [
@@ -152,7 +152,7 @@ def test_correlate(from_row, method, expected):
                        [3.00, 3.00, 4.00]],
                       index=['one', 'two', 'three'], columns=['a', 'b', 'c'])
 
-    assert probes._correlate(df.iloc[from_row:], method=method) == expected
+    assert probes_._correlate(df.iloc[from_row:], method=method) == expected
 
 
 def test_diff_stability():
@@ -197,7 +197,7 @@ def test_diff_stability():
                      columns=expression[1].columns),
     ]
 
-    out = probes._diff_stability(expression, prb, annotation)
+    out = probes_._diff_stability(expression, prb, annotation)
     assert len(out) == len(expected)
     for df, exp in zip(out, expected):
         pd.testing.assert_frame_equal(df, exp)
@@ -211,7 +211,7 @@ def test_average():
                         index=index, columns=['a', 'b'])]
 
     # output should be a list of dataframes (only one dataframe in this case)
-    out = probes._average(exp, prb)
+    out = probes_._average(exp, prb)
     assert len(out) == 1
     out = out[0]
 
@@ -237,10 +237,10 @@ def test_collapse_probes(testfiles, method):
     # we've aleady tested the underlying methods so here we just want to do
     # some smoke tests to make sure the function returns what we expected
     # regardless of the provided method
-    out = probes.collapse_probes(testfiles['microarray'],
-                                 testfiles['annotation'],
-                                 testfiles['probes'][0],
-                                 method=method)
+    out = probes_.collapse_probes(testfiles['microarray'],
+                                  testfiles['annotation'],
+                                  testfiles['probes'][0],
+                                  method=method)
 
     assert len(out) == 2  # number of donors
     assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])

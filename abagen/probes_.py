@@ -59,7 +59,10 @@ def reannotate_probes(probes):
                       on='probe_name', how='left')
 
     # reset index as probe_id and sort
-    reannotated = merged.set_index('probe_id').sort_index()
+    reannotated = merged.set_index('probe_id') \
+                        .sort_index() \
+                        .dropna(subset=['entrez_id'])
+    reannotated.loc[:, 'entrez_id'] = reannotated['entrez_id'].astype('int')
 
     return reannotated
 
@@ -130,8 +133,8 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
-        `probe_ibf()`) should have been used to reduce this list to only those
-        probes with good expression signal
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
     info : pandas.DataFrame
         Dataframe containing information on probe expression information. Index
         should be unique probe IDs and must have at least 'gene_symbol' column
@@ -270,8 +273,8 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
-        `probe_ibf()`) should have been used to reduce this list to only those
-        probes with good expression signal
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
     annotation : list of str
         List of filepaths to annotation files from Allen Brain Institute (i.e.,
         as obtained by calling :func:`abagen.fetch_microarray` and accessing
@@ -350,8 +353,8 @@ def _average(expression, probes, *args, **kwargs):
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
-        `probe_ibf()`) should have been used to reduce this list to only those
-        probes with good expression signal
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
 
     Returns
     -------
@@ -369,7 +372,7 @@ def _average(expression, probes, *args, **kwargs):
     return [_avg(exp) for exp in expression]
 
 
-def _collapse(expression, probes, *args, method='variance', **kwargs):
+def _collapse(expression, probes, *args, method='max_variance', **kwargs):
     """
     Selects one representative probe per gene using provided `method`
 
@@ -382,8 +385,8 @@ def _collapse(expression, probes, *args, method='variance', **kwargs):
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
-        `probe_ibf()`) should have been used to reduce this list to only those
-        probes with good expression signal
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
     method : str, optional
         Method by which to select represenative probes for each gene. Must be
         one of ['max_variance', 'max_intensity', 'pc_loading', 'corr_variance',
@@ -463,8 +466,8 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
-        `probe_ibf()`) should have been used to reduce this list to only those
-        probes with good expression signal
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
     method : str, optional
         Selection method for subsetting (or collapsing across) probes from the
         same gene. Must be one of 'average', 'intensity', 'variance',
@@ -621,10 +624,15 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     # read in microarray data for all subjects; this can be quite slow...
     probes = io.read_probes(probes)
     exp = [
-        io.read_microarray(m).loc[probes.index, io.read_annotation(a).index]
-        for m, a in zip(microarray, annotation)
+        # subset microarray data for pre-selected probes + samples
+        # this will also left/right mirror samples, if previously requested
+        io.read_microarray(micro).loc[probes.index,
+                                      io.read_annotation(annot).index]
+        for micro, annot in zip(microarray, annotation)
     ]
-    exp = [e.T for e in collfunc(exp, probes, annotation)]
+    exp = [
+        e.T for e in collfunc(exp, probes, annotation)
+    ]
 
     lgr.info('{} genes remain after probe filtering and selection'
              .format(exp[0].shape[-1]))
