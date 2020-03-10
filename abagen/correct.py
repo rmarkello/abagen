@@ -93,13 +93,66 @@ def _rescale(data, low=0, high=1, axis=0):
         Rescaled data
     """
 
-    data = np.asarray(data)
+    data = np.asanyarray(data)
 
     dmin = data.min(axis=axis, keepdims=True)
     dmax = data.max(axis=axis, keepdims=True)
     rescaled = ((data - dmin) / (dmax - dmin)) * (high - low) + low
 
     return rescaled
+
+
+def _sigmoid(data, axis=0):
+    """
+    Normalizes `data` with a standard sigmoid function
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    data = np.asanyarray(data)
+
+    mean = np.mean(data, axis=axis, keepdims=True)
+    std = np.std(data, ddof=1, axis=axis, keepdims=True)
+    normed = 1 / (1 + np.exp(-(np.asarray(data) - mean) / std))
+
+    return normed
+
+
+def _scaledsig(data, low=0, high=1, axis=0):
+    """
+    Normalizes `data` with a scaled sigmoid function
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
+    low : float, optional
+        Lower bound for rescaling. Default: 0
+    high : float, optional
+        Upper bound for rescaling. Default: 1
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    sig = _sigmoid(np.asanyarray(data), axis=axis)  # sigmoid transform
+    normed = _rescale(sig, low=low, high=high, axis=axis)  # scales data
+
+    return normed
 
 
 def _rs(data, axis=0):
@@ -119,14 +172,14 @@ def _rs(data, axis=0):
         Normalized input `data`
     """
 
-    data = np.asarray(data)
+    data = np.asanyarray(data)
 
     # calculate sigmoid normalization
     med = np.median(data, axis=axis, keepdims=True)
     iqr = sstats.iqr(data, axis=axis, scale='normal', keepdims=True)
-    rs = 1 / (1 + np.exp(-(data - med) / iqr))
+    normed = 1 / (1 + np.exp(-(data - med) / iqr))
 
-    return rs
+    return normed
 
 
 def _srs(data, low=0, high=1, axis=0):
@@ -150,19 +203,99 @@ def _srs(data, low=0, high=1, axis=0):
         Normalized input `data`
     """
 
-    srs = _rs(np.asarray(data), axis=axis)  # robust sigmoid transform
+    srs = _rs(np.asanyarray(data), axis=axis)  # robust sigmoid transform
     normed = _rescale(srs, low=low, high=high, axis=axis)  # scales data
 
     return normed
 
 
+def _scaledsig_qnt(data, low=0, high=1, axis=0):
+    """
+    Normalizes `data` with capped-quantile scaled sigmoid function
+
+    Caps `data` at 5th and 95th percentiles and then uses `_scaledsig()`
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
+    low : float, optional
+        Lower bound for rescaling. Default: 0
+    high : float, optional
+        Upper bound for rescaling. Default: 1
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    data = np.asanyarray(data)
+    lq, hq = np.percentile(data, [5, 95], axis=axis, keepdims=True)
+    mdata = np.ma.masked_array(data, np.logical_or(data > hq, data < lq))
+    normed = np.asarray(_scaledsig(mdata, low=low, high=high, axis=axis))
+
+    return normed
+
+
+def _mixedsig(data, low=0, high=1, axis=0):
+    """
+    Uses `_scaledsig()` if IQR is 0; otherwise, uses `_srs()`
+
+    Parameters
+    ----------
+    data : array_like
+        Input data array to be transformed
+    low : float, optional
+        Lower bound for rescaling. Default: 0
+    high : float, optional
+        Upper bound for rescaling. Default: 1
+    axis : int, optional
+        Axis of `data` to be normalized
+
+    Returns
+    -------
+    normed : array_like
+        Normalized input `data`
+    """
+
+    data = np.asanyarray(data)
+
+    iqr = sstats.iqr(data, axis=axis, scale='normal')
+    mask = iqr == 0
+
+    normed = np.zeros_like(data)
+    normed[:, mask] = _scaledsig(data[:, mask])
+    normed[:, ~mask] = _srs(data[:, ~mask])
+
+    # constant columns set to 0
+    return np.nan_to_num(normed)
+
+
 NORMALIZATION_METHODS = dict(
+    sig=functools.partial(_sigmoid, axis=0),
+    scaled_sig=functools.partial(_scaledsig, low=0, high=1, axis=0),
+    scaled_sig_qnt=functools.partial(_scaledsig_qnt, low=0, high=1, axis=0),
+    mixed_sig=functools.partial(_mixedsig, low=0, high=1, axis=0),
     rs=functools.partial(_rs, axis=0),
     srs=functools.partial(_srs, low=0, high=1, axis=0),
     center=lambda x: x - x.mean(axis=0, keepdims=True),
     zscore=functools.partial(sstats.zscore, axis=0, ddof=1),
     minmax=functools.partial(_rescale, low=0, high=1, axis=0)
 )
+# aliases
+for alias, orig in [('demean', 'center'),
+                    ('rsig', 'rs'),
+                    ('robust_sigmoid', 'rs'),
+                    ('scaled_rsig', 'srs'),
+                    ('scaled_robust_sigmoid', 'srs'),
+                    ('sigmoid', 'sig'),
+                    ('scaled_sigmoid', 'scaled_sig'),
+                    ('scaled_sigmoid_quantiles', 'scaled_sig_qnt'),
+                    ('mixed_sigmoid', 'mixed_sig')]:
+    NORMALIZATION_METHODS[alias] = NORMALIZATION_METHODS[orig]
 
 
 def normalize_expression(expression, norm='srs', ignore_warn=False):
@@ -174,9 +307,9 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
     expression : list of (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples (or regions) and `G`
         is genes
-    norm : {'rs', 'srs', 'center', 'zscore', 'minmax', 'batch'}, optional
+    norm : str, optional
         Function with which to normalize expression data. See Notes for more
-        information. Default: 'srs'
+        information on options. Default: 'scaled_robust_sigmoid'
     ignore_warn : bool, optional
         Whether to suppress potential warnings raised by normalization.
         Default: False
@@ -191,28 +324,48 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
     The following methods can be used for normalizing gene expression values
     for each donor (adapted from [PC2]_):
 
-    1. ``norm=='rs'``
+    1. ``norm='center'``
 
-    Uses a robust sigmoid function ([PC1]_) to normalize data in each column
+    Removes the mean of data in each column. Aliased to 'demean'
 
-    2. ``norm='srs'``
-
-    Same as 'rs' but scales output to the unit normal (i.e., range 0-1)
-
-    3. ``norm='center'``
-
-    Removes the mean of data in each column
-
-    4. ``norm='zscore'``
+    2. ``norm='zscore'``
 
     Applies a basic z-score (subtract mean, divide by standard deviation) to
     each column; uses degrees of freedom equal to one for standard deviation
 
-    5. ``norm='minmax'``
+    3. ``norm='minmax'``
 
     Scales data in each column to the unit normal (i.e., range 0-1)
 
-    6. ``norm='batch'``
+    4. ``norm='sigmoid'``
+
+    Applies a sigmoidal transform function to normalize data in each column.
+    Aliased to 'sig'
+
+    5. ``norm='scaled_sigmoid'``
+
+    Combines 'sigmoid' and 'minmax'. Aliased to 'scaled_sig'
+
+    6. ``norm='scaled_sigmoid_quantiles'``
+
+    Caps input data at the 5th and 95th percentiles before performing the
+    'scaled_sigmoid' transform. Aliased to 'scaled_sig_qnt'
+
+    7. ``norm='robust_sigmoid'``
+
+    Uses a robust sigmoid function ([PC1]_) to normalize data in each column.
+    Aliased to 'rs' and 'rsig'
+
+    8. ``norm='scaled_robust_sigmoid'``
+
+    Combines 'robust_sigmoid' and 'minmax'. Alised to 'srs' and 'scaled_rsig'
+
+    9. ``norm='mixed_sigmoid'``
+
+    Uses 'scaled_sigmoid' transform for columns where the IQR is 0; otherwise,
+    uses the 'scaled_robust_sigmoid' transform. Aliased to 'mixed_sig'
+
+    10. ``norm='batch'``
 
     Uses a linear model to remove donor effects from data. Differs from other
     methods in that all donors are simultaneously fit to the same model and
