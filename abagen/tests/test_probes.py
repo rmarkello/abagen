@@ -24,7 +24,7 @@ def test_reannotate_probes(testfiles):
     cols = ['probe_name', 'gene_symbol', 'entrez_id']
     assert np.all(reannot.columns == cols)
     assert reannot.index.name == 'probe_id'
-    assert reannot.shape == (45892, 3)
+    assert reannot.shape == (45821, 3)
 
 
 @pytest.mark.parametrize('threshold, expected_length', [
