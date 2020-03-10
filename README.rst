@@ -53,7 +53,7 @@ for processing and preparing the AHBA microarray expression data for analysis.
 
 Installation requirements
 -------------------------
-Currently, ``abagen`` works with Python 3.5+ and requires a few dependencies:
+Currently, ``abagen`` works with Python 3.6+ and requires a few dependencies:
 
     - nibabel
     - numpy (>=1.14.0)

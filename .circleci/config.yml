@@ -124,16 +124,6 @@ jobs:
             make html doctest
       - store_artifacts:
           path: /tmp/src/abagen/docs/_build
-  unittest_py35:
-    executor: conda_exec
-    steps:
-      - attach_workspace:
-          at: /tmp
-      - gettenv:
-          env: "py35"
-          version: "3.5"
-      - rununit:
-          env: "py35"
   unittest_py36:
     executor: conda_exec
     steps:
