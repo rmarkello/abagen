@@ -75,23 +75,10 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
                  'Ontology.csv', 'PACall.csv',
                  'Probes.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
+    donors = check_donors(donors)
 
     if n_proc < 0:
         n_proc = mp.cpu_count() + n_proc + 1
-
-    if donors is None:
-        donors = ['12876']
-    elif donors == 'all':
-        donors = list(WELL_KNOWN_IDS.value_set('subj'))
-    elif isinstance(donors, str):
-        donors = [donors]
-
-    for n, sub_id in enumerate(donors):
-        if sub_id not in VALID_DONORS:
-            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
-                             .format(sub_id, VALID_DONORS))
-        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
-    donors = sorted(set(donors), key=lambda x: donors.index(x))
 
     files = [
         [(os.path.join('normalized_microarray_donor{}'.format(sub), fname),
@@ -175,21 +162,8 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     sub_files = ('Contents.txt', 'Genes.csv', 'Ontology.csv',
                  'RNAseqCounts.csv', 'RNAseqTPM.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
-
-    if donors is None:
-        donors = ['9861']
-    elif donors == 'all':
-        donors = ['9861', '10021']
-    elif isinstance(donors, str):
-        donors = [donors]
-
-    valid_donors = ['9861', '10021', 'H00351.2001', 'H00351.2002']
-    for n, sub_id in enumerate(donors):
-        if sub_id not in valid_donors:
-            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
-                             .format(sub_id, valid_donors))
-        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
-    donors = sorted(set(donors), key=lambda x: donors.index(x))
+    valid = ['9861', '10021', 'H00351.2001', 'H00351.2002']
+    donors = check_donors(donors, default=valid[0], valid=valid)
 
     files = [
         [(os.path.join('rnaseq_donor{}'.format(sub), fname),
@@ -245,20 +219,7 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
 
     sub_files = dict(t1w='T1.nii.gz', t2w='T2.nii.gz')
     n_files = len(sub_files)
-
-    if donors is None:
-        donors = ['12876']
-    elif donors == 'all':
-        donors = list(WELL_KNOWN_IDS.value_set('subj'))
-    elif isinstance(donors, str):
-        donors = [donors]
-
-    for n, sub_id in enumerate(donors):
-        if sub_id not in [VALID_DONORS]:
-            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
-                             .format(sub_id, VALID_DONORS))
-        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
-    donors = sorted(set(donors), key=lambda x: donors.index(x))
+    donors = check_donors(donors)
 
     files = [
         (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
@@ -275,6 +236,44 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
         t1w=files[0::n_files],
         t2w=files[1::n_files],
     )
+
+
+def check_donors(donors, default='12876', valid=VALID_DONORS):
+    """
+    Checks that provided `donors` are valid
+
+    Parameters
+    ----------
+    donors : list of str
+        List of donors to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors. If 'None' is provided
+        then `default` will be used.
+    default : str, optional
+        Default donor to use if `donors` is None. Default: '12876'
+    valid : list of str, optional
+        List of valid donnor numbers and UIDs. Default: :obj:`VALID_DONORS`
+
+    Returns
+    -------
+    donors : list of str
+        Donor subject IDs
+    """
+
+    if donors is None:
+        donors = [default]
+    elif donors == 'all':
+        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    for n, sub_id in enumerate(donors):
+        if sub_id not in valid:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, valid))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: donors.index(x))
+
+    return donors
 
 
 def fetch_desikan_killiany(*args, **kwargs):
@@ -294,6 +293,7 @@ def fetch_desikan_killiany(*args, **kwargs):
     for subdividing the human cerebral cortex on MRI scans into gyral based
     regions of interest. Neuroimage, 31(3), 968-980.
     """
+
     # grab resource filenames
     image = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
     info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
