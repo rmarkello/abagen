@@ -153,7 +153,9 @@ def get_expression_data(atlas, atlas_info=None, *,
     donors : list, optional
         List of donors to use as sources of expression data. Can be either
         donor numbers or UID. If not specified will use all available donors.
-        Default: 'all'
+        Note that donors '9861' and '10021' have samples from both left + right
+        hemispheres; all other donors have samples from the left hemisphere
+        only. Default: 'all'
     data_dir : str, optional
         Directory where expression data should be downloaded (if it does not
         already exist) / loaded. If not specified will use the current
@@ -172,12 +174,12 @@ def get_expression_data(atlas, atlas_info=None, *,
         Microarray expression for `R` regions in `atlas` for `G` genes,
         aggregated across donors, where the index corresponds to the unique
         integer IDs of `atlas` and the columns are gene names. If
-        ``return_donors`` is set to ``True`` then this is a list of (R, G)
-        dataframes, one for each donor.
+        ``return_donors=True`` then this is a list of (R, G) dataframes, one
+        for each donor.
     counts : (R, D) pandas.DataFrame
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
-        ``return_counts`` is set to ``True``.
+        ``return_counts=True``.
 
     Notes
     -----
@@ -285,6 +287,9 @@ def get_expression_data(atlas, atlas_info=None, *,
         raise ValueError('Cannot use diff_stability for probe_selection with '
                          'only one donor. Please specify a different probe_'
                          'selection method or use more donors.')
+    elif probe_selection == 'rnaseq':  # fetch RNAseq if we're gonna need it
+        datasets.fetch_rnaseq(data_dir=data_dir, donors=donors,
+                              verbose=verbose)
 
     # get some info on labels in `atlas_img`
     all_labels = utils.get_unique_labels(atlas)
