@@ -331,7 +331,7 @@ def get_expression_data(atlas, atlas_info=None, *,
                           index=np.append([0], all_labels))
     for subj in range(len(microarray)):
         if lr_mirror:  # reset index (duplicates will cause issues if we don't)
-            # TODO: come up
+            # TODO: come up with alternative sample IDs for mirrored samples
             annotation[subj] = annotation[subj].reset_index(drop=True)
             microarray[subj] = microarray[subj].reset_index(drop=True)
 
@@ -368,6 +368,8 @@ def get_expression_data(atlas, atlas_info=None, *,
             idx, dist = utils.closest_centroid(annotation[subj][cols],
                                                centroids[empty],
                                                return_dist=True)
+            if not hasattr(idx, '__len__'):  # TODO: better way to check this?
+                idx, dist = np.array([idx]), np.array([dist])
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
             empty = all_labels[empty]
             idx.index = pd.Series(empty, name='label')

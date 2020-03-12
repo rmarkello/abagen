@@ -209,3 +209,9 @@ def test_keep_stable_genes(donor_expression):
         assert all([isinstance(f, pd.DataFrame) for f in out])
         for df1, df2 in itertools.combinations(out, 2):
             assert df1.shape == df2.shape
+
+    # check that `return_stability` provides expression and stability
+    out, stab = correct.keep_stable_genes(donor_expression, threshold=0,
+                                          return_stability=True)
+    assert len(stab) == len(out[0].columns)
+    assert np.all(out[0].columns == donor_expression[0].columns)

@@ -527,7 +527,8 @@ def _resid_dist(dv, iv):
     return residuals.squeeze()
 
 
-def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
+def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True,
+                      return_stability=False):
     """
     Removes genes in `expression` with differential stability < `threshold`
 
@@ -552,12 +553,18 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
     rank : bool, optional
         Whether to calculate similarity as Spearman correlation instead of
         Pearson correlation. Default: True
+    return_stability : bool, optional
+        Whether to return stability estimates for each gene in addition to
+        expression data. Default: False
 
     Returns
     -------
     expression : list of (R, Gr) pandas.DataFrame
         Microarray expression for `R` regions across `Gr` genes, where `Gr` is
         the number of retained genes
+    stability : (G,) numpy.ndarray
+        Stability (average correlation) of each gene across pairs of donors.
+        Only returned if ``return_stability=True``
     """
 
     # get number of donors and number of genes
@@ -584,7 +591,10 @@ def keep_stable_genes(expression, threshold=0.9, percentile=True, rank=True):
     # calculate absolute threshold if percentile is desired
     if percentile:
         threshold = np.percentile(gene_corrs, threshold * 100)
-    keep_genes = gene_corrs > threshold
+    keep_genes = gene_corrs >= threshold
     expression = [e.iloc[:, keep_genes] for e in expression]
+
+    if return_stability:
+        return expression, gene_corrs
 
     return expression
