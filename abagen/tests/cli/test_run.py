@@ -21,7 +21,7 @@ def test_run_get_parser(capsys, atlas, datadir):
 
     # providing the positional succeeds!
     args = parser.parse_args([atlas['image']])
-    assert args.atlas == os.path.normcase(atlas['image'])
+    assert os.path.normcase(args.atlas) == os.path.normcase(atlas['image'])
 
     # some data directories/files need to exist!
     with pytest.raises(SystemExit):
