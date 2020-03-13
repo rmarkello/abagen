@@ -13,7 +13,7 @@ def test_get_dataset_dir(datadir):
     old = os.environ.pop('ABAGEN_DATA', None)
 
     # check that data dir defaults to $HOME/abagen-data assuming no env var
-    expected_base = os.path.expanduser('~/abagen-data')
+    expected_base = os.path.join(os.path.expanduser('~'), 'abagen-data')
     data_dir = utils._get_dataset_dir('test', verbose=0)
     assert data_dir == os.path.join(expected_base, 'test')
     assert os.path.isdir(data_dir) and os.path.exists(data_dir)

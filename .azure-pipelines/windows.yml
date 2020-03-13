@@ -1,0 +1,50 @@
+
+parameters:
+  name: ''
+  vmImage: ''
+  matrix: []
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  variables:
+    DEPENDS: nibabel numpy pandas scipy
+    CHECK_TYPE: test
+  strategy:
+    matrix:
+      ${{ insert }}: ${{ parameters.matrix }}
+
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(PYTHON_VERSION)'
+        addToPath: true
+        architecture: '$(PYTHON_ARCH)'
+    - script: |
+        python -m pip install --upgrade pip setuptools>=30.3.0 wheel
+      displayName: 'Update build tools'
+    - script: |
+        python -m pip install %DEPENDS%
+      displayName: 'Install dependencies'
+    - script: |
+        python -m pip install .[$(CHECK_TYPE)]
+        SET ABAGEN_DATA=%CD%\\abagen-data
+      displayName: 'Install abagen'
+    - script: |
+        python -c "import abagen; abagen.fetch_microarray(donors=['12876', '15496'], n_proc=2)"
+      displayName: 'Downloading data'
+    - script: |
+        mkdir for_testing
+        cd for_testing
+        cp ../setup.cfg .
+        pytest --cov-report term-missing --cov=abagen --pyargs abagen
+      displayName: 'Run tests'
+      condition: and(succeeded(), eq(variables['CHECK_TYPE'], 'test'))
+    - script: |
+        python -m pip install codecov
+        cd for_testing
+        codecov
+      displayName: 'Upload To Codecov'
+      env:
+        CODECOV_TOKEN: $(CODECOV_TOKEN)
