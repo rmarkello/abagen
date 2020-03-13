@@ -32,10 +32,13 @@ jobs:
         SET ABAGEN_DATA=%CD%\\abagen-data
       displayName: 'Install abagen'
     - script: |
+        python -c "import abagen; abagen.fetch_microarray(donors=['12876', '15496'], n_proc=2)"
+      displayName: 'Downloading data'
+    - script: |
         mkdir for_testing
         cd for_testing
         cp ../setup.cfg .
-        pytest --cov-report term-missing --cov=abagen --doctest-modules --pyargs abagen
+        pytest --cov-report term-missing --cov=abagen --pyargs abagen
       displayName: 'Run tests'
       condition: and(succeeded(), eq(variables['CHECK_TYPE'], 'test'))
     - script: |
