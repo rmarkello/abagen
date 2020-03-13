@@ -21,7 +21,7 @@ def test_run_get_parser(capsys, atlas, datadir):
 
     # providing the positional succeeds!
     args = parser.parse_args([atlas['image']])
-    assert args.atlas == atlas['image']
+    assert args.atlas == os.path.normcase(atlas['image'])
 
     # some data directories/files need to exist!
     with pytest.raises(SystemExit):
@@ -105,9 +105,10 @@ def test_run_main(capsys, atlas, datadir):
         '--stdout',
         atlas['image']
     ])
-    stdout = capsys.readouterr().out
+    stdout = capsys.readouterr().out.replace('\r\n', '\n').replace('\r', '\n')
     with open(outputfile, 'r') as src:
-        assert stdout == src.read()
+        data = src.read().replace('\r\n', '\n').replace('\r', '\n')
+        assert stdout == data
 
 
 def test_exec_run_fail():
