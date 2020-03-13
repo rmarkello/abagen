@@ -6,11 +6,14 @@ parameters:
 
 jobs:
 - job: ${{ parameters.name }}
-  pool:
-    vmImage: ${{ parameters.vmImage }}
-  strategy:
-    matrix:
-      ${{ insert }}: ${{ parameters.matrix }}
+    pool:
+      vmImage: ${{ parameters.vmImage }}
+    variables:
+      DEPENDS: nibabel numpy pandas scipy
+      CHECK_TYPE: test
+    strategy:
+      matrix:
+        ${{ insert }}: ${{ parameters.matrix }}
 
   steps:
     - task: UsePythonVersion@0
@@ -22,11 +25,10 @@ jobs:
         python -m pip install --upgrade pip setuptools>=30.3.0 wheel
       displayName: 'Update build tools'
     - script: |
-        python -m pip install --find-links nibabel numpy pandas scipy
-        python -m pip install pytest pytest-cov codecov
+        python -m pip install %DEPENDS%
       displayName: 'Install dependencies'
     - script: |
-        python -m pip install .
+        python -m pip install .[$(CHECK_TYPE)]
         SET ABAGEN_DATA=%CD%\\abagen-data
       displayName: 'Install abagen'
     - script: |
@@ -35,7 +37,9 @@ jobs:
         cp ../setup.cfg .
         pytest --cov-report term-missing --cov=abagen --doctest-modules --pyargs abagen
       displayName: 'Run tests'
+      condition: and(succeeded(), eq(variables['CHECK_TYPE'], 'test'))
     - script: |
+        python -m pip install codecov
         cd for_testing
         codecov
       displayName: 'Upload To Codecov'
