@@ -52,6 +52,23 @@ def test_fetch_raw_mri():
         fetchers.fetch_raw_mri(donors=['notadonor'])
 
 
+def test_fetch_rnaseq():
+    f1 = fetchers.fetch_rnaseq(donors=['9861'])
+    f2 = fetchers.fetch_rnaseq(donors='9861')
+    f3 = fetchers.fetch_rnaseq(donors='H0351.2001')
+    f4 = fetchers.fetch_rnaseq(donors=None)
+
+    assert f1 == f2 == f3 == f4
+    for k in ['genes', 'ontology', 'counts', 'tpm', 'annotation']:
+        assert len(f1.get(k)) == 1
+
+    with pytest.raises(ValueError):
+        fetchers.fetch_rnaseq(donors='notadonor')
+
+    with pytest.raises(ValueError):
+        fetchers.fetch_rnaseq(donors=['9861', 'notadonor'])
+
+
 @pytest.mark.parametrize('group, expected', [
     ('brain', 2413),
     ('neuron', 2530),

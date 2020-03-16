@@ -63,6 +63,8 @@ Reference API
    abagen.io.read_pacall
    abagen.io.read_probes
 
+.. _ref_correct:
+
 :mod:`abagen.correct` - Post-processing corrections
 ---------------------------------------------------
 .. automodule:: abagen.correct
@@ -79,38 +81,7 @@ Reference API
    abagen.keep_stable_genes
    abagen.normalize_expression
 
-:mod:`abagen.probes` - Operations on microarry probes
------------------------------------------------------
-.. automodule:: abagen.probes
-   :no-members:
-   :no-inherited-members:
-
-.. currentmodule:: abagen.probes
-
-.. autosummary::
-   :template: function.rst
-   :toctree: generated/
-
-   abagen.probes.reannotate_probes
-   abagen.probes.filter_probes
-   abagen.probes.collapse_probes
-
-:mod:`abagen.samples` - Operations on microarray samples
---------------------------------------------------------
-.. automodule:: abagen.samples
-   :no-members:
-   :no-inherited-members:
-
-.. currentmodule:: abagen.samples
-
-.. autosummary::
-   :template: function.rst
-   :toctree: generated/
-
-   abagen.samples.update_mni_coords
-   abagen.samples.drop_mismatch_samples
-   abagen.samples.label_samples
-   abagen.samples.mirror_samples
+.. _ref_utils:
 
 :mod:`abagen.utils` - Utility functions
 ---------------------------------------

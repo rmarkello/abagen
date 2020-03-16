@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Functions for loading the various files associated with the AHBA microarray
-dataset.
+Functions for loading the various files associated with the AHBA microarray and
+RNAseq datasets.
 
 This also contains functionality for optionally converting the downloaded CSV
 files to parquet format, which provides much faster I/O access / quicker load
@@ -266,16 +266,150 @@ def read_annotation(fname, copy=False):
     annotation : (S, 13) pandas.DataFrame
         Dataframe containing structural information on `S` samples. The row
         index is the unique sample ID (integer, beginning with 1) which can be
-        used to match data to the information obtained with
-        :func:`read_microarray` and :func:`read_pacall`. Columns include
-        'structure_id', 'slab_num', 'well_id', 'slab_type',
-        'structure_acronym', 'structure_name', 'polygon_id', 'mri_voxel_x',
-        'mri_voxel_y', 'mri_voxel_z', 'mni_x', 'mni_y', 'mni_z'.
+        used to match data to the information obtained with e.g.,
+        :func:`read_microarray`.
+
+    Notes
+    -----
+    If the provided annotation file is from microarray expression data
+    (obtained by, e.g., `abagen.fetch_microarray()`), then the returned
+    DataFrame will have the following columns: 'structure_id', 'slab_num',
+    'well_id', 'slab_type', 'structure_acronym', 'structure_name',
+    'polygon_id', 'mri_voxel_x', 'mri_voxel_y', 'mri_voxel_z', 'mni_x',
+    'mni_y', 'mni_z'.
+
+    If the provided annotation file is from RNAseq data (obtained by, e.g.,
+    `abagen.fetch_rnaseq()`), then the returned DataFrame will have the
+    following columns: 'RNAseq_sample_name', 'replicate_sample', 'sample_name',
+    'well_id', 'microarray_run_id', 'ontology_color', 'main_structure',
+    'sub_structure', 'ontology_structure_id', 'ontology_structure_acronym',
+    'hemisphere', 'brain', 'million_clusters', 'clip_percentage',
+    'RIN_RNA_squality', 'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct',
+    'N.Pct'
     """
 
     try:
         data = pd.read_csv(fname)
         data.index.name = 'sample_id'
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to Annotation'
+                            '.csv file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
+
+    return data
+
+
+def read_tpm(fname, copy=False):
+    """
+    Loads RNAseqTPM.csv file found at `fname`
+
+    RNAseq TPM files contain TPM values for all the tissue samples taken from a
+    single donor across all genes. TPM values are scaled fragment (read) counts
+    derived using RSEM.
+
+    Parameters
+    ----------
+    fname : str
+        Path to RNAseqTPM.csv file
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
+
+    Returns
+    -------
+    tpm : (G, S) pandas.DataFrame
+        Dataframe containing RNAseq TPM expression data, where `G` is genes
+        and `S` is samples. The row index is the unique gene symbol assigned
+        during processing, which can be used to match data to the information
+        obtained with :func:`read_genes`. The column index is the unique
+        sample ID (integer, beginning at 0) which can be used to match data to
+        the information obtained with :func:`read_annotation`.
+    """
+
+    try:
+        data = pd.read_csv(fname, header=None, index_col=0)
+        data.index.name = 'gene_symbol'
+        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to RNAseqTPM'
+                            '.csv file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
+
+    return data
+
+
+def read_counts(fname, copy=False):
+    """
+    Loads RNAseqCounts.csv file found at `fname`
+
+    RNAseq count files contain fragment counts for all the tissue samples taken
+    from a single donor across all genes. Fragment counts can be fractional, as
+    ambiguous reads are distributed between relevant transcripts. For present /
+    absent calling, a value of zero indicates no transcript was seen.
+
+    Parameters
+    ----------
+    fname : str
+        Path to RNAseqCounts.csv file
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
+
+    Returns
+    -------
+    tpm : (G, S) pandas.DataFrame
+        Dataframe containing RNAseq count expression data, where `G` is genes
+        and `S` is samples. The row index is the unique gene symbol assigned
+        during processing, which can be used to match data to the information
+        obtained with :func:`read_genes`. The column index is the unique
+        sample ID (integer, beginning at 0) which can be used to match data to
+        the information obtained with :func:`read_annotation`.
+    """
+
+    try:
+        data = pd.read_csv(fname, header=None, index_col=0)
+        data.index.name = 'gene_symbol'
+        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+    except ValueError:
+        if not isinstance(fname, pd.DataFrame):
+            raise TypeError('Provided fname must be filepath to RNAseqCounts'
+                            '.csv file from Allen Human Brain Atlas.')
+        data = fname.copy() if copy else fname
+
+    return data
+
+
+def read_genes(fname, copy=False):
+    """
+    Loads Genes.csv file found at `fname`
+
+    Genes files contain metadata on all genes used in the RNAseq AHBA data.
+    These files should be the same for every donor.
+
+    Parameters
+    ----------
+    fname : str
+        Path to Genes.csv file
+    copy : bool, optional
+        Whether to return a copy if `fname` is a pre-loaded pandas.Dataframe.
+        Default: False
+
+    Returns
+    -------
+    genes : (G, 11) pandas.DataFrame
+        Dataframe containing information for `G` unique genes. The row index
+        is the unique gene symbol which can be used to match metadata to
+        information obtained with :func:`read_tpm` and :func:`read_counts`.
+        Columns include 'gene_id', 'entrez_id', 'chromosome', 'strand',
+        'number_of_transcripts', 'median_transcriptome_length',
+        'median_genome_length', 'median_number_of_exons', 'median_gene_start',
+        and 'median_gene_end'
+    """
+
+    try:
+        data = pd.read_csv(fname, index_col=0)
     except ValueError:
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Annotation'

@@ -27,6 +27,19 @@ probe_cols = [
     'probe_name', 'gene_id', 'gene_symbol', 'gene_name', 'entrez_id',
     'chromosome'
 ]
+gene_cols = [
+    'gene_id', 'entrez_id', 'chromosome', 'strand', 'number_of_transcripts',
+    'median_transcriptome_length', 'median_genome_length',
+    'median_number_of_exons', 'median_gene_start', 'median_gene_end'
+]
+rna_annot_cols = [
+    'RNAseq_sample_name', 'replicate_sample', 'sample_name', 'well_id',
+    'microarray_run_id', 'ontology_color', 'main_structure',
+    'sub_structure', 'ontology_structure_id', 'ontology_structure_acronym',
+    'hemisphere', 'brain', 'million_clusters', 'clip_percentage',
+    'RIN_RNA_quality', 'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct',
+    'N.Pct'
+]
 
 
 @pytest.mark.parametrize('key, has_parq, columns', [
@@ -47,6 +60,48 @@ def test_readfiles(testfiles, key, has_parq, columns):
 
         # check loading from filepath
         data = func(fn, parquet=True) if has_parq else func(fn)
+        assert isinstance(data, pd.DataFrame)
+
+        # check loading from dataframe (should return same object)
+        data2 = func(data)
+        assert id(data) == id(data2)
+
+        # check that copy parameter works as expected
+        data3 = func(data, copy=True)
+        assert isinstance(data3, pd.DataFrame)
+        assert id(data) != id(data3)
+
+        # confirm columns are as expected
+        if columns is not None:
+            assert np.all(columns == data.columns)
+
+        # confirm errors
+        with pytest.raises(TypeError):
+            func(1)
+
+        with pytest.raises(TypeError):
+            func([1, 2, 3])
+
+        with pytest.raises(FileNotFoundError):
+            func('notafile')
+
+
+@pytest.mark.parametrize('key, columns', [
+    ('genes', gene_cols),
+    ('ontology', ont_cols),
+    ('counts', None),
+    ('tpm', None),
+    ('annotation', rna_annot_cols)
+])
+def test_readrnaseq(rnafiles, key, columns):
+    for fn in rnafiles.get(key):
+        func = getattr(io, 'read_{}'.format(key))
+
+        # check file exists
+        assert op.exists(fn)
+
+        # check loading from filepath
+        data = func(fn)
         assert isinstance(data, pd.DataFrame)
 
         # check loading from dataframe (should return same object)
