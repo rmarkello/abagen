@@ -89,7 +89,7 @@ jobs:
       - persist_to_workspace:
           root: /tmp
           paths:
-              - src/data/allenbrain
+              - src/data/microarray
   style_check:
     executor: conda_exec
     steps:
