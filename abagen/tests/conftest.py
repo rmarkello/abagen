@@ -6,7 +6,9 @@ Fixtures for all abagen tests
 import os
 import pytest
 
-from abagen.datasets import fetch_desikan_killiany, fetch_microarray
+from abagen.datasets import (fetch_desikan_killiany,
+                             fetch_microarray,
+                             fetch_rnaseq)
 
 
 @pytest.fixture(scope='session')
@@ -21,6 +23,11 @@ def datadir(tmp_path_factory):
 def testfiles(datadir):
     return fetch_microarray(data_dir=datadir, donors=['12876', '15496'],
                             n_proc=2)
+
+
+@pytest.fixture(scope='session')
+def rnafiles(datadir):
+    return fetch_rnaseq(data_dir=datadir, donors=['9861'])
 
 
 @pytest.fixture(scope='session')
