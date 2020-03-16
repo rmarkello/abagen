@@ -272,7 +272,7 @@ def check_donors(donors, default='12876', valid=VALID_DONORS):
             raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
                              .format(sub_id, valid))
         donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
-    donors = sorted(set(donors), key=lambda x: donors.index(x))
+    donors = sorted(set(donors), key=lambda x: int(x))
 
     return donors
 
