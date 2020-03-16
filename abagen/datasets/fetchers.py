@@ -67,7 +67,7 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
 
     url = "https://human.brain-map.org/api/v2/well_known_file_download/{}"
 
-    dataset_name = 'allenbrain'
+    dataset_name = 'microarray'
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
 
@@ -162,7 +162,7 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     sub_files = ('Contents.txt', 'Genes.csv', 'Ontology.csv',
                  'RNAseqCounts.csv', 'RNAseqTPM.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
-    valid = ['9861', '10021', 'H00351.2001', 'H00351.2002']
+    valid = ['9861', '10021', 'H0351.2001', 'H0351.2002']
     donors = check_donors(donors, default=valid[0], valid=valid)
 
     files = [
@@ -213,7 +213,7 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
 
     url = "https://human.brain-map.org/api/v2/well_known_file_download/{}"
 
-    dataset_name = 'allenbrain'
+    dataset_name = 'mri'
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
 
@@ -222,9 +222,9 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     donors = check_donors(donors)
 
     files = [
-        (os.path.join('normalized_microarray_donor{}'.format(sub), fname),
+        (os.path.join('mri_donor{}'.format(sub), fname),
          url.format(getattr(WELL_KNOWN_IDS, img)[sub]),
-         dict(move=os.path.join('normalized_microarray_donor{}'.format(sub),
+         dict(move=os.path.join('mri_donor{}'.format(sub),
                                 fname)))
         for sub in donors
         for img, fname in sub_files.items()
@@ -262,10 +262,11 @@ def check_donors(donors, default='12876', valid=VALID_DONORS):
     if donors is None:
         donors = [default]
     elif donors == 'all':
-        donors = list(WELL_KNOWN_IDS.value_set('subj'))
+        donors = valid
     elif isinstance(donors, str):
         donors = [donors]
 
+    donors = list(donors)
     for n, sub_id in enumerate(donors):
         if sub_id not in valid:
             raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
