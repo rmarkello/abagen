@@ -39,7 +39,9 @@ Reference API
    :toctree: generated/
 
    abagen.fetch_microarray
+   abagen.fetch_rnaseq
    abagen.fetch_raw_mri
+   abagen.fetch_freesurfer
    abagen.fetch_desikan_killiany
    abagen.fetch_gene_group
 
