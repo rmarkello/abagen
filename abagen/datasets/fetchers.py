@@ -200,7 +200,8 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
                  'RNAseqCounts.csv', 'RNAseqTPM.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
     valid = ['9861', '10021', 'H0351.2001', 'H0351.2002']
-    donors = check_donors(donors, default=valid[0], valid=valid)
+    donors = sorted(set(check_donors(donors, default=valid[0])) & set(valid),
+                    key=lambda x: int(x))
 
     files = [
         [(os.path.join('rnaseq_donor{}'.format(sub), fname),

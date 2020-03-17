@@ -282,11 +282,15 @@ def read_annotation(fname, copy=False):
     `abagen.fetch_rnaseq()`), then the returned DataFrame will have the
     following columns: 'RNAseq_sample_name', 'replicate_sample', 'sample_name',
     'well_id', 'microarray_run_id', 'ontology_color', 'main_structure',
-    'sub_structure', 'ontology_structure_id', 'ontology_structure_acronym',
-    'hemisphere', 'brain', 'million_clusters', 'clip_percentage',
-    'RIN_RNA_squality', 'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct',
-    'N.Pct'
+    'sub_structure', 'structure_id', 'structure_acronym', 'hemisphere',
+    'brain', 'million_clusters', 'clip_percentage', 'RIN_RNA_squality',
+    'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct', 'N.Pct'
     """
+
+    mapper = dict(
+        ontology_structure_id='structure_id',
+        ontology_structure_acronym='structure_acronym'
+    )
 
     try:
         data = pd.read_csv(fname)
@@ -297,7 +301,7 @@ def read_annotation(fname, copy=False):
                             '.csv file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
 
-    return data
+    return data.rename(mapper, axis=1)
 
 
 def read_tpm(fname, copy=False):

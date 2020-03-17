@@ -13,7 +13,7 @@ from pkg_resources import resource_filename
 import numpy as np
 import pandas as pd
 
-from . import io, utils
+from . import datasets, io, utils
 
 lgr = logging.getLogger('abagen')
 
@@ -177,8 +177,8 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
     """
 
     # group probes by gene and get probe corresponding to relevant feature
-    retained = np.squeeze(info.groupby('gene_symbol').apply(applyfunc))
-    probes = probes.loc[sorted(retained.astype(int))]
+    retained = info.groupby('gene_symbol').apply(applyfunc).dropna()
+    probes = probes.loc[sorted(np.squeeze(retained.astype(int)))]
 
     # subset expression dataframes to retain only desired probes and reassign
     # (and sort) index to gene symbols in lieu of probe IDs
@@ -252,6 +252,67 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
                              diff_stability=probe_exp.mean(axis=1)),
                         index=probes.index)
     applyfunc = functools.partial(_max_idx, column='diff_stability')
+
+    return _groupby_and_apply(expression, probes, info, applyfunc)
+
+
+def _rnaseq(expression, probes, annotation, *args, **kwargs):
+    """
+
+    Parameters
+    ----------
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
+    probes : pandas.DataFrame
+        Dataframe containing information on probes that should be considered in
+        representative analysis. Generally, intensity-based-filtering (i.e.,
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
+    annotation : list of str
+        List of filepaths to annotation files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `annotation` attribute on the resulting object).
+
+    Returns
+    -------
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
+    """
+    # confirm inputs are expected dictionaries
+    expression = utils.check_dict(expression)
+    annotation = utils.check_dict(annotation)
+
+    # fetch RNAseq data
+    rnaseq = datasets.fetch_rnaseq(donors=expression.keys())
+
+    probe_exp = np.ones((len(probes), len(rnaseq))) * np.nan
+    for n, (donor, data) in enumerate(rnaseq.items()):
+        # collapse (i.e., average) data across AHAB  anatomical regions
+        micro = _groupby_structure_id(expression[donor], annotation[donor])
+        rna = _groupby_structure_id(io.read_tpm(data['tpm']),
+                                    data['annotation'])
+
+        # get rid of "constant" RNAseq genes
+        rna = rna[np.logical_not(np.isclose(rna.std(axis=1, ddof=1), 0))]
+
+        # get matching genes + strcutres between microarray + RNAseq
+        regions = np.intersect1d(micro.columns, rna.columns)
+        mask = np.isin(np.asarray(probes.gene_symbol),
+                       np.intersect1d(probes.gene_symbol, rna.index))
+        genes = np.asarray(probes.loc[mask, 'gene_symbol'])
+        micro, rna = micro.loc[mask, regions].T, rna.loc[genes, regions].T
+
+        # correlate expression values across regions for each gene
+        probe_exp[mask, n] = utils.efficient_corr(micro.rank(), rna.rank())
+
+    mask = np.sum(np.isnan(probe_exp), axis=1) < len(rnaseq)
+    info = pd.DataFrame(dict(gene_symbol=np.asarray(probes[mask].gene_symbol),
+                             rna_corr=np.nanmean(probe_exp[mask], axis=1)),
+                        index=probes.index[mask])
+    applyfunc = functools.partial(_max_idx, column='rna_corr')
 
     return _groupby_and_apply(expression, probes, info, applyfunc)
 
@@ -442,7 +503,8 @@ SELECTION_METHODS = dict(
     pc_loading=_pc_loading,
     corr_variance=_corr_variance,
     corr_intensity=_corr_intensity,
-    diff_stability=_diff_stability
+    diff_stability=_diff_stability,
+    rnaseq=_rnaseq
 )
 
 
@@ -529,6 +591,11 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     Selects probe with the most consistent pattern of regional variation across
     donors (i.e., highest average correlation across brain regions between all
     pairs of donors) as in [PR7]_ and [PR8]_.
+
+    8. ``method='rnaseq'``
+
+    Selects probes with most consistent pattern of regional variation to RNAseq
+    data (across the two donors with RNAseq data).
 
     References
     ----------
