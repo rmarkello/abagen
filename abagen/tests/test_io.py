@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 from abagen import io
+from abagen.utils import flatten_dict
 
 
 annot_cols = [
@@ -50,7 +51,7 @@ rna_annot_cols = [
     ('probes', False, probe_cols),
 ])
 def test_readfiles(testfiles, key, has_parq, columns):
-    for fn in testfiles.get(key):
+    for d, fn in flatten_dict(testfiles, key).items():
         func = getattr(io, 'read_{}'.format(key))
 
         # check file (CSV + parquet) exist
@@ -94,7 +95,7 @@ def test_readfiles(testfiles, key, has_parq, columns):
     ('annotation', rna_annot_cols)
 ])
 def test_readrnaseq(rnafiles, key, columns):
-    for fn in rnafiles.get(key):
+    for d, fn in flatten_dict(rnafiles, key).items():
         func = getattr(io, 'read_{}'.format(key))
 
         # check file exists

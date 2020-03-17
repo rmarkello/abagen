@@ -16,6 +16,80 @@ AGG_FUNCS = dict(
 )
 
 
+def check_dict(dictionary):
+    """
+    Checks that `dictionary` is a dict and makes it one, if not
+
+    Parameters
+    ----------
+    dictionary : dict
+        Presumptive dictionary
+
+    Returns
+    -------
+    dictionary : dict
+        Actual dictionary. If it wasn't one before, keys are chronological int,
+        starting at 0
+    """
+
+    if isinstance(dictionary, str):
+        dictionary = [dictionary]
+    if not isinstance(dictionary, dict):
+        return dict(zip(range(len(dictionary)), dictionary))
+    return dictionary
+
+
+def flatten_dict(dictionary, subkey):
+    """
+    Extracts `subkey` from entries of `dictionary` and creates new dictionary
+
+    Parameters
+    ----------
+    dictionary : dict
+        Input dictionary, where values are sub-dictionaries
+    subkey : str
+        Key to extract from `dictionary` entries
+
+    Returns
+    -------
+    flattened : dict
+        Flattened input `dictionary`
+
+    Examples
+    --------
+    >>> test = {'one': {'value': 1}, 'two': {'value': 2}}
+    >>> flatten_dict(test, 'value')
+    {'one': 1, 'two': 2}
+    """
+
+    return {k: v.get(subkey, None) for k, v in check_dict(dictionary).items()}
+
+
+def first_entry(dictionary, subkey=None):
+    """
+    Extracts `subkey` from the first entry in `dictionary`
+
+    Parameters
+    ----------
+     dictionary : dict
+        Input dictionary, where values are sub-dictionaries
+    subkey : str
+        Key to extract from `dictionary` entries
+
+    Returns
+    -------
+    entry
+        Extracted entry
+    """
+
+    dictionary = check_dict(dictionary)
+    entry = dictionary[list(dictionary)[0]]
+    if subkey is not None:
+        entry = entry.get(subkey, None)
+
+    return entry
+
+
 def leftify_atlas(atlas):
     """
     Zeroes out all ROIs in the right hemisphere of `atlas`

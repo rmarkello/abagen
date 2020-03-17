@@ -387,8 +387,8 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
         normfunc = NORMALIZATION_METHODS[norm]
     except KeyError:
         raise ValueError('Provided value for `norm` not recognized. Must be '
-                         'one of {}. Received: {}'
-                         .format(list(NORMALIZATION_METHODS), norm))
+                         f'one of {list(NORMALIZATION_METHODS)}. Received: '
+                         f'{norm}')
 
     # FIXME: I hate having to do this...
     if isinstance(expression, pd.DataFrame):
@@ -457,10 +457,10 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     if atlas_info is not None:
         atlas_info = utils.check_atlas_info(atlas, atlas_info, labels=labels)
         if labels is not None and len(labels) != len(coexpression):
-            raise ValueError('Provided labels {} are a different length than '
-                             'provided coexpression matrix of size {}. Please '
-                             'confirm inputs and try again.'
-                             .format(labels, coexpression.shape))
+            raise ValueError(f'Provided labels {labels} are a different '
+                             'length than provided coexpression matrix of '
+                             f'size {coexpression.shape}. Please confirm '
+                             'inputs and try again.')
 
     # check that provided coexpression array is symmetric
     if not np.allclose(coexpression, coexpression.T, atol=1e-10):
