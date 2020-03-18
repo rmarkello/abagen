@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from . import correct, datasets, io, probes_, samples_, utils
+from .utils import flatten_dict
 
 import logging
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -89,8 +90,8 @@ def get_expression_data(atlas, atlas_info=None, *,
         Selection method for subsetting (or collapsing across) probes that
         index the same gene. Must be one of 'average', 'max_intensity',
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
-        'diff_stability'; see Notes for more information on different options.
-        Default: 'diff_stability'
+        'diff_stability', 'rnaseq'; see Notes for more information on different
+        options. Default: 'diff_stability'
     lr_mirror : bool, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. This will duplicate samples across both
@@ -225,6 +226,11 @@ def get_expression_data(atlas, atlas_info=None, *,
         variation across donors (i.e., the highest average correlation across
         brain regions between all pairs of donors).
 
+        8. ``method='rnaseq'``
+
+        Selects probes with most consistent pattern of regional variation to
+        RNAseq data (across the two donors with RNAseq data).
+
     The following methods can be used for normalizing microarray expression
     values prior to aggregating:
 
@@ -275,15 +281,14 @@ def get_expression_data(atlas, atlas_info=None, *,
     # check probe_selection input
     if probe_selection not in probes_.SELECTION_METHODS:
         raise ValueError('Provided probe_selection method is invalid, must be '
-                         'one of {}. Received value: \'{}\''
-                         .format(list(probes_.SELECTION_METHODS),
-                                 probe_selection))
+                         f'one of {list(probes_.SELECTION_METHODS)}. Received '
+                         f'value: \'{probe_selection}\'')
 
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose, n_proc=n_proc)
 
-    if probe_selection == 'diff_stability' and len(files['microarray']) == 1:
+    if probe_selection == 'diff_stability' and len(files) == 1:
         raise ValueError('Cannot use diff_stability for probe_selection with '
                          'only one donor. Please specify a different probe_'
                          'selection method or use more donors.')
@@ -294,26 +299,27 @@ def get_expression_data(atlas, atlas_info=None, *,
     # get some info on labels in `atlas_img`
     all_labels = utils.get_unique_labels(atlas)
     if not exact:
-        lgr.info('Pre-calculating centroids for {} regions in provided atlas'
-                 .format(len(all_labels)))
+        lgr.info(f'Pre-calculating centroids for {len(all_labels)} regions in '
+                 'provided atlas')
         centroids = utils.get_centroids(atlas, labels=all_labels,
                                         image_space=True)
 
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
     # provided ontology), and mirroring samples across hemispheres, if desired
-    annotation = files['annotation']
-    ontology = files['ontology']
-    for n, (annot, ontol) in enumerate(zip(annotation, ontology)):
+    for donor, data in files.items():
+        annot, ontol = data['annotation'], data['ontology']
         if corrected_mni:
             annot = samples_.update_mni_coords(annot)
         annot = samples_.drop_mismatch_samples(annot, ontol)
         if lr_mirror:
             annot = samples_.mirror_samples(annot, ontol)
-        annotation[n] = annot
+        data['annotation'] = annot
+    annotation = flatten_dict(files, 'annotation')
 
     # get dataframe of probe information (reannotated or otherwise)
-    probe_info = io.read_probes(files['probes'][0])
+    # the Probes.csv files are the same for every donor so just grab the first
+    probe_info = io.read_probes([files[d]['probes'] for d in files][0])
     if reannotated:
         probe_info = probes_.reannotate_probes(probe_info)
 
@@ -321,20 +327,22 @@ def get_expression_data(atlas, atlas_info=None, *,
     probe_info = probe_info.dropna(subset=['entrez_id'])
 
     # intensity-based filtering of probes
-    probe_info = probes_.filter_probes(files['pacall'], annotation, probe_info,
+    probe_info = probes_.filter_probes(flatten_dict(files, 'pacall'),
+                                       annotation, probe_info,
                                        threshold=ibf_threshold)
 
     # get probe-reduced microarray expression data for all donors based on
     # selection method; this will be a list of gene x sample dataframes (one
     # for each donor)
-    microarray = probes_.collapse_probes(files['microarray'], annotation,
-                                         probe_info, method=probe_selection)
-
+    microarray = probes_.collapse_probes(flatten_dict(files, 'microarray'),
+                                         annotation, probe_info,
+                                         method=probe_selection)
     missing = []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
                                    dtype=int),
-                          index=np.append([0], all_labels))
-    for subj in range(len(microarray)):
+                          index=np.append([0], all_labels),
+                          columns=microarray.keys())
+    for subj in microarray:
         if lr_mirror:  # reset index (duplicates will cause issues if we don't)
             # TODO: come up with alternative sample IDs for mirrored samples
             annotation[subj] = annotation[subj].reset_index(drop=True)
@@ -360,9 +368,8 @@ def get_expression_data(atlas, atlas_info=None, *,
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
-        lgr.info('{:>3} / {} samples matched to regions for donor #{}'
-                 .format(counts.iloc[1:, subj].sum(), len(annotation[subj]),
-                         datasets.WELL_KNOWN_IDS.value_set('subj')[subj]))
+        lgr.info(f'{counts.iloc[1:][subj].sum():>3} / {len(annotation[subj])} '
+                 f'samples matched to regions for donor #{subj}')
 
         # if we don't want to do exact matching then cache which parcels are
         # missing data and the expression data for the closest sample to that
@@ -385,19 +392,19 @@ def get_expression_data(atlas, atlas_info=None, *,
     if not exact:  # check for missing ROIs and fill in, as needed
         # labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info('Matching {} regions with no data to nearest samples'
-                 .format(len(empty)))
+        lgr.info(f'Matching {len(empty)} regions w/no data to nearest samples')
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([dist.get(roi) for micro, dist in missing])
-            donor = datasets.WELL_KNOWN_IDS.value_set("subj")[ind]
-            lgr.debug('Assigning sample from donor {} to region id #{}'
-                      .format(donor, roi))
+            subj = list(microarray.keys())[ind]
+            lgr.debug(f'Assigning sample from donor {subj} to region #{roi}')
             # assign expression data from that sample and add to count
-            microarray[ind] = microarray[ind].append(missing[ind][0].loc[roi])
-            counts.loc[roi, ind] += 1
+            exp = missing[ind][0].loc[roi]
+            microarray[subj] = microarray[subj].append(exp)
+            counts.loc[roi, subj] += 1
 
-    microarray = samples_.aggregate_samples(microarray, labels=all_labels,
+    microarray = samples_.aggregate_samples(microarray.values(),
+                                            labels=all_labels,
                                             region_agg=region_agg,
                                             agg_metric=agg_metric,
                                             return_donors=return_donors)

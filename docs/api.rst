@@ -32,18 +32,19 @@ Reference API
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: abagen
+.. currentmodule:: abagen.datasets
 
 .. autosummary::
    :template: function.rst
    :toctree: generated/
 
-   abagen.fetch_microarray
-   abagen.fetch_rnaseq
-   abagen.fetch_raw_mri
-   abagen.fetch_freesurfer
-   abagen.fetch_desikan_killiany
-   abagen.fetch_gene_group
+   abagen.datasets.fetch_microarray
+   abagen.datasets.fetch_rnaseq
+   abagen.datasets.fetch_raw_mri
+   abagen.datasets.fetch_freesurfer
+   abagen.datasets.fetch_desikan_killiany
+   abagen.datasets.fetch_gene_group
+   abagen.datasets.fetch_donor_info
 
 .. _ref_io:
 
@@ -64,6 +65,9 @@ Reference API
    abagen.io.read_ontology
    abagen.io.read_pacall
    abagen.io.read_probes
+   abagen.io.read_genes
+   abagen.io.read_tpm
+   abagen.io.read_counts
 
 .. _ref_correct:
 
@@ -73,15 +77,15 @@ Reference API
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: abagen
+.. currentmodule:: abagen.correct
 
 .. autosummary::
    :template: function.rst
    :toctree: generated/
 
-   abagen.remove_distance
-   abagen.keep_stable_genes
-   abagen.normalize_expression
+   abagen.correct.remove_distance
+   abagen.correct.keep_stable_genes
+   abagen.correct.normalize_expression
 
 .. _ref_utils:
 
@@ -97,5 +101,6 @@ Reference API
    :template: function.rst
    :toctree: generated/
 
+   abagen.utils.leftify_atlas
    abagen.utils.check_atlas_info
    abagen.utils.check_metric

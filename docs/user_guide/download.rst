@@ -25,7 +25,7 @@ following command:
     (e.g., ``['9861', '10021']``) instead of passing ``'all'``.
 
 This command will download data from the specified donors into a folder called
-``allenbrain`` in the ``$HOME/abagen-data`` directory. If you have already
+``microarray`` in the ``$HOME/abagen-data`` directory. If you have already
 downloaded the data you can provide the ``data_dir`` argument to specify where
 the files have been stored:
 
@@ -55,20 +55,27 @@ the directory specified should have the following structure:
     ├── normalized_microarray_donor15697/
     └── normalized_microarray_donor9861/
 
-(Note the directory does not have to be named ``allenbrain`` for this to work.)
+(Note the directory does not have to be named ``microarray`` for this to work.)
 
 .. _usage_download_loading:
 
 Loading the AHBA data
 ---------------------
 
-The ``files`` object returned by :func:`abagen.fetch_microarray` is a
+The ``files`` object returned by :func:`abagen.fetch_microarray` is a nested
 dictionary with filepaths to the five different file types in the AHBA
-microarray dataset:
+microarray dataset. The keys are the donor IDs:
 
 .. doctest::
 
     >>> print(sorted(files))
+    ['10021', '12876', '14380', '15496', '15697', '9861']
+
+And the values for each entry are a sub-dictionary of the downloaded files:
+
+.. doctest::
+
+    >>> print(sorted(files['9861']))
     ['annotation', 'microarray', 'ontology', 'pacall', 'probes']
 
 You can load the data in these files using the :mod:`abagen.io` functions.
@@ -81,7 +88,8 @@ For example, you can load the annotation file for the first donor with:
 
 .. doctest::
 
-    >>> annotation = abagen.io.read_annotation(files['annotation'][0])
+    >>> data = files['9861']
+    >>> annotation = abagen.io.read_annotation(data['annotation'])
     >>> print(annotation)
                structure_id  slab_num  well_id  ... mni_x mni_y mni_z
     sample_id                                   ...
@@ -100,7 +108,7 @@ And you can do the same for, e.g., the probe file with:
 
 .. doctest::
 
-    >>> probes = abagen.io.read_probes(files['probes'][0])
+    >>> probes = abagen.io.read_probes(data['probes'])
     >>> print(probes)
                           probe_name  gene_id  ... entrez_id chromosome
     probe_id                                   ...

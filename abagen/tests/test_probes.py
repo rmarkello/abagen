@@ -9,11 +9,12 @@ import pytest
 
 import abagen
 from abagen import probes_
+from abagen.utils import first_entry, flatten_dict
 
 
 def test_reannotate_probes(testfiles):
     # set up a few useful variables
-    probe_file = testfiles['probes'][0]
+    probe_file = first_entry(testfiles, 'probes')
 
     # should work with either a filename _or_ a dataframe
     reannot = probes_.reannotate_probes(probe_file)
@@ -42,9 +43,9 @@ def test_reannotate_probes(testfiles):
 ])
 def test_filter_probes(testfiles, threshold, expected_length):
     # set up a few useful variables
-    pacall = testfiles['pacall']
-    probe_file = testfiles['probes'][0]
-    samples = testfiles['annotation']
+    pacall = flatten_dict(testfiles, 'pacall')
+    probe_file = first_entry(testfiles, 'probes')
+    samples = flatten_dict(testfiles, 'annotation')
     probe_df = abagen.io.read_probes(probe_file)
 
     # should work with either a filename _or_ a dataframe
@@ -80,10 +81,10 @@ def test_groupby_and_apply(func, a_expected, b_expected):
     prb = pd.DataFrame(dict(gene_symbol=gene_symbol), index=index)
     exp = [info[['a', 'b']].copy()]
 
-    mi = probes_._groupby_and_apply(exp, prb, info, func)[0]
+    mi = list(probes_._groupby_and_apply(exp, prb, info, func).values())[0]
     expected = pd.DataFrame(dict(a=a_expected, b=b_expected),
                             index=pd.Series(['a', 'b', 'c'],
-                                            name='gene_symbol'))
+                                            name='gene_symbol')).T
     pd.testing.assert_frame_equal(mi, expected)
 
 
@@ -189,15 +190,15 @@ def test_diff_stability():
                       [4, 6, 6, 7],
                       [5, 7, 3, 4]],
                      index=pd.Series(['a', 'b', 'c'], name='gene_symbol'),
-                     columns=expression[0].columns),
+                     columns=expression[0].columns).T,
         pd.DataFrame([[1, 2, 3],
                       [1, 2, 3],
                       [1, 2, 3]],
                      index=pd.Series(['a', 'b', 'c'], name='gene_symbol'),
-                     columns=expression[1].columns),
+                     columns=expression[1].columns).T,
     ]
 
-    out = probes_._diff_stability(expression, prb, annotation)
+    out = list(probes_._diff_stability(expression, prb, annotation).values())
     assert len(out) == len(expected)
     for df, exp in zip(out, expected):
         pd.testing.assert_frame_equal(df, exp)
@@ -219,7 +220,7 @@ def test_average():
     expected = pd.DataFrame(dict(a=[1.0, 3.5, 5.0],
                                  b=[11.0, 8.5, 7.0]),
                             index=pd.Series(['a', 'b', 'c'],
-                                            name='gene_symbol'))
+                                            name='gene_symbol')).T
     pd.testing.assert_frame_equal(out, expected)
 
 
@@ -237,11 +238,12 @@ def test_collapse_probes(testfiles, method):
     # we've aleady tested the underlying methods so here we just want to do
     # some smoke tests to make sure the function returns what we expected
     # regardless of the provided method
-    out = probes_.collapse_probes(testfiles['microarray'],
-                                  testfiles['annotation'],
-                                  testfiles['probes'][0],
+    out = probes_.collapse_probes(flatten_dict(testfiles, 'microarray'),
+                                  flatten_dict(testfiles, 'annotation'),
+                                  first_entry(testfiles, 'probes'),
                                   method=method)
 
+    out = list(out.values())
     assert len(out) == 2  # number of donors
     assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])
     assert np.all([len(exp.columns) == 29131 for exp in out])

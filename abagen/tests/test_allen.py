@@ -70,4 +70,4 @@ def test_missing_labels(testfiles, atlas):
     assert len(out) == len(info)
 
     assert isinstance(counts, pd.DataFrame)
-    assert counts.shape == (len(info), len(testfiles['probes']))
+    assert counts.shape == (len(info), len(testfiles))

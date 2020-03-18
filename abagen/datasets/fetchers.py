@@ -12,6 +12,7 @@ import pandas as pd
 
 from .. import io
 from .utils import _get_dataset_dir, _fetch_files
+
 WELL_KNOWN_IDS = Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636', '157722638'),
      ('10021', 'H0351.2002', '178238373', '157723301', '157723303'),
@@ -21,9 +22,47 @@ WELL_KNOWN_IDS = Recoder(
      ('15697', 'H0351.1016', '178236545', '157682966', '157682968')),
     fields=('subj', 'uid', 'url', 't1w', 't2w')
 )
-
 VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
+
+
+def check_donors(donors, default='12876', valid=VALID_DONORS):
+    """
+    Checks that provided `donors` are valid
+
+    Parameters
+    ----------
+    donors : list of str
+        List of donors to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors. If 'None' is provided
+        then `default` will be used.
+    default : str, optional
+        Default donor to use if `donors` is None. Default: '12876'
+    valid : list of str, optional
+        List of valid donnor numbers and UIDs. Default: :obj:`VALID_DONORS`
+
+    Returns
+    -------
+    donors : list of str
+        Donor subject IDs
+    """
+
+    if donors is None:
+        donors = [default]
+    elif donors == 'all':
+        donors = valid
+    elif isinstance(donors, str):
+        donors = [donors]
+
+    donors = list(donors).copy()
+    for n, sub_id in enumerate(donors):
+        if sub_id not in valid:
+            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
+                             .format(sub_id, valid))
+        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
+    donors = sorted(set(donors), key=lambda x: int(x))
+
+    return donors
 
 
 def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
@@ -109,13 +148,11 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
         for fn in files[0::n_files] + files[2::n_files]:
             io._make_parquet(fn, convert_only=True)
 
-    return dict(
-        microarray=files[0::n_files],
-        ontology=files[1::n_files],
-        pacall=files[2::n_files],
-        probes=files[3::n_files],
-        annotation=files[4::n_files]
-    )
+    keys = ['microarray', 'ontology', 'pacall', 'probes', 'annotation']
+    return {
+        donor: dict(zip(keys, files[k:k + n_files]))
+        for k, donor in zip(range(0, len(files), n_files), donors)
+    }
 
 
 def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
@@ -159,11 +196,12 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
 
-    sub_files = ('Contents.txt', 'Genes.csv', 'Ontology.csv',
+    sub_files = ('Genes.csv', 'Ontology.csv',
                  'RNAseqCounts.csv', 'RNAseqTPM.csv', 'SampleAnnot.csv')
     n_files = len(sub_files)
     valid = ['9861', '10021', 'H0351.2001', 'H0351.2002']
-    donors = check_donors(donors, default=valid[0], valid=valid)
+    donors = sorted(set(check_donors(donors, default=valid[0])) & set(valid),
+                    key=lambda x: int(x))
 
     files = [
         [(os.path.join('rnaseq_donor{}'.format(sub), fname),
@@ -178,13 +216,11 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     files = [l for f in files for l in f]
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
-    return dict(
-        genes=files[1::n_files],
-        ontology=files[2::n_files],
-        counts=files[3::n_files],
-        tpm=files[4::n_files],
-        annotation=files[5::n_files]
-    )
+    keys = ['genes', 'ontology', 'counts', 'tpm', 'annotation']
+    return {
+        donor: dict(zip(keys, files[k:k + n_files]))
+        for k, donor in zip(range(0, len(files), n_files), donors)
+    }
 
 
 def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
@@ -232,49 +268,10 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
 
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
-    return dict(
-        t1w=files[0::n_files],
-        t2w=files[1::n_files],
-    )
-
-
-def check_donors(donors, default='12876', valid=VALID_DONORS):
-    """
-    Checks that provided `donors` are valid
-
-    Parameters
-    ----------
-    donors : list of str
-        List of donors to download; can be either donor number or UID. Can also
-        specify 'all' to download all available donors. If 'None' is provided
-        then `default` will be used.
-    default : str, optional
-        Default donor to use if `donors` is None. Default: '12876'
-    valid : list of str, optional
-        List of valid donnor numbers and UIDs. Default: :obj:`VALID_DONORS`
-
-    Returns
-    -------
-    donors : list of str
-        Donor subject IDs
-    """
-
-    if donors is None:
-        donors = [default]
-    elif donors == 'all':
-        donors = valid
-    elif isinstance(donors, str):
-        donors = [donors]
-
-    donors = list(donors)
-    for n, sub_id in enumerate(donors):
-        if sub_id not in valid:
-            raise ValueError('Invalid subject id: {0}. Subjects must in: {1}.'
-                             .format(sub_id, valid))
-        donors[n] = WELL_KNOWN_IDS[sub_id]  # convert to ID system
-    donors = sorted(set(donors), key=lambda x: int(x))
-
-    return donors
+    return {
+        donor: dict(zip(sub_files.keys(), files[k:k + n_files]))
+        for k, donor in zip(range(0, len(files), n_files), donors)
+    }
 
 
 def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
@@ -310,24 +307,25 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
 
     url = "https://www.repository.cam.ac.uk/bitstream/handle/1810/265272/" \
           "donor{}.zip"
-    dataset_name = 'allenbrain'
+    dataset_name = 'freesurfer'
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
 
     donors = check_donors(donors)
     files = [
-        (os.path.join('normalized_microarray_donor{}'.format(sub),
-                      'donor{}'.format(sub)),
+        ('donor{}'.format(sub),
          url.format(sub),
          dict(uncompress=True,
-              move=os.path.join('normalized_microarray_donor{}'.format(sub),
-                                'freesurfer.tar.gz')))
+              move=os.path.join('freesurfer.tar.gz')))
         for sub in donors
     ]
 
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
-    return files
+    return {
+        donor: files[k]
+        for k, donor in enumerate(donors)
+    }
 
 
 def fetch_desikan_killiany(*args, **kwargs):

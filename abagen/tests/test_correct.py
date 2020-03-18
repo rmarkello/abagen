@@ -11,6 +11,7 @@ import pytest
 import scipy.stats as sstats
 
 from abagen import allen, correct, io
+from abagen.utils import flatten_dict
 
 
 @pytest.fixture(scope='module')
@@ -120,7 +121,10 @@ def test__srs(a):
 ])
 def test_normalize_expression_real(testfiles, method):
     # load in data and add some NaN values for "realness"
-    micro = [io.read_microarray(f).T for f in testfiles['microarray']]
+    micro = [
+        io.read_microarray(f).T
+        for f in flatten_dict(testfiles, 'microarray').values()
+    ]
     inds = [[5, 15, 25], [0, 10, 20]]
     for n, idx in enumerate(inds):
         micro[n].iloc[idx] = np.nan

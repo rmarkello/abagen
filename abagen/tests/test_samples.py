@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from abagen import samples_
-
+from abagen.utils import first_entry, flatten_dict
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #  generate fake data (based largely on real data) so we know what to expect  #
@@ -275,25 +275,30 @@ def test_aggregate_samples():
 
 
 def test_update_mni_coords_real(testfiles):
-    for annotation in testfiles['annotation']:
+    for annotation in flatten_dict(testfiles, 'annotation').values():
         samples_.update_mni_coords(annotation)
 
 
 def test_label_samples_real(testfiles, atlas):
-    out = samples_.label_samples(testfiles['annotation'][0], atlas['image'])
+    out = samples_.label_samples(first_entry(testfiles, 'annotation'),
+                                 atlas['image'])
     assert isinstance(out, pd.DataFrame)
     assert out.index.name == 'sample_id'
     assert out.columns == ['label']
 
 
 def test_drop_mismatch_samples_real(testfiles):
-    for an, on in zip(testfiles['annotation'], testfiles['ontology']):
+    annotation = flatten_dict(testfiles, 'annotation').values()
+    ontology = flatten_dict(testfiles, 'ontology').values()
+    for an, on in zip(annotation, ontology):
         samples_.drop_mismatch_samples(an, on)
 
 
 def test_mirror_samples_real(testfiles):
+    annotation = flatten_dict(testfiles, 'annotation').values()
+    ontology = flatten_dict(testfiles, 'ontology').values()
     orig = [363, 470]
-    for an, on, o in zip(testfiles['annotation'], testfiles['ontology'], orig):
+    for an, on, o in zip(annotation, ontology, orig):
         out = samples_.mirror_samples(an, on)
         # there should be more than the original # of samples but less than or
         # equal to 2x that number (we can't MORE than duplicate)
@@ -301,7 +306,9 @@ def test_mirror_samples_real(testfiles):
 
 
 def test__mirror_ontology_real(testfiles):
+    annotation = flatten_dict(testfiles, 'annotation').values()
+    ontology = flatten_dict(testfiles, 'ontology').values()
     orig = [363, 470]
-    for a, o, l in zip(testfiles['annotation'], testfiles['ontology'], orig):
+    for a, o, l in zip(annotation, ontology, orig):
         annot = samples_._mirror_ontology(a, o)
         assert len(annot) == l

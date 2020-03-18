@@ -13,7 +13,7 @@ from pkg_resources import resource_filename
 import numpy as np
 import pandas as pd
 
-from . import io, utils
+from . import datasets, io, utils
 
 lgr = logging.getLogger('abagen')
 
@@ -67,7 +67,7 @@ def reannotate_probes(probes):
     return reannotated
 
 
-def filter_probes(pacall, samples, probes, threshold=0.5):
+def filter_probes(pacall, annotation, probes, threshold=0.5):
     """
     Performs intensity based filtering (IBF) of expression probes
 
@@ -77,15 +77,16 @@ def filter_probes(pacall, samples, probes, threshold=0.5):
 
     Parameters
     ----------
-    pacall : list of str
-        List of filepaths to PAcall files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `pacall` attribute on the resulting object).
-    samples : list of str or pandas.DataFrame
-
+    pacall : dict
+        Dictionary where keys are donor IDs and values are filepaths to (or
+        dataframes of) PACall.csv files from Allen Brain Institute
+    annotation : dict
+        Dictionary where keys are donor IDs and values are filepaths to (or
+        dataframes of) SampleAnnot.csv files from Allen Brain Institute
     probes : str or pandas.DataFrame
-        Dataframe containing information on microarray probes that should be
-        considered in filtering (probes not in this dataframe will be ignored)
+        Filepath to Probes.csv or dataframe containing information on
+        microarray probes that should be considered in filtering (probes not in
+        this will be ignored)
     threshold : (0, 1) float, optional
         Threshold for filtering probes. Specifies the proportion of samples for
         which a given probe must have expression levels above background noise.
@@ -100,14 +101,13 @@ def filter_probes(pacall, samples, probes, threshold=0.5):
 
     threshold = np.clip(threshold, 0.0, 1.0)
 
-    lgr.info('Filtering probes with intensity-based threshold of {}'
-             .format(threshold))
+    lgr.info(f'Filtering probes with intensity-based threshold of {threshold}')
 
     probes = io.read_probes(probes)
     signal, n_samp = np.zeros(len(probes), dtype=int), 0
-    for pa, annot in zip(pacall, samples):
-        data = io.read_pacall(pa).loc[probes.index,
-                                      io.read_annotation(annot).index]
+    for donor, pa in pacall.items():
+        annot = io.read_annotation(annotation[donor]).index
+        data = io.read_pacall(pa).loc[probes.index, annot]
         n_samp += data.shape[-1]
         # sum binary expression indicator across samples for current subject
         signal += np.asarray(data.sum(axis=1))
@@ -115,9 +115,35 @@ def filter_probes(pacall, samples, probes, threshold=0.5):
     # calculate proportion of signal to noise for given probe across samples
     keep = (signal / n_samp) >= threshold
 
-    lgr.info('{} probes survive intensity-based filtering'.format(keep.sum()))
+    lgr.info(f'{keep.sum()} probes survive intensity-based filtering')
 
     return probes[keep]
+
+
+def _groupby_structure_id(microarray, annotation):
+    """
+    Averages samples in `microarray` having identical structure IDs
+
+    Parameters
+    ----------
+    microarray : (P, S) pandas.DataFrame
+        Dataframe should have `P` rows representing probes and `S` columns
+        representing distinct samples, with values indicating microarray
+        expression levels
+    annotation : (S, A) pandas.DataFrame
+        Annotation dataframe, obtained by loading a SampleAnnot.csv file from
+        Allen Brain Institute
+
+    Returns
+    -------
+    expression : (P, R) pandas.DataFrame
+        Input `microarray` dataframe but with `S` samples averaged into `R`
+        regions
+    """
+
+    sid = io.read_annotation(annotation)['structure_id']
+
+    return io.read_microarray(microarray).groupby(sid, axis=1).mean()
 
 
 def _groupby_and_apply(expression, probes, info, applyfunc):
@@ -126,10 +152,9 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
 
     Parameters
     ----------
-    expression : list of (P, S) pandas.DataFrame
-        Each dataframe should have `P` rows representing probes and `S` columns
-        representing distinct samples, with values indicating microarray
-        expression levels
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
     probes : pandas.DataFrame
         Dataframe containing information on probes that should be considered in
         representative analysis. Generally, intensity-based-filtering (i.e.,
@@ -145,24 +170,151 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
 
     Returns
     -------
-    representative : list of (S, G) pandas.DataFrame
-        Dataframes with rows representing `S` distinct samples and columns
-        representing `G` unique genes, with values indicating microarray
-        expression levels for each combination of samples and genes
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
     """
 
-    # group probes by gene and get probe corresponding to max avg correlationx
-    retained = info.groupby('gene_symbol').apply(applyfunc)
-    probes = probes.loc[sorted(np.squeeze(retained).astype(int))]
+    # group probes by gene and get probe corresponding to relevant feature
+    retained = info.groupby('gene_symbol').apply(applyfunc).dropna()
+    probes = probes.loc[sorted(np.squeeze(retained.astype(int)))]
 
     # subset expression dataframes to retain only desired probes and reassign
     # (and sort) index to gene symbols in lieu of probe IDs
-    representative = [
-        e.loc[probes.index].set_index(probes['gene_symbol']).sort_index()
-        for e in expression
-    ]
+    representative = {
+        d: e.loc[probes.index].set_index(probes['gene_symbol']).sort_index().T
+        for d, e in utils.check_dict(expression).items()
+    }
 
     return representative
+
+
+def _diff_stability(expression, probes, annotation, *args, **kwargs):
+    """
+    Picks one probe to represent `expression` data for each gene in `probes`
+
+    If there are multiple probes with expression data for the same gene, this
+    function will calculate the similarity of each probes' expression across
+    donors and select the probe with the most consistent pattern of regional
+    variation (i.e., "differential stability" or DS). Regions are defined by
+    the "structure_id" column in `annotation`; similarity is calculated by the
+    Spearman correlation coefficient (but see `rank` kwarg).
+
+    Parameters
+    ----------
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
+    probes : pandas.DataFrame
+        Dataframe containing information on probes that should be considered in
+        representative analysis. Generally, intensity-based-filtering (i.e.,
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
+    annotation : list of str
+        List of filepaths to annotation files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `annotation` attribute on the resulting object).
+
+    Returns
+    -------
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
+    """
+
+    # confirm inputs are expected dictionaries
+    expression = utils.check_dict(expression)
+    annotation = utils.check_dict(annotation)
+
+    # collapse (i.e., average) expression across AHBA anatomical regions
+    region_exp = [
+        _groupby_structure_id(microarray, annotation[donor])
+        for donor, microarray in expression.items()
+    ]
+
+    # get correlation of probe expression across samples for all donor pairs
+    probe_exp = np.zeros((len(probes), sum(range(len(expression)))))
+    for n, (exp1, exp2) in enumerate(itertools.combinations(region_exp, 2)):
+        # samples that current donor pair have in common
+        samples = np.intersect1d(exp1.columns, exp2.columns)
+
+        # the ranking process can take a few seconds on each loop
+        # unfortunately, we have to do it each time because `samples` changes
+        # based on which anatomical regions the two subjects have in common
+        exp1 = exp1.loc[:, samples].T.rank()
+        exp2 = exp2.loc[:, samples].T.rank()
+
+        probe_exp[:, n] = utils.efficient_corr(exp1, exp2)
+
+    info = pd.DataFrame(dict(gene_symbol=np.asarray(probes.gene_symbol),
+                             diff_stability=probe_exp.mean(axis=1)),
+                        index=probes.index)
+    applyfunc = functools.partial(_max_idx, column='diff_stability')
+
+    return _groupby_and_apply(expression, probes, info, applyfunc)
+
+
+def _rnaseq(expression, probes, annotation, *args, **kwargs):
+    """
+
+    Parameters
+    ----------
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
+    probes : pandas.DataFrame
+        Dataframe containing information on probes that should be considered in
+        representative analysis. Generally, intensity-based-filtering (i.e.,
+        `filter_probes()`) should have been used to reduce this list to only
+        those probes with good expression signal
+    annotation : list of str
+        List of filepaths to annotation files from Allen Brain Institute (i.e.,
+        as obtained by calling :func:`abagen.fetch_microarray` and accessing
+        the `annotation` attribute on the resulting object).
+
+    Returns
+    -------
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
+    """
+    # confirm inputs are expected dictionaries
+    expression = utils.check_dict(expression)
+    annotation = utils.check_dict(annotation)
+
+    # fetch RNAseq data
+    rnaseq = datasets.fetch_rnaseq(donors=expression.keys())
+
+    probe_exp = np.ones((len(probes), len(rnaseq))) * np.nan
+    for n, (donor, data) in enumerate(rnaseq.items()):
+        # collapse (i.e., average) data across AHAB  anatomical regions
+        micro = _groupby_structure_id(expression[donor], annotation[donor])
+        rna = _groupby_structure_id(io.read_tpm(data['tpm']),
+                                    data['annotation'])
+
+        # get rid of "constant" RNAseq genes
+        rna = rna[np.logical_not(np.isclose(rna.std(axis=1, ddof=1), 0))]
+
+        # get matching genes + strcutres between microarray + RNAseq
+        regions = np.intersect1d(micro.columns, rna.columns)
+        mask = np.isin(np.asarray(probes.gene_symbol),
+                       np.intersect1d(probes.gene_symbol, rna.index))
+        genes = np.asarray(probes.loc[mask, 'gene_symbol'])
+        micro, rna = micro.loc[mask, regions].T, rna.loc[genes, regions].T
+
+        # correlate expression values across regions for each gene
+        probe_exp[mask, n] = utils.efficient_corr(micro.rank(), rna.rank())
+
+    mask = np.sum(np.isnan(probe_exp), axis=1) < len(rnaseq)
+    info = pd.DataFrame(dict(gene_symbol=np.asarray(probes[mask].gene_symbol),
+                             rna_corr=np.nanmean(probe_exp[mask], axis=1)),
+                        index=probes.index[mask])
+    applyfunc = functools.partial(_max_idx, column='rna_corr')
+
+    return _groupby_and_apply(expression, probes, info, applyfunc)
 
 
 def _max_idx(df, column=0):
@@ -253,123 +405,35 @@ def _correlate(df, method):
     return df.index[xmax.argmax()]
 
 
-def _diff_stability(expression, probes, annotation, *args, **kwargs):
-    """
-    Picks one probe to represent `expression` data for each gene in `probes`
-
-    If there are multiple probes with expression data for the same gene, this
-    function will calculate the similarity of each probes' expression across
-    donors and select the probe with the most consistent pattern of regional
-    variation (i.e., "differential stability" or DS). Regions are defined by
-    the "structure_id" column in `annotation`; similarity is calculated by the
-    Spearman correlation coefficient (but see `rank` kwarg).
-
-    Parameters
-    ----------
-    expression : list of (P, S) pandas.DataFrame
-        Each dataframe should have `P` rows representing probes and `S` columns
-        representing distinct samples, with values indicating microarray
-        expression levels
-    probes : pandas.DataFrame
-        Dataframe containing information on probes that should be considered in
-        representative analysis. Generally, intensity-based-filtering (i.e.,
-        `filter_probes()`) should have been used to reduce this list to only
-        those probes with good expression signal
-    annotation : list of str
-        List of filepaths to annotation files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `annotation` attribute on the resulting object).
-
-    Returns
-    -------
-    representative : list of (S, G) pandas.DataFrame
-        Dataframes with rows representing `S` distinct samples and columns
-        representing `G` unique genes, with values indicating microarray
-        expression levels for each combination of samples and genes
-    """
-
-    # collapse (i.e., average) expression across AHBA anatomical regions
-    region_exp = [_groupby_structure_id(exp, annot)
-                  for exp, annot in zip(expression, annotation)]
-
-    # get correlation of probe expression across samples for all donor pairs
-    probe_exp = np.zeros((len(probes), sum(range(len(expression)))))
-    for n, (exp1, exp2) in enumerate(itertools.combinations(region_exp, 2)):
-        # samples that current donor pair have in common
-        samples = np.intersect1d(exp1.columns, exp2.columns)
-
-        # the ranking process can take a few seconds on each loop
-        # unfortunately, we have to do it each time because `samples` changes
-        # based on which anatomical regions the two subjects have in common
-        exp1 = exp1.loc[:, samples].T.rank()
-        exp2 = exp2.loc[:, samples].T.rank()
-
-        probe_exp[:, n] = utils.efficient_corr(exp1, exp2)
-
-    info = pd.DataFrame(dict(gene_symbol=np.asarray(probes.gene_symbol),
-                             diff_stability=probe_exp.mean(axis=1)),
-                        index=probes.index)
-    applyfunc = functools.partial(_max_idx, column='diff_stability')
-
-    return _groupby_and_apply(expression, probes, info, applyfunc)
-
-
-def _groupby_structure_id(microarray, annotation):
-    """
-    Averages samples in `microarray` having identical structure IDs
-
-    Parameters
-    ----------
-    microarray : pandas.DataFrame
-        Dataframe should have `P` rows representing probes and `S` columns
-        representing distinct samples, with values indicating microarray
-        expression levels
-    annotation : pandas.DataFrame
-        Annotation dataframe, obtained by loading an annotation file from Allen
-        Brain Institute
-
-    Returns
-    -------
-    expression : pandas.DataFrame
-
-    """
-    sid = io.read_annotation(annotation)['structure_id']
-    microarray = io.read_microarray(microarray)
-    microarray = microarray.rename(dict(zip(microarray.columns, sid)), axis=1)
-
-    return microarray.groupby(microarray.columns, axis=1).mean()
-
-
 def _average(expression, probes, *args, **kwargs):
     """
     Averages expression data for probes representing the same gene
 
     Parameters
     ----------
-    expression : list of (P, S) pandas.DataFrame
-        Each dataframe should have `P` rows representing probes and `S` columns
-        representing distinct samples, with values indicating microarray
-        expression levels
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
     probes : pandas.DataFrame
-        Dataframe containing information on probes that should be considered in
-        representative analysis. Generally, intensity-based-filtering (i.e.,
-        `filter_probes()`) should have been used to reduce this list to only
-        those probes with good expression signal
+        Dataframe containing information on microarray probes that should be
+        considered in representative analysis. Generally intensity-based
+        filtering (i.e., via :func:`filter_probes()`) should have been used to
+        reduce this list to only those probes with good expression signal
 
     Returns
     -------
-    representative : list of (S, G) pandas.DataFrame
-        Dataframes with rows representing `S` distinct samples and columns
-        representing `G` unique genes, with values indicating microarray
-        expression levels for each combination of samples and genes
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
     """
 
     def _avg(df):
         return df.join(probes['gene_symbol'], on='probe_id') \
                  .groupby('gene_symbol') \
-                 .mean()
+                 .mean().T
 
-    return [_avg(exp) for exp in expression]
+    return {d: _avg(exp) for d, exp in utils.check_dict(expression).items()}
 
 
 def _collapse(expression, probes, *args, method='max_variance', **kwargs):
@@ -378,15 +442,14 @@ def _collapse(expression, probes, *args, method='max_variance', **kwargs):
 
     Parameters
     ----------
-    expression : list of (P, S) pandas.DataFrame
-        Each dataframe should have `P` rows representing probes and `S` columns
-        representing distinct samples, with values indicating microarray
-        expression levels
+    expression : dict of (P, S) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `P`
+        rows representing probes and `S` columns representing distinct samples
     probes : pandas.DataFrame
-        Dataframe containing information on probes that should be considered in
-        representative analysis. Generally, intensity-based-filtering (i.e.,
-        `filter_probes()`) should have been used to reduce this list to only
-        those probes with good expression signal
+        Dataframe containing information on microarray probes that should be
+        considered in representative analysis. Generally intensity-based
+        filtering (i.e., via :func:`filter_probes()`) should have been used to
+        reduce this list to only those probes with good expression signal
     method : str, optional
         Method by which to select represenative probes for each gene. Must be
         one of ['max_variance', 'max_intensity', 'pc_loading', 'corr_variance',
@@ -394,14 +457,15 @@ def _collapse(expression, probes, *args, method='max_variance', **kwargs):
 
     Returns
     -------
-    representative : list of (S, G) pandas.DataFrame
-        Dataframes with rows representing `S` distinct samples and columns
-        representing `G` unique genes, with values indicating microarray
-        expression levels for each combination of samples and genes
+    representative : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes
     """
 
     # concatenate all donors into giant probe x sample expression dataframe
-    probe_exp = pd.concat(expression, axis=1)
+    expression = utils.check_dict(expression)
+    probe_exp = pd.concat(expression.values(), axis=1)
 
     # determine aggregation function based on provided method; also reduce
     # probe expression if required (i.e., max_variance, max_intensity)
@@ -417,8 +481,8 @@ def _collapse(expression, probes, *args, method='max_variance', **kwargs):
     elif method in ['corr_variance', 'corr_intensity']:
         agg = functools.partial(_correlate, method=method[5:])
     else:
-        raise ValueError('Provided method {} invalid. Please check inputs '
-                         'and try again.'.format(method))
+        raise ValueError(f'Provided method {method} is invalid. Please check '
+                         'inputs and try again.')
 
     info = pd.merge(probes[['gene_symbol']], probe_exp, on='probe_id')
     return _groupby_and_apply(expression, probes, info, agg)
@@ -439,7 +503,8 @@ SELECTION_METHODS = dict(
     pc_loading=_pc_loading,
     corr_variance=_corr_variance,
     corr_intensity=_corr_intensity,
-    diff_stability=_diff_stability
+    diff_stability=_diff_stability,
+    rnaseq=_rnaseq
 )
 
 
@@ -454,33 +519,34 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
 
     Parameters
     ----------
-    microarray : list of str
-        List of filepaths to microarray expression files from Allen Brain
-        Institute (i.e., as obtained by calling :func:`abagen.fetch_microarray`
-        and accessing the `microarray` attribute on the resulting object).
-    annotation : list of str
-        List of filepaths to annotation files from Allen Brain Institute (i.e.,
-        as obtained by calling :func:`abagen.fetch_microarray` and accessing
-        the `annotation` attribute on the resulting object). Only used if
-        provided `method` is 'diff_stability'
-    probes : pandas.DataFrame
-        Dataframe containing information on probes that should be considered in
-        representative analysis. Generally, intensity-based-filtering (i.e.,
-        `filter_probes()`) should have been used to reduce this list to only
-        those probes with good expression signal
+    microarray : dict of str or pandas.DataFrame
+        Dictionary where keys are donor IDs and values are filepaths to (or
+        dataframes of) MicroarrayExpression.csv files from Allen Brain
+        Institute
+    annotation : dict of str or pandas.DataFrame
+        Dictionary where keys are donor IDs and values are filepaths to (or
+        dataframes of) SampleAnnot.csv files from Allen Brain Institute. Only
+        used if `method='diff_stability'`
+    probes : str or pandas.DataFrame
+        Filepath to Probes.csv or dataframe containing information on
+        microarray probes that should be considered in representative analysis.
+        Generally intensity-based filtering (i.e., via :func:`filter_probes()`)
+        should have been used to reduce this list to only those probes with
+        good expression signal
     method : str, optional
         Selection method for subsetting (or collapsing across) probes from the
-        same gene. Must be one of 'average', 'intensity', 'variance',
-        'pc_loading', 'corr_variance', 'corr_intensity', or 'diff_stability';
-        see Notes for more information. Default: 'diff_stability'
+        same gene. Must be one of 'average', 'max_intensity', 'max_variance',
+        'pc_loading', 'corr_intensity', 'corr_variance', 'diff_stability', or
+        'rnaseq'; see Notes for more information. Default: 'diff_stability'
 
     Returns
     -------
-    expression : list of (S, G) pandas.DataFrame
-        Dataframes with rows representing `S` distinct samples and columns
-        representing `G` unique genes, with values indicating microarray
-        expression levels for each combination of samples and genes. Columns
-        will be identical across all dataframes but `S` will vary by donor.
+    expression : dict of (S, G) pandas.DataFrame
+        Dictionary where keys are donor IDs and values are dataframes with `S`
+        rows representing distinct samples and `G` columns representing unique
+        genes. Entries of dataframe indicate microarray expression levels for
+        each combination of sample + gene. Columns will be identical across all
+        dataframes, but `S` will vary by donor.
 
     Notes
     -----
@@ -525,6 +591,11 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     Selects probe with the most consistent pattern of regional variation across
     donors (i.e., highest average correlation across brain regions between all
     pairs of donors) as in [PR7]_ and [PR8]_.
+
+    8. ``method='rnaseq'``
+
+    Selects probes with most consistent pattern of regional variation to RNAseq
+    data (across the two donors with RNAseq data).
 
     References
     ----------
@@ -615,26 +686,24 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     try:
         collfunc = SELECTION_METHODS[method]
     except KeyError:
-        raise ValueError('Provided method must be one of {}, not: {}'
-                         .format(list(SELECTION_METHODS), method))
+        raise ValueError('Provided method must be one of '
+                         f'{list(SELECTION_METHODS)}, not: {method}')
 
-    lgr.info('Reducing probes indexing same gene with method: "{}"'
-             .format(method))
+    lgr.info(f'Reducing probes indexing same gene with method: "{method}"')
 
-    # read in microarray data for all subjects; this can be quite slow...
+    # subset microarray data for pre-selected probes + samples
+    # this will also left/right mirror samples, if previously requested
     probes = io.read_probes(probes)
-    exp = [
-        # subset microarray data for pre-selected probes + samples
-        # this will also left/right mirror samples, if previously requested
-        io.read_microarray(micro).loc[probes.index,
-                                      io.read_annotation(annot).index]
-        for micro, annot in zip(microarray, annotation)
-    ]
-    exp = [
-        e.T for e in collfunc(exp, probes, annotation)
-    ]
+    microarray = utils.check_dict(microarray)
+    annotation = utils.check_dict(annotation)
+    for donor, micro in microarray.items():
+        samp = io.read_annotation(annotation[donor]).index
+        microarray[donor] = io.read_microarray(micro).loc[probes.index, samp]
 
-    lgr.info('{} genes remain after probe filtering and selection'
-             .format(exp[0].shape[-1]))
+    # now, "collect" the probes based on the provided `method`
+    expression = collfunc(microarray, probes, annotation)
+    n_genes = utils.first_entry(expression).shape[-1]
 
-    return exp
+    lgr.info(f'{n_genes} genes remain after probe filtering + selection')
+
+    return expression

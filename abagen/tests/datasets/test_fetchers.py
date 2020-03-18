@@ -22,8 +22,9 @@ def test_fetch_microarray():
     # f5 = datasets.fetch_microarray(donors='all')
 
     assert f1 == f2 == f3 == f4
+    assert len(f1) == 1  # only one donor
     for k in ['microarray', 'annotation', 'pacall', 'probes', 'ontology']:
-        assert len(f1.get(k)) == 1
+        assert k in f1['12876']
 
     # check downloading incorrect donor
     with pytest.raises(ValueError):
@@ -41,8 +42,9 @@ def test_fetch_raw_mri():
     f4 = fetchers.fetch_raw_mri(donors=None)
 
     assert f1 == f2 == f3 == f4
+    assert len(f1) == 1
     for k in ['t1w', 't2w']:
-        assert len(f1.get(k)) == 1
+        assert k in f1['12876']
 
     # check downloading incorrect donor
     with pytest.raises(ValueError):
@@ -59,8 +61,9 @@ def test_fetch_rnaseq():
     f4 = fetchers.fetch_rnaseq(donors=None)
 
     assert f1 == f2 == f3 == f4
+    assert len(f1) == 1
     for k in ['genes', 'ontology', 'counts', 'tpm', 'annotation']:
-        assert len(f1.get(k)) == 1
+        assert k in f1['9861']
 
     with pytest.raises(ValueError):
         fetchers.fetch_rnaseq(donors='notadonor')

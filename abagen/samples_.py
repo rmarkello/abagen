@@ -471,8 +471,6 @@ def groupby_index(microarray, labels=None, metric='mean'):
     ----------
     microarray : (S, G) pandas.DataFrame
         Microarray expression data, where `S` is samples and `G` is genes
-    sample_labels : (S, 1) pandas.DataFrame
-        Parcel labels for `S` samples, as returned by e.g., `label_samples()`
     labels : (L,) array_like, optional
         All possible labels for parcellation (to account for possibility that
         some parcels have NO expression data). Default: None
@@ -522,7 +520,9 @@ def aggregate_samples(microarray, labels=None, region_agg='donors',
         `G` is genes. Index of dataframes should identify to which region each
         sample was assigned
     labels : array_like
-
+        Array containing IDs of all possible region labels. If no samples from
+        any donor were assigned to a region NaNs are inserted in place of
+        expression values
     region_agg : {'samples', 'donors'}, optional
         When multiple samples are identified as belonging to a region in
         `atlas` this determines how they are aggegated. If 'samples',

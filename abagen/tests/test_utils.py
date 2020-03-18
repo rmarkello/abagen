@@ -10,6 +10,21 @@ import pytest
 from abagen import utils
 
 
+@pytest.mark.xfail
+def test_check_dict():
+    assert False
+
+
+@pytest.mark.xfail
+def test_flatten_dict():
+    assert False
+
+
+@pytest.mark.xfail
+def test_first_entry():
+    assert False
+
+
 def test_leftify_atlas(atlas):
     out = utils.leftify_atlas(atlas['image'])
     assert len(np.unique(out.dataobj)) == 44
