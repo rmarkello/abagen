@@ -300,8 +300,9 @@ def read_annotation(fname, copy=False):
             raise TypeError('Provided fname must be filepath to Annotation'
                             '.csv file from Allen Human Brain Atlas.')
         data = fname.copy() if copy else fname
+        data.rename(mapper, axis='columns', inplace=True, errors='ignore')
 
-    return data.rename(mapper, axis=1)
+    return data
 
 
 def read_tpm(fname, copy=False):

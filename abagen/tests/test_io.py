@@ -36,10 +36,9 @@ gene_cols = [
 rna_annot_cols = [
     'RNAseq_sample_name', 'replicate_sample', 'sample_name', 'well_id',
     'microarray_run_id', 'ontology_color', 'main_structure',
-    'sub_structure', 'ontology_structure_id', 'ontology_structure_acronym',
-    'hemisphere', 'brain', 'million_clusters', 'clip_percentage',
-    'RIN_RNA_quality', 'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct',
-    'N.Pct'
+    'sub_structure', 'structure_id', 'structure_acronym', 'hemisphere',
+    'brain', 'million_clusters', 'clip_percentage', 'RIN_RNA_quality',
+    'rnaseq_run_id', 'A.Pct', 'C.Pct', 'G.Pct', 'T.Pct', 'N.Pct'
 ]
 
 
