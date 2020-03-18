@@ -508,7 +508,8 @@ SELECTION_METHODS = dict(
 )
 
 
-def collapse_probes(microarray, annotation, probes, method='diff_stability'):
+def collapse_probes(microarray, annotation, probes, method='diff_stability',
+                    donor_probes='aggregate'):
     """
     Reduces `microarray` to a sample x gene expression dataframe
 
@@ -538,6 +539,12 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
         same gene. Must be one of 'average', 'max_intensity', 'max_variance',
         'pc_loading', 'corr_intensity', 'corr_variance', 'diff_stability', or
         'rnaseq'; see Notes for more information. Default: 'diff_stability'
+    donor_probes : str, optional
+        Whether specified `probe_selection` method should be performed with
+        microarray data from all donors ('aggregate'), independently for each
+        donor ('independent'), or based on the most common selected probe
+        across donors ('common'). Not all combinations of `probe_selection`
+        and `donor_probes` methods are viable. Default: 'aggregate'
 
     Returns
     -------
@@ -686,11 +693,15 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
     try:
         collfunc = SELECTION_METHODS[method]
     except KeyError:
-        raise ValueError('Provided method must be one of '
-                         f'{list(SELECTION_METHODS)}, not: {method}')
+        raise ValueError(f'Provided `method` "{method}" is invalid; must be '
+                         f'one of {list(SELECTION_METHODS)}')
 
-    lgr.info(f'Reducing probes indexing same gene with method: "{method}"')
+    valid_probes = ['aggregate', 'common', 'independent']
+    if donor_probes not in valid_probes:
+        raise ValueError(f'Provided `donor_probes` "{donor_probes}" is '
+                         f'invalid; must be one of {valid_probes}')
 
+    lgr.info(f'Reducing probes indexing same gene with method: {method}')
     # subset microarray data for pre-selected probes + samples
     # this will also left/right mirror samples, if previously requested
     probes = io.read_probes(probes)
@@ -701,9 +712,17 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability'):
         microarray[donor] = io.read_microarray(micro).loc[probes.index, samp]
 
     # now, "collect" the probes based on the provided `method`
-    expression = collfunc(microarray, probes, annotation)
-    n_genes = utils.first_entry(expression).shape[-1]
+    agg_methods = ['diff_stability', 'average', 'mean', 'rnaseq']
+    if method in agg_methods or donor_probes == 'aggregate':
+        microarray = collfunc(microarray, probes, annotation)
+    elif donor_probes == 'independent':
+        for donor in microarray:
+            microarray.update(collfunc({donor: microarray[donor]}, probes,
+                                       {donor: annotation[donor]}))
+    elif donor_probes == 'common':
+        raise NotImplementedError
 
+    n_genes = utils.first_entry(microarray).shape[-1]
     lgr.info(f'{n_genes} genes remain after probe filtering + selection')
 
-    return expression
+    return microarray
