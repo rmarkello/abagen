@@ -738,7 +738,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
 
     # convert probe IDs as column names to gene symbols
     for donor, micro in microarray.items():
-        symbols = np.asarray(probes.loc[micro.columns, 'gene_symbol'])
+        symbols = probes.loc[micro.columns, 'gene_symbol']
         micro = micro.set_axis(symbols, axis=1, inplace=False)
         microarray[donor] = micro.sort_index(axis=1)
 
