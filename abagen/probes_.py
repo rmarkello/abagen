@@ -12,6 +12,7 @@ from pkg_resources import resource_filename
 
 import numpy as np
 import pandas as pd
+from scipy import stats as sstats
 
 from . import datasets, io, utils
 
@@ -177,13 +178,12 @@ def _groupby_and_apply(expression, probes, info, applyfunc):
     """
 
     # group probes by gene and get probe corresponding to relevant feature
-    retained = info.groupby('gene_symbol').apply(applyfunc).dropna()
-    probes = probes.loc[sorted(np.squeeze(retained.astype(int)))]
+    retained = info.groupby('gene_symbol').apply(applyfunc).dropna().squeeze()
+    probes = probes.loc[sorted(retained)].sort_values('gene_symbol')
 
-    # subset expression dataframes to retain only desired probes and reassign
-    # (and sort) index to gene symbols in lieu of probe IDs
+    # subset expression dataframes to retain only desired probes
     representative = {
-        d: e.loc[probes.index].set_index(probes['gene_symbol']).sort_index().T
+        d: e.loc[probes.index].T
         for d, e in utils.check_dict(expression).items()
     }
 
@@ -199,7 +199,7 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
     donors and select the probe with the most consistent pattern of regional
     variation (i.e., "differential stability" or DS). Regions are defined by
     the "structure_id" column in `annotation`; similarity is calculated by the
-    Spearman correlation coefficient (but see `rank` kwarg).
+    Spearman correlation coefficient
 
     Parameters
     ----------
@@ -714,13 +714,33 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
     # now, "collect" the probes based on the provided `method`
     agg_methods = ['diff_stability', 'average', 'mean', 'rnaseq']
     if method in agg_methods or donor_probes == 'aggregate':
+        # perform the collection function for all donors, together
         microarray = collfunc(microarray, probes, annotation)
     elif donor_probes == 'independent':
+        # perform the collection function for each donor separately
         for donor in microarray:
             microarray.update(collfunc({donor: microarray[donor]}, probes,
                                        {donor: annotation[donor]}))
     elif donor_probes == 'common':
-        raise NotImplementedError
+        # perform collection function for each donor separately and retain ONLY
+        # the chose probe IDs
+        probe_ids = [
+            collfunc(
+                {donor: microarray[donor]}, probes, {donor: annotation[donor]}
+            )[donor].columns
+            for donor in microarray
+        ]
+        # find the mode of the probe IDs chosen across donors and then subset
+        # those probes from the original microarray dataframes for all donors
+        probe_ids = np.squeeze(sstats.mode(probe_ids, axis=0)[0])
+        for donor in microarray:
+            microarray[donor] = microarray[donor].loc[probe_ids].T
+
+    # convert probe IDs as column names to gene symbols
+    for donor, micro in microarray.items():
+        symbols = np.asarray(probes.loc[micro.columns, 'gene_symbol'])
+        micro = micro.set_axis(symbols, axis=1, inplace=False)
+        microarray[donor] = micro.sort_index(axis=1)
 
     n_genes = utils.first_entry(microarray).shape[-1]
     lgr.info(f'{n_genes} genes remain after probe filtering + selection')
