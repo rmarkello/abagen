@@ -16,15 +16,19 @@ parameter). Prior to aggregation, the function performs a within-donor
 normalization procedure to attempt to mitigate donor-specific effects; however,
 there are a number of ways to achieve this.
 
-Currently, ``abagen`` supports five options for normalizing data:
+Currently, ``abagen`` supports nine options for normalizing data:
 
     1. :ref:`usage_norm_center`,
     2. :ref:`usage_norm_zscore`,
     3. :ref:`usage_norm_minmax`,
-    4. :ref:`usage_norm_rs`, and
-    5. :ref:`usage_norm_srs`
+    4. :ref:`usage_norm_sig`,
+    5. :ref:`usage_norm_scaledsig`,
+    6. :ref:`usage_norm_scaledsig_qnt`,
+    7. :ref:`usage_norm_rs`,
+    8. :ref:`usage_norm_srs`, and
+    9. :ref:`usage_norm_mixedsig`
 
-All the options have been used at various points throughout the published
+Most of the options have been used at various points throughout the published
 record, so while there is no "right" choice we do encourage using the default
 option (:ref:`scaled robust sigmoid <usage_norm_srs>`) due to recent work by
 Arnatkevičiūte et al., 2019 showing that it is---as the name might
@@ -51,17 +55,22 @@ These different forms of normalization are controlled by two parameters in the
 Note that normalization of each sample across all genes occurs before
 normalization of each gene across all samples.
 
-Both parameters can accept the same five arguments (detailed below), and both
-are turned on by default.
+Both parameters can accept the same arguments (detailed below), and both are
+turned on by default.
+
+.. _usage_norm_methods:
+
+Normalization methods
+---------------------
 
 .. _usage_norm_center:
 
 Centering
----------
+^^^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm='center', gene_norm='center')
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='center')
 
 Microarray values are centered with:
 
@@ -74,11 +83,11 @@ where :math:`\bar{x}` is the mean of the microarray expression values.
 .. _usage_norm_zscore:
 
 Z-score
--------
+^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm='zscore', gene_norm='zscore')
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='zscore')
 
 Microarray values are normalized using a basic z-score function:
 
@@ -93,11 +102,11 @@ deviation of the microarray expression values.
 .. _usage_norm_minmax:
 
 Min-max
--------
+^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm='minmax', gene_norm='minmax')
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='minmax')
 
 Microarray values are rescaled to the unit interval with:
 
@@ -106,14 +115,64 @@ Microarray values are rescaled to the unit interval with:
    x_{norm} = \frac{x_{y} - \text{min}(x)}
                    {\text{max}(x) - \text{min}(x)}
 
-.. _usage_norm_rs:
 
-Robust sigmoid
---------------
+.. _usage_norm_sig:
+
+Sigmoid
+^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm='rs', gene_norm='rs')
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='sigmoid')
+
+Microarray values are normalized using a general sigmoid function:
+
+.. math::
+
+   x_{y} = \frac{1}
+                {1 + \exp \left( \frac{-(x_{y} - \bar{x})}
+                                      {\sigma_{x}}
+                          \right)}
+
+where :math:`\bar{x}` is the mean and :math:`\sigma_{x}` is the sample standard
+deviation of the microarray expression values.
+
+.. _usage_norm_scaledsig:
+
+Scaled sigmoid
+^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='scaled_sigmoid')
+
+Microarray values are processed with the :ref:`sigmoid <usage_norm_sig>`
+function and then rescaled to the unit interval with the :ref:`min-max
+<usage_norm_minmax>` function.
+
+.. _usage_norm_scaledsig_qnt:
+
+Scaled sigmoid quantiles
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='scaled_sigmoid_quantiles')
+
+Input data are clipped to the 5th and 95th percentiles before being processed
+with the :ref:`scaled sigmoid <usage_norm_scaledsig>` transform. The clipped
+distribution is only used for calculation of :math:`\bar{x}` and
+:math:`\sigma_{x}`; the full (i.e., unclipped) distribution is processed
+through the transformation.
+
+.. _usage_norm_rs:
+
+Robust sigmoid
+^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='robust_sigmoid')
 
 Microarray values are normalized using a robust sigmoid function:
 
@@ -138,24 +197,38 @@ normalized interquartile range of the microarray expression values given as:
 .. _usage_norm_srs:
 
 Scaled robust sigmoid
----------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm='rs', gene_norm='srs')
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='scaled_robust_sigmoid')
 
 Microarray values are processed with the :ref:`robust sigmoid <usage_norm_rs>`
 function and then rescaled to the unit interval with the :ref:`min-max
 <usage_norm_minmax>` function.
 
-.. _usage_norm_none:
+.. _usage_norm_mixedsig:
 
-No normalization
-----------------
+Mixed sigmoid
+^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    >>> abagen.get_expression_data(atlas['image'], sample_norm=None, gene_norm=None)
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm='mixed_sigmoid')
+
+Microarray values are processed with the :ref:`scaled sigmoid
+<usage_norm_scaledsig>` function when their interquartile range is 0;
+otherwise, they are processed with the :ref:`scaled robust sigmoid
+<usage_norm_srs>` function.
+
+.. _usage_norm_none:
+
+No normalization
+^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], {sample,gene}_norm=None)
 
 Providing ``None`` to the ``sample_norm`` and ``gene_norm`` parameters will
 prevent any normalization procedure from being performed on the data. Use this
