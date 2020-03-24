@@ -45,7 +45,7 @@ commands:
             pip install -e .
             mkdir for_testing && cd for_testing
             cp ../setup.cfg .
-            pytest --cov-report term-missing --cov=abagen --doctest-modules --pyargs abagen
+            pytest --durations=5 --cov-report term-missing --cov=abagen --doctest-modules --pyargs abagen
             mkdir /tmp/src/coverage
             mv .coverage /tmp/src/coverage/.coverage.<< parameters.env >>
       - persist_to_workspace:
