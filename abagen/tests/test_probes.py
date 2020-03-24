@@ -244,3 +244,21 @@ def test_collapse_probes(testfiles, method):
     assert len(out) == 2  # number of donors
     assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])
     assert np.all([len(exp.columns) == 29131 for exp in out])
+
+
+@pytest.mark.parametrize('donor_probes', [
+    'aggregate',
+    'independent',
+    'common'
+])
+def test_collapse_probes_donors(testfiles, donor_probes):
+    out = probes_.collapse_probes(flatten_dict(testfiles, 'microarray'),
+                                  flatten_dict(testfiles, 'annotation'),
+                                  first_entry(testfiles, 'probes'),
+                                  method='max_intensity',
+                                  donor_probes=donor_probes)
+
+    out = list(out.values())
+    assert len(out) == 2  # number of donors
+    assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])
+    assert np.all([len(exp.columns) == 29131 for exp in out])
