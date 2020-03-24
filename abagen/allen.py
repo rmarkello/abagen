@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from . import correct, datasets, io, probes_, samples_, utils
-from .utils import flatten_dict
+from .utils import first_entry, flatten_dict
 
 import logging
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
@@ -17,14 +17,27 @@ lgr = logging.getLogger('abagen')
 lgr_levels = dict(zip(range(3), [40, 20, 10]))
 
 
-def get_expression_data(atlas, atlas_info=None, *,
-                        ibf_threshold=0.5, probe_selection='diff_stability',
-                        lr_mirror=False, exact=True, tolerance=2,
-                        sample_norm='srs', gene_norm='srs',
-                        region_agg='donors', agg_metric='mean',
-                        corrected_mni=True, reannotated=True,
-                        return_counts=False, return_donors=False,
-                        donors='all', data_dir=None, verbose=1, n_proc=1):
+def get_expression_data(atlas,
+                        atlas_info=None,
+                        *,
+                        ibf_threshold=0.5,
+                        probe_selection='diff_stability',
+                        donor_probes='aggregate',
+                        lr_mirror=False,
+                        exact=True,
+                        tolerance=2,
+                        sample_norm='srs',
+                        gene_norm='srs',
+                        region_agg='donors',
+                        agg_metric='mean',
+                        corrected_mni=True,
+                        reannotated=True,
+                        return_counts=False,
+                        return_donors=False,
+                        donors='all',
+                        data_dir=None,
+                        verbose=1,
+                        n_proc=1):
     """
     Assigns microarray expression data to ROIs defined in `atlas`
 
@@ -92,6 +105,12 @@ def get_expression_data(atlas, atlas_info=None, *,
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
         'diff_stability', 'rnaseq'; see Notes for more information on different
         options. Default: 'diff_stability'
+    donor_probes : str, optional
+        Whether specified `probe_selection` method should be performed with
+        microarray data from all donors ('aggregate'), independently for each
+        donor ('independent'), or based on the most common selected probe
+        across donors ('common'). Not all combinations of `probe_selection`
+        and `donor_probes` methods are viable. Default: 'aggregate'
     lr_mirror : bool, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. This will duplicate samples across both
@@ -185,13 +204,13 @@ def get_expression_data(atlas, atlas_info=None, *,
     Notes
     -----
     The following methods can be used for collapsing across probes when
-    multiple probes are available for the same gene.
+    multiple probes are available for the same gene:
 
         1. ``probe_selection='average'``
 
         Takes the average of expression data across all probes indexing the
         same gene. Providing 'mean' as the input method will return the same
-        thing.
+        thing. This method can only be used when `donor_probes='aggregate'`.
 
         2. ``probe_selection='max_intensity'``
 
@@ -224,12 +243,20 @@ def get_expression_data(atlas, atlas_info=None, *,
 
         Selects the probe with the most consistent pattern of regional
         variation across donors (i.e., the highest average correlation across
-        brain regions between all pairs of donors).
+        brain regions between all pairs of donors). This method can only be
+        used when `donor_probes='aggregate'`.
 
         8. ``method='rnaseq'``
 
         Selects probes with most consistent pattern of regional variation to
-        RNAseq data (across the two donors with RNAseq data).
+        RNAseq data (across the two donors with RNAseq data). This method can
+        only be used when `donor_probes='aggregate'`.
+
+    Note that for incompatible combinations of `probe_selection` and
+    `donor_probes` (as detailed above), the `probe_selection choice will take
+    precedence. For example, providing ``probe_selection='diff_stability'`` and
+    ``donor_probes='independent'`` will cause `donor_probes` to be reset to
+    `'aggregate'`.
 
     The following methods can be used for normalizing microarray expression
     values prior to aggregating:
@@ -283,6 +310,10 @@ def get_expression_data(atlas, atlas_info=None, *,
         raise ValueError('Provided probe_selection method is invalid, must be '
                          f'one of {list(probes_.SELECTION_METHODS)}. Received '
                          f'value: \'{probe_selection}\'')
+    if donor_probes not in ['aggregate', 'independent']:
+        raise ValueError('Provided donor_probes method is invalid, must be '
+                         f'one of [\'aggregate\', \'independent\']. Received '
+                         f'value: \'{donor_probes}\'')
 
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
@@ -319,7 +350,7 @@ def get_expression_data(atlas, atlas_info=None, *,
 
     # get dataframe of probe information (reannotated or otherwise)
     # the Probes.csv files are the same for every donor so just grab the first
-    probe_info = io.read_probes([files[d]['probes'] for d in files][0])
+    probe_info = io.read_probes(first_entry(files, 'probes'))
     if reannotated:
         probe_info = probes_.reannotate_probes(probe_info)
 
@@ -336,7 +367,8 @@ def get_expression_data(atlas, atlas_info=None, *,
     # for each donor)
     microarray = probes_.collapse_probes(flatten_dict(files, 'microarray'),
                                          annotation, probe_info,
-                                         method=probe_selection)
+                                         method=probe_selection,
+                                         donor_probes=donor_probes)
     missing = []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
                                    dtype=int),

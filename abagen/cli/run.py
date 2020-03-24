@@ -207,8 +207,8 @@ and across donors via the supplied `agg_metric`.
                              'across) probes that index the same gene. Must '
                              'be one of {"average", "mean", "max_intensity", '
                              '"max_variance", "pc_loading", "corr_variance", '
-                             '"corr_intensity", "diff_stability"}. Default: '
-                             '"diff_stability"')
+                             '"corr_intensity", "diff_stability", "rnaseq"}. '
+                             'Default: "diff_stability"')
     w_data.add_argument('--lr_mirror', '--lr-mirror', action='store_true',
                         help='Whether to mirror microarray expression samples '
                              'across hemispheres to increase spatial '
