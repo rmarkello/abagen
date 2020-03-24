@@ -11,7 +11,7 @@ probe expression levels to indexing gene expression levels. Effectively, this
 means we need to select from or condense the redundant probes for each gene;
 however, there are a number of ways to do that.
 
-Currently, ``abagen`` supports seven options for this probe to gene conversion.
+Currently, ``abagen`` supports eight options for this probe to gene conversion.
 All the options have been used at various points throughout the published
 record, so while there is no "right" choice we do encourage using the default
 option (:ref:`differential stability <usage_probes_diff_stability>`) due to
@@ -133,6 +133,24 @@ probe across brain regions for every **pair** of donors. Correlations are
 averaged and the probe with the highest correlation is retained.
 
 .. image:: imgs/diff_stability.png
+   :align: center
+
+.. _usage_probes_rnaseq:
+
+RNAseq
+^^^^^^
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], probe_selection='rnaseq')
+
+Computes the Spearman correlation of microarray expression values for each
+probe across brain regions with RNAseq data for the corresponding gene. As only
+two donors have RNAseq data (donors #9861 and 10021), this method only computes
+the correlations for these two donors. Correlations are averaged across the two
+donors and the probe with the highest correlation for each gene is retained.
+
+.. image:: imgs/rnaseq.png
    :align: center
 
 .. _usage_probes_collapse:
