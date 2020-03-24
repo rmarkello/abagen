@@ -66,11 +66,11 @@ def test_filter_probes(testfiles, threshold, expected_length):
     assert len(filtered) == expected_length
 
 
-@pytest.mark.parametrize('func, a_expected, b_expected', [
-    (probes_._max_idx, [2, 4, 5], [10, 8, 7]),
-    (lambda x: x.index[0], [0, 3, 5], [12, 9, 7]),
+@pytest.mark.parametrize('func, expected', [
+    (probes_._max_idx, [3000, 5000, 6000]),
+    (lambda x: x.index[0], [1000, 4000, 6000])
 ])
-def test_groupby_and_apply(func, a_expected, b_expected):
+def test_groupby_and_apply(func, expected):
     # lots of set up for this little function...
     index = pd.Series([1000, 2000, 3000, 4000, 5000, 6000], name='probe_id')
     gene_symbol = ['a', 'a', 'a', 'b', 'b', 'c']
@@ -82,10 +82,7 @@ def test_groupby_and_apply(func, a_expected, b_expected):
     exp = [info[['a', 'b']].copy()]
 
     mi = list(probes_._groupby_and_apply(exp, prb, info, func).values())[0]
-    expected = pd.DataFrame(dict(a=a_expected, b=b_expected),
-                            index=pd.Series(['a', 'b', 'c'],
-                                            name='gene_symbol')).T
-    pd.testing.assert_frame_equal(mi, expected)
+    pd.testing.assert_frame_equal(mi, info.loc[expected, ['a', 'b']].T)
 
 
 def test_max_idx():
@@ -189,12 +186,12 @@ def test_diff_stability():
         pd.DataFrame([[0, 2, 4, 9],
                       [4, 6, 6, 7],
                       [5, 7, 3, 4]],
-                     index=pd.Series(['a', 'b', 'c'], name='gene_symbol'),
+                     index=pd.Series([1000, 5000, 6000], name='probe_id'),
                      columns=expression[0].columns).T,
         pd.DataFrame([[1, 2, 3],
                       [1, 2, 3],
                       [1, 2, 3]],
-                     index=pd.Series(['a', 'b', 'c'], name='gene_symbol'),
+                     index=pd.Series([1000, 5000, 6000], name='probe_id'),
                      columns=expression[1].columns).T,
     ]
 

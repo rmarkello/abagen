@@ -506,6 +506,12 @@ SELECTION_METHODS = dict(
     diff_stability=_diff_stability,
     rnaseq=_rnaseq
 )
+AGG_METHODS = [  # can only be used with `donor_probes='aggregate'`
+    'mean', 'average', 'diff_stability', 'rnaseq'
+]
+COLLAPSE_METHODS = [  # methods that don't SELECT but COLLAPSE ACROSS probes
+    'mean', 'average'
+]
 
 
 def collapse_probes(microarray, annotation, probes, method='diff_stability',
@@ -712,8 +718,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
         microarray[donor] = io.read_microarray(micro).loc[probes.index, samp]
 
     # now, "collect" the probes based on the provided `method`
-    agg_methods = ['diff_stability', 'average', 'mean', 'rnaseq']
-    if method in agg_methods or donor_probes == 'aggregate':
+    if method in AGG_METHODS or donor_probes == 'aggregate':
         # perform the collection function for all donors, together
         microarray = collfunc(microarray, probes, annotation)
     elif donor_probes == 'independent':
@@ -737,10 +742,11 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
             microarray[donor] = microarray[donor].loc[probe_ids].T
 
     # convert probe IDs as column names to gene symbols
-    for donor, micro in microarray.items():
-        symbols = probes.loc[micro.columns, 'gene_symbol']
-        micro = micro.set_axis(symbols, axis=1, inplace=False)
-        microarray[donor] = micro.sort_index(axis=1)
+    if method not in COLLAPSE_METHODS:
+        for donor, micro in microarray.items():
+            symbols = probes.loc[micro.columns, 'gene_symbol']
+            micro = micro.set_axis(symbols, axis=1, inplace=False)
+            microarray[donor] = micro.sort_index(axis=1)
 
     n_genes = utils.first_entry(microarray).shape[-1]
     lgr.info(f'{n_genes} genes remain after probe filtering + selection')
