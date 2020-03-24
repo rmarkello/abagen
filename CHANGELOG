@@ -1,3 +1,23 @@
+0.0.5 (March 24, 2020)
+======================
+This release includes quite a bit of new functionality, including:
+
+- Several new gene/sample normalization methods,
+- A fetcher / new loader functions for RNAseq data (``abagen.fetch_rnaseq()``),
+- The ability to use RNAseq data for selecting probes (``probe_selection='rnaseq``), and
+- A new ``donor_probes`` parameter for ``abagen.get_expression_data()`` to control how probe selection is performed
+
+Check out the documentation for more details!
+
+  * [ENH] Adds new mechanisms for probe selection (#145), @rmarkello
+  * [ENH,REF] Adds RNAseq probe selection method (#144), @rmarkello
+  * [TEST] Fix Azure maybe? (#143), @rmarkello
+  * [ENH] Adds FreeSurfer data fetcher (#142), @rmarkello
+  * [ENH] Adds fetchers / loaders for RNAseq data (#140), @rmarkello
+  * [TEST] Adds Windows testing with Azure (#141), @rmarkello
+  * [FIX,ENH] Error in get_expression_data, gene stability calculation (#136), @rmarkello
+  * [ENH,REF] New norms, utils, renamed modules (#135), @rmarkello
+
 0.0.4 (February 26, 2020)
 =========================
 A release with a small bugfixes (#134) and a small fix-fix (#133)!
