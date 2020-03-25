@@ -310,7 +310,7 @@ def get_expression_data(atlas,
         raise ValueError('Provided probe_selection method is invalid, must be '
                          f'one of {list(probes_.SELECTION_METHODS)}. Received '
                          f'value: \'{probe_selection}\'')
-    if donor_probes not in ['aggregate', 'independent']:
+    if donor_probes not in ['aggregate', 'independent', 'common']:
         raise ValueError('Provided donor_probes method is invalid, must be '
                          f'one of [\'aggregate\', \'independent\']. Received '
                          f'value: \'{donor_probes}\'')
