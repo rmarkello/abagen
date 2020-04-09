@@ -7,10 +7,6 @@ abagen: A toolbox for the Allen Brain Atlas genetics data
 This package provides a Python interface for fetching and working with the
 `Allen Human Brain Atlas`_ (AHBA) microarray expression data.
 
-|warning| |warning| **WARNING**: This package is in alpha and should be
-considered unstable! Things are liable to be changed with limited consideration
-for backwards compatibility, so please use carefully. |warning| |warning|
-
 .. image:: https://travis-ci.org/rmarkello/abagen.svg?branch=master
    :target: https://travis-ci.org/rmarkello/abagen
 .. image:: https://codecov.io/gh/rmarkello/abagen/branch/master/graph/badge.svg
