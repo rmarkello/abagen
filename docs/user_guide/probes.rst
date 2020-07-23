@@ -27,7 +27,7 @@ We describe all the methods within these families here. Methods can be
 implemented by passing the ``probe_selection`` argument to the
 :func:`abagen.get_expression_data` function. For a selection of references to
 published works that have used these different methods please see the
-documentation of :func:`abagen.probes.collapse_probes`.
+documentation of :func:`abagen.probes_.collapse_probes`.
 
 .. _usage_probes_select:
 

@@ -233,3 +233,18 @@ No normalization
 Providing ``None`` to the ``sample_norm`` and ``gene_norm`` parameters will
 prevent any normalization procedure from being performed on the data. Use this
 with caution!
+
+.. note::
+
+  Some of the more advanced methods described on this page were initially
+  proposed in:
+
+    Fulcher, B.F., Little, M.A., & Jones, N.S. (2013). Highly comparative
+    time-series analysis: the empirical structure of time series and their
+    methods. *Journal of the Royal Society Interface*, 10(83), 20130048.
+
+  If using one of these methods please consider citing this paper in your work!
+
+  **Applicable methods**: :ref:`robust sigmoid <usage_norm_rs>`,
+  :ref:`scaled robust sigmoid <usage_norm_srs>`,
+  :ref:`mixed sigmoid <usage_norm_mixedsig>`
