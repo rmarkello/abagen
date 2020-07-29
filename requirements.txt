@@ -1,4 +1,4 @@
 nibabel
 numpy>=1.14.0
-pandas
+pandas>=0.25.0
 scipy
