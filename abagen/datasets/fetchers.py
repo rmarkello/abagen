@@ -136,10 +136,10 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
                                         dict(resume=resume, verbose=verbose))
                        for f in files]
             # flatten outputs into single list
-            files = [l for res in results for l in res.get()]
+            files = [fn for res in results for fn in res.get()]
     else:
         # flatten list of lists into single list
-        files = [l for f in files for l in f]
+        files = [fn for f in files for fn in f]
         files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
     # if we want to convert files to parquet format it's good to do that now
@@ -213,7 +213,7 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
         for sub in donors
     ]
 
-    files = [l for f in files for l in f]
+    files = [fn for f in files for fn in f]
     files = _fetch_files(data_dir, files, resume=resume, verbose=verbose)
 
     keys = ['genes', 'ontology', 'counts', 'tpm', 'annotation']
