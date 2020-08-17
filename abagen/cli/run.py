@@ -218,7 +218,7 @@ and across donors via the supplied `agg_metric`.
                              'samples. Default: False (i.e., no mirroring)')
     w_data.add_argument('--gene_norm', '--gene-norm', action='store',
                         default='srs', metavar='METHOD', type=_resolve_none,
-                        choices=sorted(NORMALIZATION_METHODS) + ['None'],
+                        choices=sorted(NORMALIZATION_METHODS) + ['None', None],
                         help='Method by which to normalize microarray '
                              'expression values for each donor prior to '
                              'collapsing across donors. Expression values are '
@@ -228,7 +228,7 @@ and across donors via the supplied `agg_metric`.
                              'Default: "srs"')
     w_data.add_argument('--sample_norm', '--sample-norm', action='store',
                         default='srs', metavar='METHOD', type=_resolve_none,
-                        choices=sorted(NORMALIZATION_METHODS) + ['None'],
+                        choices=sorted(NORMALIZATION_METHODS) + ['None', None],
                         help='Method by which to normalize microarray '
                              'expression values for each sample prior to '
                              'collapsing into regions in `atlas`. Expression '
