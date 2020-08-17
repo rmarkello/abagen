@@ -1,3 +1,14 @@
+0.0.6 (August 17, 2020)
+=======================
+Minor bug fixes, including:
+
+  * [FIX] Allow None input to CLI norm opts (#153), @rmarkello
+  * [MNT] Pin minimum pandas version to 0.25 (#151), @rmarkello
+  * [DOC] Adds Fulcher norm ref (#149), @rmarkello
+  * [FIX] Always remap annotation dataframe cols (#147), @rmarkello
+  * [FIX] Allow 'common' for donor_probes method (#146), @rmarkello
+
+
 0.0.5 (March 24, 2020)
 ======================
 This release includes quite a bit of new functionality, including:
