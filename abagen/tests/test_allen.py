@@ -71,3 +71,19 @@ def test_missing_labels(testfiles, atlas):
 
     assert isinstance(counts, pd.DataFrame)
     assert counts.shape == (len(info), len(testfiles))
+
+
+def test_get_samples_in_mask(testfiles, atlas):
+    allexp, allcoords = allen.get_samples_in_mask(donors=['12876', '15496'])
+    cortexp, cortcoords = allen.get_samples_in_mask(mask=atlas['image'],
+                                                    donors=['12876', '15496'])
+
+    # exp + coords shape as expected?
+    assert len(allexp) == len(allcoords) and len(cortexp) == len(cortcoords)
+    assert allcoords.shape[-1] == 3 and cortcoords.shape[-1] == 3
+    for df in [allexp, cortexp]:
+        assert df.index.name == 'well_id'
+        assert df.columns.name == 'gene_symbol'
+
+    # providing the cortical mask (atlas) should reduce # of samples returned
+    assert len(allexp) > len(cortexp)
