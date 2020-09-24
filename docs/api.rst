@@ -23,6 +23,7 @@ Reference API
    :toctree: generated/
 
    abagen.get_expression_data
+   abagen.get_samples_in_mask
 
 .. _ref_datasets:
 

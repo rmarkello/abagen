@@ -26,3 +26,4 @@ abagen/issues>`_.
    user_guide/probes.rst
    user_guide/normalization.rst
    user_guide/aggregation.rst
+   user_guide/mask.rst
