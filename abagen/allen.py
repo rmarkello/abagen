@@ -469,14 +469,20 @@ def get_samples_in_mask(mask=None, **kwargs):
     """
     Returns preprocessed microarray expression data for samples in `mask`
 
+    Uses the same processing workflow as :func:`abagen.get_expression_data` but
+    instead of aggregating samples within regions simply returns sample-level
+    expression data for all samples that fall within boundaries of `mask`.
+
     Parameters
     ----------
-    mask : niimg-like object
+    mask : niimg-like object, optional
         A mask image in MNI space (where 0 is the background). If not supplied,
-        all available samples will be returned.
+        all available samples will be returned. Default: None
     kwargs : key-value pairs
-        All key-value pairs from :func:`abagen.get_expression_data` except for
-        `atlas`
+        All key-value pairs from :func:`abagen.get_expression_data` except for:
+        `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
+        ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
+        used instead as a modified binary image.
 
     Returns
     -------
@@ -506,7 +512,7 @@ def get_samples_in_mask(mask=None, **kwargs):
     coords = np.asarray(pd.concat(flatten_dict(files, 'annotation'))[cols])
     well_id, coords = np.asarray(coords[:, 0], 'int'), coords[:, 1:]
 
-    # in case people mix things up, mask always take precedent over atlas
+    # in case people mix things up and use atlas instead of mask, use that
     if kwargs.get('atlas') is not None and mask is None:
         mask = kwargs['atlas']
     elif mask is None:
@@ -523,11 +529,12 @@ def get_samples_in_mask(mask=None, **kwargs):
             ), axis=0
         )
 
-        # generate atlas image where each voxel
+        # generate atlas image where each voxel has
         img = np.zeros(ijk.max(axis=0) + 2, dtype='int')
-        img[tuple(map(tuple, ijk.T))] = np.arange(1, len(ijk) + 1)
+        img[tuple(map(tuple, ijk.T))] = 1
         mask = nib.Nifti1Image(img, affine=affine)
 
+    # reset these parameters
     kwargs['atlas'] = mask
     kwargs['atlas_info'] = None
     kwargs['region_agg'] = None
