@@ -28,7 +28,7 @@ its boundaries:
 
 .. doctest::
 
-    >>> exp, coords = abagen.get_samples_in_mask(mask=phg)
+    >>> expression, coords = abagen.get_samples_in_mask(mask=phg)
 
 :func:`abagen.get_samples_in_mask` returns two objects: (1) the the samples x
 gene expression matrix (``exp``), and (2) an array of MNI coordinates for those
@@ -47,16 +47,16 @@ of the relevant sample (rather than the atlas region):
 
 .. doctest::
 
-    >>> exp.head()
+    >>> expression
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     well_id                                    ...
-    2850         0.679381  0.069934  0.398107  ...  0.000000  0.000000  0.000000
-    998          0.354435  0.441267  0.752046  ...  0.487668  0.091851  0.681403
-    990          0.318782  0.531280  0.958299  ...  0.536189  0.187061  0.695825
+    2850         0.654914  0.234039  0.283280  ...  0.020379  0.228080  0.000000
+    998          0.428705  0.375819  0.457741  ...  0.254195  0.315383  0.502122
+    990          0.400673  0.409852  0.561666  ...  0.270064  0.397740  0.522261
     ...               ...       ...       ...  ...       ...       ...       ...
-    141667159    1.000000  1.000000  0.476643  ...  0.840348  0.175459  0.445667
-    159226157    1.000000  0.000000  1.000000  ...  0.000000  0.000000  0.000000
-    159226117    0.000000  1.000000  0.000000  ...  1.000000  1.000000  1.000000
+    141667159    0.829192  0.923891  0.408131  ...  0.347914  0.302548  0.615491
+    159226157    0.558571  0.710222  0.372123  ...  0.360930  0.337352  0.453750
+    159226117    0.533079  0.773214  0.265615  ...  0.441826  0.389615  0.455249
     <BLANKLINE>
     [40 rows x 15633 columns]
 
@@ -70,12 +70,12 @@ Get ALL the samples
 
 If you want all of the available processed samples rather than only those
 within a given mask you can call the function without providing an explicit
-mask:
+mask (this is the default when no ``mask`` parameter is passed):
 
 .. doctest::
     :options: +SKIP
 
-    >>> exp, coords = abagen.get_samples_in_mask(mask=None)
+    >>> expression, coords = abagen.get_samples_in_mask(mask=None)
 
 This will return all samples (after dropping those where the listed MNI
 coordinates don't match the listed hemisphere designation, etc.).
