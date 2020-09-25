@@ -29,6 +29,7 @@ def get_expression_data(atlas,
                         tolerance=2,
                         sample_norm='srs',
                         gene_norm='srs',
+                        norm_matched=True,
                         region_agg='donors',
                         agg_metric='mean',
                         corrected_mni=True,
@@ -143,6 +144,11 @@ def get_expression_data(atlas,
         donor across all samples; see Notes for more information on different
         methods. If None is specified then no normalization is performed.
         Default: 'srs'
+    norm_matched : bool, optional
+        Whether to perform gene normalization (`gene_norm`) across only those
+        samples matched to regions in `atlas` instead of all available samples.
+        If `atlas` is very small (i.e., only a few regions of interest), using
+        `norm_matched=False` is suggested. Default: True
     region_agg : {'samples', 'donors'}, optional
         When multiple samples are identified as belonging to a region in
         `atlas` this determines how they are aggegated. If 'samples',
@@ -388,8 +394,12 @@ def get_expression_data(atlas,
         # assign samples to regions
         labels = samples_.label_samples(annotation[subj], atlas,
                                         atlas_info, tolerance=tolerance)
+
+        # if we're doing exact matching and want to aggregate samples w/i
+        # regions, remove the non-labelled samples prior to normalization.
+        # otherwise, we'll remove the non-labelled samples after normalization
         nz = np.asarray(labels != 0).squeeze()
-        if exact:  # remove all samples not assigned a label before norming
+        if norm_matched:
             microarray[subj] = microarray[subj].loc[nz]
             annotation[subj] = annotation[subj].loc[nz]
             labels = labels.loc[nz]
@@ -402,6 +412,11 @@ def get_expression_data(atlas,
             microarray[subj] = correct.normalize_expression(microarray[subj],
                                                             norm=gene_norm,
                                                             ignore_warn=True)
+
+        if not norm_matched:
+            microarray[subj] = microarray[subj].loc[nz]
+            annotation[subj] = annotation[subj].loc[nz]
+            labels = labels.loc[nz]
 
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
@@ -450,7 +465,8 @@ def get_expression_data(atlas,
         microarray.index = pd.Series(np.asarray(
             pd.concat([a[mask[d]] for d, a in annotation.items()])['well_id']
         ), name='well_id')
-        return microarray
+        # return expression data (remove NaNs)
+        return microarray.dropna(axis=1, how='any')
 
     microarray = samples_.aggregate_samples(microarray.values(),
                                             labels=all_labels,
@@ -538,6 +554,8 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs['atlas'] = mask
     kwargs['atlas_info'] = None
     kwargs['region_agg'] = None
+    # soft reset this parameter
+    kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
     exp = get_expression_data(**kwargs)
