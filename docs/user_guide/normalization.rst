@@ -248,3 +248,28 @@ with caution!
   **Applicable methods**: :ref:`robust sigmoid <usage_norm_rs>`,
   :ref:`scaled robust sigmoid <usage_norm_srs>`,
   :ref:`mixed sigmoid <usage_norm_mixedsig>`
+
+Normalizing only matched samples
+--------------------------------
+
+While sample normalization is _always_ performed across all genes, you can
+control which samples are used when performing gene normalization. By default,
+only those samples matched to regions in the provided atlas are used in the
+normalization process (via the ``norm_matched`` parameter):
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], norm_matched=True)
+
+Since there are known differences in microarray expression between broad
+structural designations (e.g. cortex, subcortex, brainstem, cerebellum), if
+e.g., a cortical atlas is provided then it makes sense that only those samples
+matched to regions in the atlas should be used to perform normalization.
+However, when a smaller atlas is provided with only a few regions, normalizing
+over just those samples matched to the atlas can be less desirable. To make it
+so that all available samples are used instead of only those matched, set
+``norm_matched`` to ``False``:
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], norm_matched=False)
