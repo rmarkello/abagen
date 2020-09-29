@@ -403,7 +403,7 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
         notna = np.logical_not(exp.isna().all(axis=1))
         data = np.asarray(exp)[notna]
 
-        kwargs = dict(divide='ignore', invalid='ignore') if ignore_warn else {}
+        kwargs = dict(all='ignore') if ignore_warn else {}
         with np.errstate(**kwargs):
             # normalize the data (however was specified)
             normed = normfunc(data) if norm != 'batch' else corrected[n]

@@ -5,6 +5,7 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 
 from functools import reduce
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
 
@@ -28,6 +29,7 @@ def get_expression_data(atlas,
                         tolerance=2,
                         sample_norm='srs',
                         gene_norm='srs',
+                        norm_matched=True,
                         region_agg='donors',
                         agg_metric='mean',
                         corrected_mni=True,
@@ -142,6 +144,11 @@ def get_expression_data(atlas,
         donor across all samples; see Notes for more information on different
         methods. If None is specified then no normalization is performed.
         Default: 'srs'
+    norm_matched : bool, optional
+        Whether to perform gene normalization (`gene_norm`) across only those
+        samples matched to regions in `atlas` instead of all available samples.
+        If `atlas` is very small (i.e., only a few regions of interest), using
+        `norm_matched=False` is suggested. Default: True
     region_agg : {'samples', 'donors'}, optional
         When multiple samples are identified as belonging to a region in
         `atlas` this determines how they are aggegated. If 'samples',
@@ -329,6 +336,10 @@ def get_expression_data(atlas,
 
     # get some info on labels in `atlas_img`
     all_labels = utils.get_unique_labels(atlas)
+    n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
+    if n_gb > 1:
+        lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
+                    'GB RAM.')
     if not exact:
         lgr.info(f'Pre-calculating centroids for {len(all_labels)} regions in '
                  'provided atlas')
@@ -383,9 +394,14 @@ def get_expression_data(atlas,
         # assign samples to regions
         labels = samples_.label_samples(annotation[subj], atlas,
                                         atlas_info, tolerance=tolerance)
-        if exact:  # remove all samples not assigned a label before norming
-            nz = np.asarray(labels != 0).squeeze()
+
+        # if we're doing exact matching and want to aggregate samples w/i
+        # regions, remove the non-labelled samples prior to normalization.
+        # otherwise, we'll remove the non-labelled samples after normalization
+        nz = np.asarray(labels != 0).squeeze()
+        if norm_matched:
             microarray[subj] = microarray[subj].loc[nz]
+            annotation[subj] = annotation[subj].loc[nz]
             labels = labels.loc[nz]
 
         if sample_norm is not None:
@@ -397,10 +413,15 @@ def get_expression_data(atlas,
                                                             norm=gene_norm,
                                                             ignore_warn=True)
 
+        if not norm_matched:
+            microarray[subj] = microarray[subj].loc[nz]
+            annotation[subj] = annotation[subj].loc[nz]
+            labels = labels.loc[nz]
+
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
-        lgr.info(f'{counts.iloc[1:][subj].sum():>3} / {len(annotation[subj])} '
+        lgr.info(f'{counts.iloc[1:][subj].sum():>3} / {len(nz)} '
                  f'samples matched to regions for donor #{subj}')
 
         # if we don't want to do exact matching then cache which parcels are
@@ -435,6 +456,18 @@ def get_expression_data(atlas,
             microarray[subj] = microarray[subj].append(exp)
             counts.loc[roi, subj] += 1
 
+    # if we don't want to aggregate over regions return voxel-level results
+    if region_agg is None:
+        # don't return samples that aren't matched to a region in the `atlas`
+        mask = {d: m.index != 0 for d, m in microarray.items()}
+        microarray = pd.concat([m[mask[d]] for d, m in microarray.items()])
+        # set index to well_id for all remaining tissue samples
+        microarray.index = pd.Series(np.asarray(
+            pd.concat([a[mask[d]] for d, a in annotation.items()])['well_id']
+        ), name='well_id')
+        # return expression data (remove NaNs)
+        return microarray.dropna(axis=1, how='any')
+
     microarray = samples_.aggregate_samples(microarray.values(),
                                             labels=all_labels,
                                             region_agg=region_agg,
@@ -446,3 +479,86 @@ def get_expression_data(atlas,
         return microarray, counts.iloc[1:]
 
     return microarray
+
+
+def get_samples_in_mask(mask=None, **kwargs):
+    """
+    Returns preprocessed microarray expression data for samples in `mask`
+
+    Uses the same processing workflow as :func:`abagen.get_expression_data` but
+    instead of aggregating samples within regions simply returns sample-level
+    expression data for all samples that fall within boundaries of `mask`.
+
+    Parameters
+    ----------
+    mask : niimg-like object, optional
+        A mask image in MNI space (where 0 is the background). If not supplied,
+        all available samples will be returned. Default: None
+    kwargs : key-value pairs
+        All key-value pairs from :func:`abagen.get_expression_data` except for:
+        `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
+        ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
+        used instead as a modified binary image.
+
+    Returns
+    -------
+    expression : (S, G) pandas.DataFrame
+        Microarray expression for `S` samples for `G` genes, aggregated across
+        donors, where the columns are gene names
+    coords : (S,) numpy.ndarray
+        Coordinates of samples in `expression`
+    """
+
+    # fetch files (downloading if necessary) to get coordinates
+    files = datasets.fetch_microarray(data_dir=kwargs.get('data_dir', None),
+                                      donors=kwargs.get('donors', 'all'),
+                                      verbose=kwargs.get('verbose', 1),
+                                      n_proc=kwargs.get('n_proc', 1))
+
+    # get updated coordinates
+    for donor, data in files.items():
+        annot, ontol = data['annotation'], data['ontology']
+        if kwargs.get('corrected_mni', True):
+            annot = samples_.update_mni_coords(annot)
+        annot = samples_.drop_mismatch_samples(annot, ontol)
+        if kwargs.get('lr_mirror', False):
+            annot = samples_.mirror_samples(annot, ontol)
+        data['annotation'] = annot
+    cols = ['well_id', 'mni_x', 'mni_y', 'mni_z']
+    coords = np.asarray(pd.concat(flatten_dict(files, 'annotation'))[cols])
+    well_id, coords = np.asarray(coords[:, 0], 'int'), coords[:, 1:]
+
+    # in case people mix things up and use atlas instead of mask, use that
+    if kwargs.get('atlas') is not None and mask is None:
+        mask = kwargs['atlas']
+    elif mask is None:
+        # create affine for "full" mask
+        affine = np.eye(4)
+        affine[:-1, -1] = np.floor(coords).min(axis=0)
+
+        # downsample coordinates to specified resolution and convert to ijk
+        ijk = np.unique(
+            np.asarray(
+                np.floor(
+                    nib.affines.apply_affine(np.linalg.inv(affine), coords),
+                ), dtype='int'
+            ), axis=0
+        )
+
+        # generate atlas image where each voxel has
+        img = np.zeros(ijk.max(axis=0) + 2, dtype='int')
+        img[tuple(map(tuple, ijk.T))] = 1
+        mask = nib.Nifti1Image(img, affine=affine)
+
+    # reset these parameters
+    kwargs['atlas'] = mask
+    kwargs['atlas_info'] = None
+    kwargs['region_agg'] = None
+    # soft reset this parameter
+    kwargs.setdefault('norm_matched', False)
+
+    # get expression data + drop sample coordinates that weren't in atlas
+    exp = get_expression_data(**kwargs)
+    coords = coords[np.isin(well_id, exp.index)]
+
+    return exp, coords
