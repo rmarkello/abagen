@@ -4,6 +4,7 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 """
 
 from functools import reduce
+import os
 
 import nibabel as nib
 import numpy as np
@@ -89,7 +90,7 @@ def get_expression_data(atlas,
     atlas : niimg-like object
         A parcellation image in MNI space, where each parcel is identified by a
         unique integer ID
-    atlas_info : str or pandas.DataFrame, optional
+    atlas_info : os.PathLike or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
@@ -183,7 +184,7 @@ def get_expression_data(atlas,
         Note that donors '9861' and '10021' have samples from both left + right
         hemispheres; all other donors have samples from the left hemisphere
         only. Default: 'all'
-    data_dir : str, optional
+    data_dir : os.PathLike, optional
         Directory where expression data should be downloaded (if it does not
         already exist) / loaded. If not specified will use the current
         directory. Default: None
@@ -304,10 +305,8 @@ def get_expression_data(atlas,
     # set logging verbosity level
     lgr.setLevel(lgr_levels.get(int(verbose), 1))
 
-    # load atlas and atlas_info, if provided
-    atlas = utils.check_img(atlas)
-    if atlas_info is not None:
-        atlas_info = utils.check_atlas_info(atlas, atlas_info)
+    # load atlas and atlas_info, if provided, and coerce to dict
+    atlas, atlas_info, same = coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -335,15 +334,16 @@ def get_expression_data(atlas,
                               verbose=verbose)
 
     # get some info on labels in `atlas_img`
-    all_labels = utils.get_unique_labels(atlas)
+    all_labels = utils.get_unique_labels(utils.first_entry(atlas))
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
         lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
                     'GB RAM.')
-    if not exact:
+    if not exact and same:
         lgr.info(f'Pre-calculating centroids for {len(all_labels)} regions in '
                  'provided atlas')
-        centroids = utils.get_centroids(atlas, labels=all_labels,
+        centroids = utils.get_centroids(utils.first_entry(atlas),
+                                        labels=all_labels,
                                         image_space=True)
 
     # update the annotation "files". this handles updating the MNI coordinates,
@@ -392,7 +392,7 @@ def get_expression_data(atlas,
             microarray[subj] = microarray[subj].reset_index(drop=True)
 
         # assign samples to regions
-        labels = samples_.label_samples(annotation[subj], atlas,
+        labels = samples_.label_samples(annotation[subj], atlas[subj],
                                         atlas_info, tolerance=tolerance)
 
         # if we're doing exact matching and want to aggregate samples w/i
@@ -413,11 +413,6 @@ def get_expression_data(atlas,
                                                             norm=gene_norm,
                                                             ignore_warn=True)
 
-        if not norm_matched:
-            microarray[subj] = microarray[subj].loc[nz]
-            annotation[subj] = annotation[subj].loc[nz]
-            labels = labels.loc[nz]
-
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
@@ -428,6 +423,9 @@ def get_expression_data(atlas,
         # missing data and the expression data for the closest sample to that
         # parcel; we'll use this once we've iterated through all donors
         if not exact:
+            if not same:
+                centroids = utils.get_centroids(atlas[subj], labels=all_labels,
+                                                image_space=True)
             empty = np.logical_not(np.in1d(all_labels, labs))
             cols = ['mni_x', 'mni_y', 'mni_z']
             idx, dist = utils.closest_centroid(annotation[subj][cols],
@@ -562,3 +560,65 @@ def get_samples_in_mask(mask=None, **kwargs):
     coords = coords[np.isin(well_id, exp.index)]
 
     return exp, coords
+
+
+def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
+    """
+    Coerces `atlas` to dict with keys `donors`
+
+    If already a dictionary, confirms that `atlas` has entries for all values
+    in `donors`
+
+    Parameters
+    ----------
+    atlas : niimg-like object
+        A parcellation image in MNI space, where each parcel is identified by a
+        unique integer ID
+    donors : array_like
+        Donors that should have entries in returned `atlas` dictionary
+    atlas_info : os.PathLike or pandas.DataFrame, optional
+        Filepath to or pre-loaded dataframe containing information about
+        `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
+        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
+        and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
+        If provided, this will constrain matching of tissue samples to regions
+        in `atlas`. Default: None
+
+    Returns
+    -------
+    atlas : dict
+        Dict where keys are `donors` and values are `atlas`. If a dict was
+        provided it is checked to ensure
+    atlas_info : pandas.DataFrame
+        Loaded dataframe with information on atlas
+    same : bool
+        Whether all values in `atlas` are identical (True) or unique (False).
+        Useful to potentially speed up some computation.
+    """
+
+    donors = datasets.fetchers.check_donors(donors)
+    same = True
+
+    # FIXME: so that we're not depending on type checks so much :grimacing:
+    if isinstance(atlas, dict):
+        atlas = {
+            datasets.WELL_KNOWN_IDS.subj[d]: utils.check_img(a)
+            for d, a in atlas.items()
+        }
+        same = False
+        missing = set(donors) - set(atlas)
+        if len(missing) > 0:
+            raise ValueError('Provided `atlas` does not have entry for all '
+                             f'requested donors. Missing donors: {donors}.')
+    elif isinstance(atlas, (str, os.PathLike, nib.spatialimages.SpatialImage)):
+        atlas = utils.check_img(atlas)
+        atlas = {donor: atlas for donor in donors}
+    else:
+        raise TypeError('Provided image must be an existing filepath or a '
+                        'pre-loaded niimg-like object')
+
+    if atlas_info is not None:
+        for donor, atl in atlas.items():
+            atlas_info = utils.check_atlas_info(atlas[donor], atlas_info)
+
+    return atlas, atlas_info, same
