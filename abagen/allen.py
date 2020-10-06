@@ -87,9 +87,10 @@ def get_expression_data(atlas,
 
     Parameters
     ----------
-    atlas : niimg-like object
+    atlas : niimg-like object or dict
         A parcellation image in MNI space, where each parcel is identified by a
-        unique integer ID
+        unique integer ID. Alternatively, a dictionary where keys are donor IDs
+        and values are parcellation images in the native space of each donor.
     atlas_info : os.PathLike or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
@@ -351,8 +352,13 @@ def get_expression_data(atlas,
     # provided ontology), and mirroring samples across hemispheres, if desired
     for donor, data in files.items():
         annot, ontol = data['annotation'], data['ontology']
-        if corrected_mni:
-            annot = samples_.update_mni_coords(annot)
+        t1w = None
+        if not same:
+            t1w = datasets.fetch_raw_mri(donors=donor,
+                                         data_dir=data_dir,
+                                         verbose=verbose)[donor]['t1w']
+        annot = samples_.update_coords(annot, corrected_mni=corrected_mni,
+                                       native_space=t1w)
         annot = samples_.drop_mismatch_samples(annot, ontol)
         if lr_mirror:
             annot = samples_.mirror_samples(annot, ontol)
@@ -592,8 +598,8 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
     atlas_info : pandas.DataFrame
         Loaded dataframe with information on atlas
     same : bool
-        Whether all values in `atlas` are identical (True) or unique (False).
-        Useful to potentially speed up some computation.
+        Whether one atlas was provided for all donors (True) instead of
+        donor-specific atlases (False)
     """
 
     donors = datasets.fetchers.check_donors(donors)
@@ -610,9 +616,13 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
         if len(missing) > 0:
             raise ValueError('Provided `atlas` does not have entry for all '
                              f'requested donors. Missing donors: {donors}.')
+        lgr.info('Donor-specific atlases provided; using native MRI '
+                 'coordinates for tissue samples')
     elif isinstance(atlas, (str, os.PathLike, nib.spatialimages.SpatialImage)):
         atlas = utils.check_img(atlas)
         atlas = {donor: atlas for donor in donors}
+        lgr.info('Group-level atlas provided; using MNI coordinates for '
+                 'tissue samples')
     else:
         raise TypeError('Provided image must be an existing filepath or a '
                         'pre-loaded niimg-like object')
