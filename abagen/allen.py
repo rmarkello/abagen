@@ -496,13 +496,16 @@ def get_samples_in_mask(mask=None, **kwargs):
     Parameters
     ----------
     mask : niimg-like object, optional
-        A mask image in MNI space (where 0 is the background). If not supplied,
-        all available samples will be returned. Default: None
+        A mask image in MNI space (where 0 is the background). Alternatively, a
+        dictionary where keys are donor IDs and values are mask images in the
+        native space of each donor. If not supplied, all available samples will
+        be returned. Default: None
     kwargs : key-value pairs
         All key-value pairs from :func:`abagen.get_expression_data` except for:
         `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
         ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
-        used instead as a modified binary image.
+        used instead as a modified binary image. If both `atlas` and `mask` are
+        supplied then `mask` will take precedence.
 
     Returns
     -------
@@ -510,7 +513,9 @@ def get_samples_in_mask(mask=None, **kwargs):
         Microarray expression for `S` samples for `G` genes, aggregated across
         donors, where the columns are gene names
     coords : (S,) numpy.ndarray
-        Coordinates of samples in `expression`
+        MNI coordinates of samples in `expression`. Even if donor-specific
+        masks are provided MNI coordinates will be returned to ensure
+        comparability between subjects
     """
 
     # fetch files (downloading if necessary) to get coordinates
