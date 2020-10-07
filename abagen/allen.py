@@ -4,7 +4,6 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 """
 
 from functools import reduce
-import os
 
 import nibabel as nib
 import numpy as np
@@ -505,7 +504,7 @@ def get_samples_in_mask(mask=None, **kwargs):
         `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
         ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
         used instead as a modified binary image. If both `atlas` and `mask` are
-        supplied then `mask` will take precedence.
+        supplied then `mask` will be usedin
 
     Returns
     -------
@@ -623,14 +622,11 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
                              f'requested donors. Missing donors: {donors}.')
         lgr.info('Donor-specific atlases provided; using native MRI '
                  'coordinates for tissue samples')
-    elif isinstance(atlas, (str, os.PathLike, nib.spatialimages.SpatialImage)):
+    else:
         atlas = utils.check_img(atlas)
         atlas = {donor: atlas for donor in donors}
         lgr.info('Group-level atlas provided; using MNI coordinates for '
                  'tissue samples')
-    else:
-        raise TypeError('Provided image must be an existing filepath or a '
-                        'pre-loaded niimg-like object')
 
     if atlas_info is not None:
         for donor, atl in atlas.items():
