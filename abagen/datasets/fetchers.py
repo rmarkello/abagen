@@ -328,15 +328,22 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
     }
 
 
-def fetch_desikan_killiany(*args, **kwargs):
+def fetch_desikan_killiany(native=False, *args, **kwargs):
     """
     Fetches Desikan-Killiany atlas shipped with `abagen`
+
+    Parameters
+    ----------
+    native : bool, optional
+        Whether to return group-level atlas in MNI space (False) instead of
+        individualized atlases in donor native space (True). Default: False
 
     Returns
     -------
     atlas : dict
         Dictionary with keys ['image', 'info'] pointing to atlas image
-        (.nii.gz) and information (.csv) files
+        (.nii.gz) and information (.csv) files. If ``native=True`` then 'image'
+        is a dictionary where keys are donor IDs and values are image paths.
 
     References
     ----------
@@ -344,13 +351,39 @@ def fetch_desikan_killiany(*args, **kwargs):
     Blacker, D., ... & Albert, M. S. (2006). An automated labeling system
     for subdividing the human cerebral cortex on MRI scans into gyral based
     regions of interest. Neuroimage, 31(3), 968-980.
+
+    Examples
+    --------
+    >>> import abagen
+    >>> atlas = abagen.fetch_desikan_killiany()
+    >>> print(atlas['image'])  # doctest: +ELLIPSIS
+    /.../abagen/data/atlas-desikankilliany.nii.gz
+    >>> print(atlas['info'])  # doctest: +ELLIPSIS
+    /.../abagen/data/atlas-desikankilliany.csv
+
+    >>> atlas = abagen.fetch_desikan_killiany(native=True)
+    >>> print(atlas['image'])  # doctest: +ELLIPSIS
+    {'9861': '/.../abagen/data/native_dk/9861/atlas-desikankilliany.nii.gz',
+     '10021': '/.../abagen/data/native_dk/10021/atlas-desikankilliany.nii.gz',
+     '12876': '/.../abagen/data/native_dk/12876/atlas-desikankilliany.nii.gz',
+     '14380': '/.../abagen/data/native_dk/14380/atlas-desikankilliany.nii.gz',
+     '15496': '/.../abagen/data/native_dk/15496/atlas-desikankilliany.nii.gz',
+     '15697': '/.../abagen/data/native_dk/15697/atlas-desikankilliany.nii.gz'}
+    >>> print(atlas['info'])  # doctest: +ELLIPSIS
+    /.../abagen/data/atlas-desikankilliany.csv
     """
 
     # grab resource filenames
-    image = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
+    if not native:
+        img = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
+    else:
+        img = dict()
+        for donor in check_donors('all'):
+            imgpath = f'data/native_dk/{donor}/atlas-desikankilliany.nii.gz'
+            img[donor] = resource_filename('abagen', imgpath)
     info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
 
-    return dict(image=image, info=info)
+    return dict(image=img, info=info)
 
 
 def fetch_gene_group(group):
@@ -383,7 +416,7 @@ def fetch_gene_group(group):
                          'groups: {}'.format(group, groups))
 
     group = group.lower()
-    fn = resource_filename('abagen', 'data/burt2015_natneuro.csv')
+    fn = resource_filename('abagen', 'data/burt2018_natneuro.csv')
     genes = pd.read_csv(fn).query('group == "{}"'.format(group))['acronym']
 
     return sorted(list(genes))
