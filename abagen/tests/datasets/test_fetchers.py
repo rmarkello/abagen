@@ -3,6 +3,8 @@
 Tests for abagen.datasets.fetchers module
 """
 
+from pathlib import Path
+
 import pytest
 
 from abagen.datasets import fetchers
@@ -84,3 +86,21 @@ def test_get_gene_group(group, expected):
 
     with pytest.raises(ValueError):
         fetchers.fetch_gene_group('notagroup')
+
+
+def test_fetch_desikan_killiany():
+    atlas = fetchers.fetch_desikan_killiany()
+    assert sorted(atlas) == ['image', 'info']
+    img, info = Path(atlas['image']), Path(atlas['info'])
+    assert img.name == 'atlas-desikankilliany.nii.gz' and img.exists()
+    assert info.name == 'atlas-desikankilliany.csv' and info.exists()
+
+    atlas = fetchers.fetch_desikan_killiany(native=True)
+    donors = ['10021', '12876', '14380', '15496', '15697', '9861']
+    assert sorted(atlas) == ['image', 'info']
+    assert sorted(atlas['image']) == donors
+    for donor in donors:
+        img = Path(atlas['image'][donor])
+        assert img.name == 'atlas-desikankilliany.nii.gz' and img.exists()
+    info = Path(atlas['info'])
+    assert info.name == 'atlas-desikankilliany.csv' and info.exists()
