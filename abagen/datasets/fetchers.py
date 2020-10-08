@@ -361,16 +361,15 @@ def fetch_desikan_killiany(native=False, *args, **kwargs):
     >>> print(atlas['info'])  # doctest: +ELLIPSIS
     /.../abagen/data/atlas-desikankilliany.csv
 
+    When fetching native-space atlases, `atlas['image']` will be a dictionary
+    where the keys are donor IDs and the values are paths to the donor-specific
+    atlases:
+
     >>> atlas = abagen.fetch_desikan_killiany(native=True)
-    >>> print(atlas['image'])  # doctest: +ELLIPSIS
-    {'9861': '/.../abagen/data/native_dk/9861/atlas-desikankilliany.nii.gz',
-     '10021': '/.../abagen/data/native_dk/10021/atlas-desikankilliany.nii.gz',
-     '12876': '/.../abagen/data/native_dk/12876/atlas-desikankilliany.nii.gz',
-     '14380': '/.../abagen/data/native_dk/14380/atlas-desikankilliany.nii.gz',
-     '15496': '/.../abagen/data/native_dk/15496/atlas-desikankilliany.nii.gz',
-     '15697': '/.../abagen/data/native_dk/15697/atlas-desikankilliany.nii.gz'}
-    >>> print(atlas['info'])  # doctest: +ELLIPSIS
-    /.../abagen/data/atlas-desikankilliany.csv
+    >>> print(atlas['image'].keys())
+    dict_keys(['9861', '10021', '12876', '14380', '15496', '15697'])
+    >>> print(atlas['image']['9861'])  # doctest: +ELLIPSIS
+    /.../abagen/data/native_dk/9861/atlas-desikankilliany.nii.gz
     """
 
     # grab resource filenames
