@@ -35,6 +35,13 @@ def test_extra_get_expression_data(testfiles, atlas, opts):
     assert out.columns.name == 'gene_symbol'
 
 
+def test_individualized_get_expression_data(testfiles):
+    atlas = allen.datasets.fetch_desikan_killiany(native=True)
+    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
+
+
 def test_get_expression_data_errors(testfiles, atlas):
     # invalid probe_selection method
     with pytest.raises(ValueError):
