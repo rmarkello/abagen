@@ -353,7 +353,6 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     """
 
     # pull relevant info from atlas
-    atlas = utils.check_img(atlas)
     atlas_data = np.asarray(atlas.dataobj)
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
