@@ -1,3 +1,16 @@
+0.0.7 (October 15, 2020)
+========================
+Only two changes—but relatively impactful ones—including the addition of a new
+workflow-style function (``abagen.get_samples_in_mask()``) to get preprocessed
+tissue samples without aggregating in specific brain regions and the ability to
+provide parcellations in donor-native space (rather than MNI space).
+
+Documentation has been updated to reflect all new features!
+
+  * [ENH] Adds handling for donor-specific atlases (#156), @rmarkello
+  * [ENH] Allows users to get microarray samples in mask (#155), @rmarkello
+
+
 0.0.6 (August 17, 2020)
 =======================
 Minor bug fixes, including:
