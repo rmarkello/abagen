@@ -3,6 +3,7 @@
 Tests for abagen.allen module
 """
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import pytest
@@ -30,6 +31,13 @@ def test_extra_get_expression_data(testfiles, atlas, opts):
 
     out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'],
                                     **opts)
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
+
+
+def test_individualized_get_expression_data(testfiles):
+    atlas = allen.datasets.fetch_desikan_killiany(native=True)
+    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
@@ -87,3 +95,39 @@ def test_get_samples_in_mask(testfiles, atlas):
 
     # providing the cortical mask (atlas) should reduce # of samples returned
     assert len(allexp) > len(cortexp)
+
+
+def test_coerce_atlas_to_dict(testfiles, atlas):
+    img, info = atlas['image'], atlas['info']
+    donors = ['12876', '15496']
+
+    # test providing single atlas file
+    atl, inf, same = allen.coerce_atlas_to_dict(img, donors, info)
+    assert same
+    assert sorted(atl.keys()) == sorted(donors)
+    assert isinstance(inf, pd.DataFrame)
+    imgs = list(atl.values())
+    assert all(imgs[0] is a for a in imgs[1:])
+
+    # test providing pre-loaded atlas file
+    atl, inf, same = allen.coerce_atlas_to_dict(nib.load(img), donors, info)
+    assert same
+    assert sorted(atl.keys()) == sorted(donors)
+    assert isinstance(inf, pd.DataFrame)
+    imgs = list(atl.values())
+    assert all(imgs[0] is a for a in imgs[1:])
+
+    # test providing dictionary for atlas
+    atlas_dict = {d: img for d in donors}
+    atl, inf, same = allen.coerce_atlas_to_dict(atlas_dict, donors)
+    assert not same
+    assert sorted(atl.keys()) == sorted(donors)
+    assert inf is None
+    imgs = list(atl.values())
+    assert not any(imgs[0] is a for a in imgs[1:])
+
+    with pytest.raises(ValueError):
+        allen.coerce_atlas_to_dict(atlas_dict, donors + ['9861'])
+
+    with pytest.raises(TypeError):
+        allen.coerce_atlas_to_dict('notanatlas', donors)

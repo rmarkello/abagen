@@ -150,14 +150,18 @@ def check_img(img):
         raise ValueError('Provided image must be 3D')
 
     # check if atlas data is int or castable to int
-    if img.header.get_data_dtype().kind != 'i':
-        data = np.asarray(img.dataobj)
+    # if image is arrayproxy convert it to an array for speed-up
+    data = np.asarray(img.dataobj)
+    cast = nib.is_proxy(img.dataobj)
+    if img.header.get_data_dtype().kind not in ['i', 'u']:
         idata = data.astype('int32')
         cast = np.allclose(idata, data)
+        data = idata
         if not cast:
             raise ValueError('Provided image should have integer values or '
-                             'be safely castable to integer')
-        img = img.__class__(idata, img.affine, header=img.header)
+                             'be safely castable to int without data loss')
+    if cast:
+        img = img.__class__(data, img.affine, header=img.header)
         img.header.set_data_dtype(np.int32)
 
     return img

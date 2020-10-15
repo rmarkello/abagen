@@ -6,7 +6,7 @@ Functions for cleaning and processing the AHBA microarray dataset
 import logging
 from pkg_resources import resource_filename
 
-from nibabel.volumeutils import Recoder
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
@@ -16,7 +16,7 @@ from . import io, utils
 lgr = logging.getLogger('abagen')
 
 # AHBA structure IDs corresponding to different brain parts
-ONTOLOGY = Recoder(
+ONTOLOGY = nib.volumeutils.Recoder(
     (('4008', 'cerebral cortex', 'cortex'),
      ('4275', 'cerebral nuclei', 'subcortex'),
      ('4391', 'diencephalon', 'subcortex'),
@@ -101,6 +101,46 @@ def update_mni_coords(annotation):
 
     mni_coords = coords.loc[annotation.well_id]
     annotation[['mni_x', 'mni_y', 'mni_z']] = np.asarray(mni_coords)
+
+    return annotation
+
+
+def update_coords(annotation, corrected_mni=True, native_space=None):
+    """
+    Updates coordinates in `annotation`
+
+    Parameters
+    ----------
+    annotation : str
+        Annotation file from Allen Brain Institute. Optimally obtained by
+        calling `abagen.fetch_microarray()` and accessing the `annotation`
+        value for one of the returned donors
+    corrected_mni : bool
+        Whether to replace MNI coordinates in `annotation` with coordinates
+        from `alleninf` (uses :func:`update_mni_coords`)
+    native_space : niimg-like
+        Whether to replace MNI coordinates in `annotation` with native-space
+        coordinates; uses `affine` of provided image to convert coordinates
+
+    Returns
+    -------
+    corrected : pandas.DataFrame
+        Annotation data with updated coordinates
+    """
+
+    annotation = io.read_annotation(annotation, copy=True)
+
+    if corrected_mni:
+        annotation = update_mni_coords(annotation)
+
+    if native_space is not None:
+        try:
+            native_space = nib.load(native_space)
+        except TypeError:
+            native_space = native_space
+        affine = native_space.affine
+        ijk = annotation[['mri_voxel_x', 'mri_voxel_y', 'mri_voxel_z']]
+        annotation[['mni_x', 'mni_y', 'mni_z']] = utils.ijk_to_xyz(ijk, affine)
 
     return annotation
 
@@ -313,7 +353,6 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
     """
 
     # pull relevant info from atlas
-    atlas = utils.check_img(atlas)
     atlas_data = np.asarray(atlas.dataobj)
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`

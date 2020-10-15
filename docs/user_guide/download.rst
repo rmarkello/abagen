@@ -68,8 +68,8 @@ microarray dataset. The keys are the donor IDs:
 
 .. doctest::
 
-    >>> print(sorted(files))
-    ['10021', '12876', '14380', '15496', '15697', '9861']
+    >>> print(files.keys())
+    dict_keys(['9861', '10021', '12876', '14380', '15496', '15697'])
 
 And the values for each entry are a sub-dictionary of the downloaded files:
 

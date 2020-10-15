@@ -174,6 +174,12 @@ will return a dense matrix (at the expense of some anatomical precision):
     [83 rows x 15633 columns]
 
 
+.. note::
+
+    Refer to the documentation for :ref:`normalization <usage_norm_matched>`
+    for additional information on how other settings interact with the
+    ``exact`` parameter.
+
 .. _usage_expression_lrmirror:
 
 Duplicating samples with the ``lr_mirror`` parameter

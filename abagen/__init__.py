@@ -3,7 +3,7 @@ __all__ = [
     'io', 'mouse', 'get_expression_data', 'get_samples_in_mask'
     'keep_stable_genes', 'normalize_expression', 'remove_distance',
     'fetch_desikan_killiany', 'fetch_gene_group', 'fetch_microarray',
-    'fetch_raw_mri', 'fetch_rnaseq', 'fetch_freesurfer'
+    'fetch_raw_mri', 'fetch_rnaseq', 'fetch_freesurfer', 'fetch_donor_info'
 ]
 
 from ._version import get_versions
@@ -17,4 +17,4 @@ from .allen import get_expression_data, get_samples_in_mask
 from .correct import keep_stable_genes, normalize_expression, remove_distance
 from .datasets import (fetch_desikan_killiany, fetch_gene_group,
                        fetch_microarray, fetch_raw_mri, fetch_rnaseq,
-                       fetch_freesurfer)
+                       fetch_freesurfer, fetch_donor_info)
