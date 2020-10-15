@@ -130,10 +130,13 @@ License Information
 This codebase is licensed under the `3-clause BSD license`_. The full license
 can be found in the `LICENSE`_ file in the ``abagen`` distribution.
 
-Reannotated gene information located at ``abagen/data/reannotated.csv.gz`` is
-taken from Arnatkevičiūte et al., 2018 and is separately licensed under the `CC
-BY 4.0`_; these data can also be found on `figshare <https://figshare.com/s/
-441295fe494375aa0c13>`__.
+Reannotated gene information located at ``abagen/data/reannotated.csv.gz`` and
+individualized donor parcellations for the Desikan-Killiany atlas located at
+``abagen/data/native_dk`` are taken from Arnatkevičiūte et al., 2018 and are
+separately licensed under the `CC BY 4.0`_; these data can also be found on
+`figshare <https://figshare.com/s/441295fe494375aa0c13>`__. Individualized
+parcellations have been renumbered to match the MNI-space atlas originally
+shipped with ``abagen``.
 
 Corrected MNI coordinates used to match AHBA tissues samples to MNI space
 located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
