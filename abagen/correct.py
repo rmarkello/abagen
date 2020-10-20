@@ -449,7 +449,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     -------
     residualized : (R, R) numpy.ndarray
         Provided `coexpression` data residualized against spatial distance
-         between region pairs
+        between region pairs
     """
 
     # load atlas_info, if provided
