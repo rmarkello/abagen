@@ -38,7 +38,7 @@ parcels or networks), and (2) combined across donors. While this may
 potentially seem trivial, there are a number of analytic choices in these steps
 that can dramatically influence the resulting data and any downstream analyses.
 Arnatkevičiūte et al., 2019 provided a thorough treatment of this in a `recent
-`manuscript <https://www.sciencedirect.com/science/article/pii/
+manuscript <https://www.sciencedirect.com/science/article/pii/
 S1053811919300114>`__, demonstrating how the techniques and code used to
 prepare the raw AHBA data have varied widely across published reports.
 
