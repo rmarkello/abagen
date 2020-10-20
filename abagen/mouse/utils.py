@@ -60,7 +60,7 @@ def _make_api_query(dtype, includes=None, criteria=None, attributes=None,
         url += suffix
 
     if verbose:
-        print("Querying {}...".format(url))
+        print("Querying {}...".format(urllib.parse.unquote_plus(url)))
     response = urlopen(url)
     if response.status != 200:
         raise HTTPError('Failed to query API with code {}: {}'
