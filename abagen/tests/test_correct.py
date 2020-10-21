@@ -21,6 +21,11 @@ def donor_expression(testfiles, atlas):
                                      donors=['12876', '15496'])
 
 
+@pytest.fixture(scope='module')
+def dv():
+    return np.array([1, 2, 3, 4, 5])
+
+
 def test__unpack_tuple():
     assert correct._unpack_tuple((3,)) == 3
     assert correct._unpack_tuple((3, 3)) == (3, 3)
@@ -191,31 +196,35 @@ def test_remove_distance(donor_expression, atlas):
         correct.remove_distance(expr, atlas['image'], atlas['info'])
 
 
-def test_resid_dist():
-    dv = np.array([1, 2, 3, 4, 5])
-    # residualizing against self should yield 0
-    assert np.allclose(correct._resid_dist(dv, iv=dv), 0)
-    # residualizing against perfectly anticorrelated should also yield 0
-    assert np.allclose(correct._resid_dist(dv, iv=dv[::-1]), 0)
-    # residualizing against scaled self should also yield 0 (intercept incl)
-    assert np.allclose(correct._resid_dist(dv, iv=(dv + 10)), 0)
-    # residualizing against constant should yield de-meaned input
-    assert np.allclose(correct._resid_dist(dv, iv=np.ones_like(dv)),
-                       dv - dv.mean())
+@pytest.mark.parametrize("independent, expected", [('dv', '0'), ('dv[::-1]', '0'), ('dv + 10', '0'),
+                                                   ('np.ones_like(dv)', 'dv - dv.mean()')])
+def test_resid_dist(dv, independent, expected):
+    """
+    residualizing against self should yield 0
+    residualizing against perfectly anticorrelated should also yield 0
+    residualizing against scaled self should also yield 0 (intercept incl)
+    residualizing against constant should yield de-meaned input
+    """
+    assert np.allclose(correct._resid_dist(dv, iv=eval(independent)), eval(expected))
 
 
-def test_keep_stable_genes(donor_expression):
-    for thr, per, rank in itertools.product(np.arange(0, 1, 0.1),
-                                            [True, False],
-                                            [True, False]):
-        out = correct.keep_stable_genes(donor_expression, threshold=thr,
-                                        percentile=per, rank=rank)
-        assert all([isinstance(f, pd.DataFrame) for f in out])
-        for df1, df2 in itertools.combinations(out, 2):
-            assert df1.shape == df2.shape
+@pytest.mark.parametrize("thr, per, rank, stab",
+                         list(itertools.product(np.arange(0, 1, 0.1),
+                                                [True, False],
+                                                [True, False],
+                                                [False]
+                                                )
+                              ) + [(0, True, True, True)]
+                         )
+def test_keep_stable_genes(donor_expression, thr, per, rank, stab):
+    out = correct.keep_stable_genes(donor_expression, threshold=thr,
+                                    percentile=per, rank=rank)
+    assert all([isinstance(f, pd.DataFrame) for f in out])
+    for df1, df2 in itertools.combinations(out, 2):
+        assert df1.shape == df2.shape
 
     # check that `return_stability` provides expression and stability
-    out, stab = correct.keep_stable_genes(donor_expression, threshold=0,
-                                          return_stability=True)
-    assert len(stab) == len(out[0].columns)
-    assert np.all(out[0].columns == donor_expression[0].columns)
+    if thr == 0 and stab:
+        out, stab = correct.keep_stable_genes(donor_expression, threshold=thr, return_stability=stab)
+        assert len(stab) == len(out[0].columns)
+        assert np.all(out[0].columns == donor_expression[0].columns)
