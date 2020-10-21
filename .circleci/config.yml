@@ -144,6 +144,16 @@ jobs:
           version: "3.7"
       - rununit:
           env: "py37"
+  unittest_py38:
+    executor: conda_exec
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - gettenv:
+          env: "py38"
+          version: "3.8"
+      - rununit:
+          env: "py38"
   merge_coverage:
     executor: conda_exec
     steps:
@@ -186,7 +196,11 @@ workflows:
       - unittest_py37:
           requires:
             - fetch_ahba
+      - unittest_py38:
+          requires:
+            - fetch_ahba
       - merge_coverage:
           requires:
             - unittest_py36
             - unittest_py37
+            - unittest_py38
