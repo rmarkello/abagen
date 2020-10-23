@@ -8,7 +8,7 @@ jobs:
 - template: .azure-pipelines/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
+    vmImage: windows-latest
     matrix:
       py36-x64:
         PYTHON_VERSION: '3.6'
