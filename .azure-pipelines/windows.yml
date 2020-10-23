@@ -22,7 +22,7 @@ jobs:
         addToPath: true
         architecture: '$(PYTHON_ARCH)'
     - script: |
-        python -m pip install --upgrade pip setuptools>=30.3.0 wheel
+        python -m pip install --upgrade pip setuptools>=30.3.0 wheel certifi
       displayName: 'Update build tools'
     - script: |
         python -m pip install %DEPENDS%
