@@ -196,8 +196,13 @@ def test_remove_distance(donor_expression, atlas):
         correct.remove_distance(expr, atlas['image'], atlas['info'])
 
 
-@pytest.mark.parametrize("independent, expected", [('dv', '0'), ('dv[::-1]', '0'), ('dv + 10', '0'),
-                                                   ('np.ones_like(dv)', 'dv - dv.mean()')])
+@pytest.mark.parametrize("independent, expected", [('dv', '0'),
+                                                   ('dv[::-1]', '0'),
+                                                   ('dv + 10', '0'),
+                                                   ('np.ones_like(dv)',
+                                                    'dv - dv.mean()')
+                                                   ]
+                         )
 def test_resid_dist(dv, independent, expected):
     """
     residualizing against self should yield 0
@@ -205,7 +210,8 @@ def test_resid_dist(dv, independent, expected):
     residualizing against scaled self should also yield 0 (intercept incl)
     residualizing against constant should yield de-meaned input
     """
-    assert np.allclose(correct._resid_dist(dv, iv=eval(independent)), eval(expected))
+    assert np.allclose(correct._resid_dist(dv, iv=eval(independent)),
+                       eval(expected))
 
 
 @pytest.mark.parametrize("thr, per, rank, stab",
@@ -225,6 +231,8 @@ def test_keep_stable_genes(donor_expression, thr, per, rank, stab):
 
     # check that `return_stability` provides expression and stability
     if thr == 0 and stab:
-        out, stab = correct.keep_stable_genes(donor_expression, threshold=thr, return_stability=stab)
+        out, stab = correct.keep_stable_genes(donor_expression,
+                                              threshold=thr,
+                                              return_stability=stab)
         assert len(stab) == len(out[0].columns)
         assert np.all(out[0].columns == donor_expression[0].columns)
