@@ -131,7 +131,7 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
                                  structure_name=['subiculum, left',
                                                  'claustrum, right',
                                                  'central canal']),
-                            index=[0, 2, 4])
+                            index=pd.Series([0, 2, 4], name='sample_id'))
 
     # do we get what we expect? (ignore ordering of columns / index)
     out = samples_.drop_mismatch_samples(mm_annotation, ontology)
@@ -164,7 +164,7 @@ def test_mirror_samples(annotation, ontology):
                                              'central canal',
                                              'subiculum, right',
                                              'claustrum, left']),
-                        index=[0, 1, 2, 0, 1])
+                        index=pd.Series([0, 1, 2, 0, 1], name='sample_id'))
 
     # but let's confirm all the outputs are as-expected
     a = samples_.mirror_samples(annotation, ontology)
