@@ -95,7 +95,7 @@ def read_microarray(fname, copy=False, parquet=True):
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except (AttributeError, ValueError):
+    except (AttributeError, ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Microarray'
                             'Expression.csv file from Allen Human Brain '
@@ -136,7 +136,7 @@ def read_ontology(fname, copy=False):
 
     try:
         data = pd.read_csv(fname)
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Ontology.csv '
                             'file from Allen Human Brain Atlas.')
@@ -195,7 +195,7 @@ def read_pacall(fname, copy=False, parquet=True):
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except (AttributeError, ValueError):
+    except (AttributeError, ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to PACall.csv '
                             'file from Allen Human Brain Atlas.')
@@ -234,7 +234,7 @@ def read_probes(fname, copy=False):
 
     try:
         data = pd.read_csv(fname, index_col=0)
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Probes.csv '
                             'file from Allen Human Brain Atlas.')
@@ -295,7 +295,7 @@ def read_annotation(fname, copy=False):
     try:
         data = pd.read_csv(fname)
         data.index.name = 'sample_id'
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Annotation'
                             '.csv file from Allen Human Brain Atlas.')
@@ -337,7 +337,7 @@ def read_tpm(fname, copy=False):
         data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'gene_symbol'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to RNAseqTPM'
                             '.csv file from Allen Human Brain Atlas.')
@@ -378,7 +378,7 @@ def read_counts(fname, copy=False):
         data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'gene_symbol'
         data.columns = pd.Series(range(len(data.columns)), name='sample_id')
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to RNAseqCounts'
                             '.csv file from Allen Human Brain Atlas.')
@@ -416,7 +416,7 @@ def read_genes(fname, copy=False):
 
     try:
         data = pd.read_csv(fname, index_col=0)
-    except ValueError:
+    except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Annotation'
                             '.csv file from Allen Human Brain Atlas.')

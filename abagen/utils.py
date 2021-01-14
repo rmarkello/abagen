@@ -209,10 +209,11 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
     expected_cols = ['hemisphere', 'structure']
 
     # load info, if not already
-    try:
-        atlas_info = pd.read_csv(atlas_info)
-    except ValueError:
-        pass
+    if not isinstance(atlas_info, pd.DataFrame):
+        try:
+            atlas_info = pd.read_csv(atlas_info)
+        except (ValueError, TypeError):
+            pass
 
     try:
         atlas_info = atlas_info.copy()
