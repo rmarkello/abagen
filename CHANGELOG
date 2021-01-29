@@ -1,3 +1,19 @@
+0.0.8 (January 29, 2021)
+========================
+
+Largely internal codebase changes, but an important bug fix for compatibility
+with newer versions of ``pandas``.
+
+Huge thanks to @4lovi4 for all their contributions!
+
+  * [FIX] Read_csv error when using pandas >= 1.2.0 (#167), @rmarkello
+  * [TEST] Change Azure VM image to fix SSL (#165), @rmarkello
+  * Adds Python 3.8 testing support to CircleCI (#163), @4lovi4
+  * issue #73 unquote url (#162), @4lovi4
+  * issue #80 doc string fix (#161), @4lovi4
+  * issue #139 readme fix (#160), @4lovi4
+
+
 0.0.7 (October 15, 2020)
 ========================
 Only two changes—but relatively impactful ones—including the addition of a new
