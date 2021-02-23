@@ -25,19 +25,6 @@ def test_first_entry():
     assert False
 
 
-def test_leftify_atlas(atlas):
-    out = utils.leftify_atlas(atlas['image'])
-    assert len(np.unique(out.dataobj)) == 44
-    assert np.all(np.asarray(out.dataobj)[98:] == 0)
-
-
-def test_check_img(atlas):
-    # some really basic, silly checks
-    out = utils.check_img(atlas['image'])
-    assert out.header.get_data_dtype() == np.dtype('int32')
-    assert len(out.shape) == 3
-
-
 def test_check_atlas_info(atlas):
     # general usage (providing two filenames) works as expected
     out = utils.check_atlas_info(atlas['image'], atlas['info'])
@@ -114,47 +101,4 @@ def test_check_metric(metric, check, confirm, kwargs):
 
 @pytest.mark.xfail
 def test_efficient_corr():
-    assert False
-
-
-@pytest.mark.xfail
-def test_get_unique_labels():
-    assert False
-
-
-@pytest.mark.xfail
-def test_get_centroids():
-    assert False
-
-
-@pytest.mark.xfail
-def test_closest_centroid():
-    assert False
-
-
-@pytest.mark.parametrize('ijk, xyz', [
-    ([0, 0, 0],
-     np.array([[-90, -150, -80]])),
-    ([[10, 10, 10], [100, 50, 100]],
-     np.array([[-80, -140, -70], [10, -100, 20]])),
-    ([[54, 32, 20], [82, 205, 38], [32, 51, 82]],
-     np.array([[-36, -118, -60], [-8, 55, -42], [-58, -99, 2]])),
-])
-def test_coords_transform(ijk, xyz):
-    affine = np.array([[1, 0, 0, -90],
-                       [0, 1, 0, -150],
-                       [0, 0, 1, -80],
-                       [0, 0, 0, 1]])
-
-    assert np.all(utils.xyz_to_ijk(xyz, affine) == ijk)
-    assert np.all(utils.ijk_to_xyz(ijk, affine) == xyz)
-
-    with pytest.raises(ValueError):
-        utils.xyz_to_ijk([[10, 10], [20, 30]], affine)
-    with pytest.raises(ValueError):
-        utils.ijk_to_xyz([[10, 10], [20, 30]], affine)
-
-
-@pytest.mark.xfail
-def test_expand_roi():
     assert False
