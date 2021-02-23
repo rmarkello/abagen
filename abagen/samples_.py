@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from . import io, utils
+from . import images, io, transforms, utils
 
 lgr = logging.getLogger('abagen')
 
@@ -140,7 +140,8 @@ def update_coords(annotation, corrected_mni=True, native_space=None):
             native_space = native_space
         affine = native_space.affine
         ijk = annotation[['mri_voxel_x', 'mri_voxel_y', 'mri_voxel_z']]
-        annotation[['mni_x', 'mni_y', 'mni_z']] = utils.ijk_to_xyz(ijk, affine)
+        annotation[['mni_x', 'mni_y', 'mni_z']] = \
+            transforms.ijk_to_xyz(ijk, affine)
 
     return annotation
 
@@ -357,7 +358,7 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
 
     # expand provided coordinates to include those w/i `tolerance` of `coords`
     # set a hard euclidean distance limit to account for different voxel sizes
-    coords = utils.expand_roi(sample, dilation=tolerance, return_array=True)
+    coords = images.expand_roi(sample, dilation=tolerance, return_array=True)
     coords = coords[cdist(sample, coords).squeeze() < tolerance]
 
     # grab non-zero labels for expanded coordinates
@@ -389,8 +390,8 @@ def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
 
     # if two or more parcels tied for neighboring frequency, use ROI
     # with closest centroid to `coords`
-    centroids = utils.get_centroids(atlas, labels)
-    return labels[utils.closest_centroid(sample, centroids)]
+    centroids = images.get_centroids(atlas, labels)
+    return labels[images.closest_centroid(sample, centroids)]
 
 
 def _check_label(label, sample_info, atlas_info):
@@ -474,7 +475,7 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
 
     # get annotation and atlas data
     annotation = io.read_annotation(annotation)
-    atlas = utils.check_img(atlas)
+    atlas = images.check_img(atlas)
     label_data, affine = np.asarray(atlas.dataobj), atlas.affine
 
     # load atlas_info, if provided
@@ -482,7 +483,8 @@ def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
         atlas_info = utils.check_atlas_info(atlas, atlas_info)
 
     # get ijk coordinates for microarray samples and find labels
-    g_ijk = utils.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']], affine)
+    g_ijk = transforms.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
+                                  affine)
     labelled = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
 
     # if sample coordinates aren't directly inside a parcel, increment radius

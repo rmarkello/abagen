@@ -9,7 +9,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from . import correct, datasets, io, probes_, samples_, utils
+from . import correct, datasets, images, io, probes_, samples_, utils
 from .utils import first_entry, flatten_dict
 
 import logging
@@ -334,7 +334,7 @@ def get_expression_data(atlas,
                               verbose=verbose)
 
     # get some info on labels in `atlas_img`
-    all_labels = utils.get_unique_labels(utils.first_entry(atlas))
+    all_labels = images.get_unique_labels(utils.first_entry(atlas))
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
         lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
@@ -342,7 +342,7 @@ def get_expression_data(atlas,
     if not exact and same:
         lgr.info(f'Pre-calculating centroids for {len(all_labels)} regions in '
                  'provided atlas')
-        centroids = utils.get_centroids(utils.first_entry(atlas),
+        centroids = images.get_centroids(utils.first_entry(atlas),
                                         labels=all_labels,
                                         image_space=True)
 
@@ -429,13 +429,14 @@ def get_expression_data(atlas,
         # parcel; we'll use this once we've iterated through all donors
         if not exact:
             if not same:
-                centroids = utils.get_centroids(atlas[subj], labels=all_labels,
-                                                image_space=True)
+                centroids = images.get_centroids(atlas[subj],
+                                                 labels=all_labels,
+                                                 image_space=True)
             empty = np.logical_not(np.in1d(all_labels, labs))
             cols = ['mni_x', 'mni_y', 'mni_z']
-            idx, dist = utils.closest_centroid(annotation[subj][cols],
-                                               centroids[empty],
-                                               return_dist=True)
+            idx, dist = images.closest_centroid(annotation[subj][cols],
+                                                centroids[empty],
+                                                return_dist=True)
             if not hasattr(idx, '__len__'):  # TODO: better way to check this?
                 idx, dist = np.array([idx]), np.array([dist])
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
@@ -504,7 +505,7 @@ def get_samples_in_mask(mask=None, **kwargs):
         `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
         ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
         used instead as a modified binary image. If both `atlas` and `mask` are
-        supplied then `mask` will be usedin
+        supplied then `mask` will be used
 
     Returns
     -------
@@ -612,8 +613,8 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
     # FIXME: so that we're not depending on type checks so much :grimacing:
     if isinstance(atlas, dict):
         atlas = {
-            datasets.WELL_KNOWN_IDS.subj[d]: utils.check_img(a)
-            for d, a in atlas.items()
+            datasets.WELL_KNOWN_IDS.subj[donor]: images.check_img(atl)
+            for donor, atl in atlas.items()
         }
         same = False
         missing = set(donors) - set(atlas)
@@ -623,7 +624,7 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
         lgr.info('Donor-specific atlases provided; using native MRI '
                  'coordinates for tissue samples')
     else:
-        atlas = utils.check_img(atlas)
+        atlas = images.check_img(atlas)
         atlas = {donor: atlas for donor in donors}
         lgr.info('Group-level atlas provided; using MNI coordinates for '
                  'tissue samples')
