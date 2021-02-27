@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 from abagen import allen
-from abagen.utils import check_img
+from abagen.images import check_img
 
 
 def test_vanilla_get_expression_data(testfiles, atlas):
@@ -102,29 +102,29 @@ def test_coerce_atlas_to_dict(testfiles, atlas):
     donors = ['12876', '15496']
 
     # test providing single atlas file
-    atl, inf, same = allen.coerce_atlas_to_dict(img, donors, info)
+    atl, same = allen.coerce_atlas_to_dict(img, donors, info)
     assert same
     assert sorted(atl.keys()) == sorted(donors)
-    assert isinstance(inf, pd.DataFrame)
     imgs = list(atl.values())
     assert all(imgs[0] is a for a in imgs[1:])
+    assert isinstance(imgs[0].atlas_info, pd.DataFrame)
 
     # test providing pre-loaded atlas file
-    atl, inf, same = allen.coerce_atlas_to_dict(nib.load(img), donors, info)
+    atl, same = allen.coerce_atlas_to_dict(nib.load(img), donors, info)
     assert same
     assert sorted(atl.keys()) == sorted(donors)
-    assert isinstance(inf, pd.DataFrame)
     imgs = list(atl.values())
     assert all(imgs[0] is a for a in imgs[1:])
+    assert isinstance(imgs[0].atlas_info, pd.DataFrame)
 
     # test providing dictionary for atlas
     atlas_dict = {d: img for d in donors}
-    atl, inf, same = allen.coerce_atlas_to_dict(atlas_dict, donors)
+    atl, same = allen.coerce_atlas_to_dict(atlas_dict, donors)
     assert not same
     assert sorted(atl.keys()) == sorted(donors)
-    assert inf is None
     imgs = list(atl.values())
     assert not any(imgs[0] is a for a in imgs[1:])
+    assert imgs[0].atlas_info is None
 
     with pytest.raises(ValueError):
         allen.coerce_atlas_to_dict(atlas_dict, donors + ['9861'])
