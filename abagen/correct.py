@@ -453,9 +453,9 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     """
 
     # load atlas_info, if provided
-    atlas = images.check_img(atlas)
+    atlas = images.check_atlas(atlas)
     if atlas_info is not None:
-        atlas_info = utils.check_atlas_info(atlas, atlas_info, labels=labels)
+        atlas_info = images.check_atlas_info(atlas, atlas_info, labels=labels)
         if labels is not None and len(labels) != len(coexpression):
             raise ValueError(f'Provided labels {labels} are a different '
                              'length than provided coexpression matrix of '
@@ -468,7 +468,9 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
 
     # we'll do basic Euclidean distance correction for now
     # TODO: implement gray matter volume / cortical surface path distance
-    centroids = images.get_centroids(atlas, labels=labels)
+    if labels is None:
+        labels = atlas.labels
+    centroids = np.row_stack([atlas.centroids[lab] for lab in labels])
     dist = cdist(centroids, centroids, metric='euclidean')
 
     corr_resid = np.zeros_like(coexpression)

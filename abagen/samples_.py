@@ -9,24 +9,23 @@ from pkg_resources import resource_filename
 import nibabel as nib
 import numpy as np
 import pandas as pd
-from scipy.spatial.distance import cdist
 
-from . import images, io, transforms, utils
+from . import io, transforms, utils
 
 lgr = logging.getLogger('abagen')
 
 # AHBA structure IDs corresponding to different brain parts
 ONTOLOGY = nib.volumeutils.Recoder(
     (('4008', 'cerebral cortex', 'cortex'),
-     ('4275', 'cerebral nuclei', 'subcortex'),
-     ('4391', 'diencephalon', 'subcortex'),
-     ('9001', 'mesencephalon', 'subcortex'),
+     ('4249', 'hippocampal formation', 'subcortex/brainstem'),
+     ('4275', 'cerebral nuclei', 'subcortex/brainstem'),
+     ('4391', 'diencephalon', 'subcortex/brainstem'),
      ('4696', 'cerebellum', 'cerebellum'),
-     ('9131', 'pons', 'brainstem'),
-     ('9512', 'myelencephalon', 'brainstem'),
+     ('9001', 'mesencephalon', 'subcortex/brainstem'),
+     ('9131', 'pons', 'subcortex/brainstem'),
      ('9218', 'white matter', 'white matter'),
      ('9352', 'sulci & spaces', 'other'),
-     ('4219', 'hippocampal formation', 'subcortex')),
+     ('9512', 'myelencephalon', 'subcortex/brainstem')),
     fields=('id', 'name', 'structure')
 )
 
@@ -321,187 +320,6 @@ def mirror_samples(annotation, ontology):
     annotation = pd.concat([annotation, lh, rh])
 
     return annotation
-
-
-def _assign_sample(sample, atlas, sample_info=None, atlas_info=None,
-                   tolerance=2):
-    """
-    Determines which parcel `sample` belongs to in `atlas`
-
-    Parameters
-    ----------
-    sample : (1, 3) array_like
-        Coordinates (ijk) of microarray sample in `atlas` space
-    atlas : niimg-like object
-        ROI image, where each ROI should be identified with a unique
-        integer ID
-    sample_info : pandas.DataFrame
-        A single row of an `annotation` file, corresponding to the given sample
-    atlas_info : pandas.DataFrame,
-        Dataframe containing information about the specified `atlas`. Must have
-        _at least_ columns 'id', 'hemisphere', and 'structure' containing
-        information mapping atlas IDs to hemisphere and broad structural class
-        (i.e., "cortex", "subcortex", "cerebellum"). Default: None
-    tolerance : int, optional
-        Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. This is only considered if the sample is not
-        directly within a parcel. Default: 2
-
-    Returns
-    -------
-    label : int
-        Parcel label of `sample`
-    """
-
-    # pull relevant info from atlas
-    atlas_data = np.asarray(atlas.dataobj)
-
-    # expand provided coordinates to include those w/i `tolerance` of `coords`
-    # set a hard euclidean distance limit to account for different voxel sizes
-    coords = images.expand_roi(sample, dilation=tolerance, return_array=True)
-    coords = coords[cdist(sample, coords).squeeze() < tolerance]
-
-    # grab non-zero labels for expanded coordinates
-    possible_labels = atlas_data[coords[:, 0], coords[:, 1], coords[:, 2]]
-    nz_labels = possible_labels[possible_labels.nonzero()]
-    labels, counts = np.unique(nz_labels, return_counts=True)
-
-    # if atlas_info and sample_info are provided, drop potential labels who
-    # don't match hemisphere or structural class defined in `sample_info`
-    if atlas_info is not None and sample_info is not None:
-        for old_label in labels:
-            new_label = _check_label(old_label, sample_info, atlas_info)
-            if old_label != new_label:
-                nz_labels[nz_labels == old_label] = new_label
-        labels, counts = np.unique(nz_labels[nz_labels.nonzero()],
-                                   return_counts=True)
-
-    # if there is still nothing in the vicinity, return 0
-    if labels.size == 0:
-        return 0
-    # if there is only one ROI in the vicinity, use that
-    elif labels.size == 1:
-        return labels[0]
-
-    # if more than one ROI in the vicinity, return the most frequent
-    indmax, = np.where(counts == counts.max())
-    if indmax.size == 1:
-        return labels[indmax[0]]
-
-    # if two or more parcels tied for neighboring frequency, use ROI
-    # with closest centroid to `coords`
-    centroids = images.get_centroids(atlas, labels)
-    return labels[images.closest_centroid(sample, centroids)]
-
-
-def _check_label(label, sample_info, atlas_info):
-    """
-    Checks that `label` defined by `sample_info` is coherent with `atlas_info`
-
-    Parameters
-    ----------
-    label : int
-        Tenative label for sample described by `sample_info`
-    sample_info : pandas.DataFrame
-        A single row of an `annotation` file, corresponding to the given sample
-    atlas_info : pandas.DataFrame,
-        Dataframe containing information about the atlas of interest. Must have
-        _at least_ columns 'id', 'hemisphere', and 'structure' containing
-        information mapping atlas IDs to hemisphere and broad structural class
-        (i.e., "cortex", "subcortex", "cerebellum"). Default: None
-
-    Returns
-    -------
-    label : int
-        New label for sample
-    """
-
-    cols = ['hemisphere', 'structure']
-
-    if label != 0:
-        sample_info = sample_info[cols]
-        atlas_info = atlas_info.loc[label, cols]
-        if not np.all(np.asarray(sample_info) == np.asarray(atlas_info)):
-            label = 0
-
-    return label
-
-
-def label_samples(annotation, atlas, atlas_info=None, tolerance=2):
-    """
-    Matches all microarray samples in `annotation` to parcels in `atlas`
-
-    Attempts to place each sample provided in `annotation` into a parcel in
-    `atlas`, where the latter is a 3D niimg-like object that contains parcels
-    each idnetified by a unique integer ID.
-
-    The function tries to best match samples in `annotation` to parcels defined
-    in `atlas` by:
-
-        1. Determining if the sample falls directly within a parcel,
-        2. Checking to see if there are nearby parcels by slowly expanding the
-           search space to include nearby voxels, up to a specified distance
-           (specified via the `tolerance` parameter),
-        3. Assigning the sample to the closest parcel if there are multiple
-           nearby parcels, where closest is determined by the parcel centroid.
-
-    If at any step a sample can be assigned to a parcel the matching process is
-    terminated. If there is still no parcel for a given sample after this
-    process the sample is provided a label of 0.
-
-    Parameters
-    ----------
-    annotation : (S, 13) pandas.DataFrame
-        Pre-loaded annotation information for a given AHBA donor
-    atlas : niimg-like object
-        A parcellation image in MNI space, where each parcel is identified by a
-        unique integer ID
-    atlas_info : pandas.DataFrame, optional
-        Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must have *at least* columns 'id', 'hemisphere', and
-        'structure' containing information mapping atlas IDs to hemisphere and
-        broad structural class (i.e., "cortex", "subcortex", "cerebellum").
-        Default: None
-    tolerance : int, optional
-        Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. This is only considered if the sample is not
-        directly within a parcel. Default: 2
-
-    Returns
-    -------
-    labels : (S, 1) pandas.DataFrame
-        Dataframe with parcel labels for each of `S` samples
-    """
-
-    # get annotation and atlas data
-    annotation = io.read_annotation(annotation)
-    atlas = images.check_img(atlas)
-    label_data, affine = np.asarray(atlas.dataobj), atlas.affine
-
-    # load atlas_info, if provided
-    if atlas_info is not None:
-        atlas_info = utils.check_atlas_info(atlas, atlas_info)
-
-    # get ijk coordinates for microarray samples and find labels
-    g_ijk = transforms.xyz_to_ijk(annotation[['mni_x', 'mni_y', 'mni_z']],
-                                  affine)
-    labelled = label_data[g_ijk[:, 0], g_ijk[:, 1], g_ijk[:, 2]]
-
-    # if sample coordinates aren't directly inside a parcel, increment radius
-    # around sample up to `tolerance` to try and find nearby parcels.
-    # if still no parcel, then ignore this sample
-    for idx in np.where(labelled == 0)[0]:
-        label, tol = labelled[idx], 1
-        while label == 0 and tol <= tolerance:
-            label = _assign_sample(g_ijk[[idx]], atlas,
-                                   sample_info=annotation.iloc[idx],
-                                   atlas_info=atlas_info,
-                                   tolerance=tol)
-            tol += 1
-        labelled[idx] = label
-
-    return pd.DataFrame(labelled, dtype=int,
-                        columns=['label'], index=annotation.index)
 
 
 def groupby_index(microarray, labels=None, metric='mean'):

@@ -3,10 +3,13 @@
 Functions for downloading the Allen Brain Atlas human microarray dataset.
 """
 
+from collections import namedtuple
+import gzip
 import multiprocessing as mp
 import os
 from pkg_resources import resource_filename
 
+import nibabel as nib
 from nibabel.volumeutils import Recoder
 import pandas as pd
 
@@ -437,3 +440,27 @@ def fetch_donor_info():
     donors = pd.read_csv(fn)
 
     return donors
+
+
+def fetch_fsaverage5():
+    """
+    Fetches and load fsaverage5 surface
+
+    Returns
+    -------
+    brain : namedtuple ('lh', 'rh')
+        Where each entry in the tuple is a hemisphere, represented as a
+        namedtuple with fields ('vertices', 'faces')
+    """
+
+    Brain = namedtuple('Brain', ('lh', 'rh'))
+    Surface = namedtuple('Surface', ('vertices', 'faces'))
+
+    hemispheres = []
+    for hemi in ('lh', 'rh'):
+        fn = resource_filename('abagen', f'data/pial.{hemi}.surf.gii.gz')
+        with gzip.GzipFile(fn) as gz:
+            img = nib.GiftiImage.from_bytes(gz.read())
+        hemispheres.append(Surface(*img.agg_data()))
+
+    return Brain(*hemispheres)

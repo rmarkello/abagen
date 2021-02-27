@@ -2,10 +2,7 @@
 
 import numpy as np
 import pandas as pd
-
 from scipy.stats import zscore
-
-from .images import check_img, get_unique_labels
 
 AGG_FUNCS = dict(
     mean=np.mean,
@@ -87,97 +84,6 @@ def first_entry(dictionary, subkey=None):
     return entry
 
 
-def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
-    """
-    Checks whether provided `info` on `atlas` is sufficient for processing
-
-    Parameters
-    ----------
-    atlas : niimg-like object
-        Parcellation image, where voxels belonging to a given parcel should be
-        identified with a unique integer ID
-    atlas_info : str or pandas.DataFrame
-        Filepath or dataframe containing information about `atlas`. Must have
-        at least columns 'id', 'hemisphere', and 'structure' containing
-        information mapping atlas IDs to hemisphere (i.e., "L" or "R") and
-        broad structural class (i.e.., "cortex", "subcortex", "cerebellum",
-        "brainstem", "white matter", or "other").
-    labels : array_like, optional
-        List of values containing labels to compare between `atlas` and
-        `atlas_info`, if they don't all match. If not specified this function
-        will attempt to confirm that all IDs present in `atlas` have entries in
-        `atlas_info` and vice versa. Default: None
-    validate : bool, optional
-        Whether to only validate (True) the provided `atlas` and `atlas_info`
-        instead of returning (False) the validated dataframe. Default: False
-
-    Returns
-    -------
-    atlas_info : pandas.DataFrame
-        Loaded dataframe with information on atlas
-    """
-
-    from .samples_ import ONTOLOGY  # avoid circular imports
-
-    atlas = check_img(atlas)
-    ids = get_unique_labels(atlas) if labels is None else labels
-    valid_structures = list(ONTOLOGY.value_set('structure'))
-    hemi_swap = {
-        'lh': 'L', 'LH': 'L', 'l': 'L',
-        'rh': 'R', 'RH': 'R', 'r': 'R'
-    }
-    expected_cols = ['hemisphere', 'structure']
-
-    # load info, if not already
-    if not isinstance(atlas_info, pd.DataFrame):
-        try:
-            atlas_info = pd.read_csv(atlas_info)
-        except (ValueError, TypeError):
-            pass
-
-    try:
-        atlas_info = atlas_info.copy()
-        if 'id' in atlas_info.columns:
-            atlas_info = atlas_info.set_index('id')
-    except AttributeError:
-        raise TypeError('Provided atlas_info must be a filepath or pandas.'
-                        'DataFrame. Please confirm inputs and try again.')
-
-    try:
-        assert all(c in atlas_info.columns for c in expected_cols)
-        assert 'id' == atlas_info.index.name
-        assert len(np.setdiff1d(ids, atlas_info.index)) == 0
-    except AssertionError:
-        raise ValueError('Provided atlas_info does not have adequate '
-                         'information on supplied atlas. Please confirm '
-                         'that atlas_info has columns [\'id\', '
-                         '\'hemisphere\', \'structure\'], and that the region '
-                         'IDs listed in atlas_info account for all those '
-                         'found in atlas.')
-
-    try:
-        atlas_info['hemisphere'] = atlas_info['hemisphere'].replace(hemi_swap)
-        hemi_diff = np.setdiff1d(atlas_info['hemisphere'], ['L', 'R'])
-        assert len(hemi_diff) == 0
-    except AssertionError:
-        raise ValueError('Provided atlas_info has invalid values in the'
-                         '\'hemisphere\' column. Only the following values '
-                         'are allowed: {}. Invalid value(s): {}'
-                         .format(['L', 'R'], hemi_diff))
-
-    try:
-        struct_diff = np.setdiff1d(atlas_info['structure'], valid_structures)
-        assert len(struct_diff) == 0
-    except AssertionError:
-        raise ValueError('Provided atlas_info has invalid values in the'
-                         '\'structure\' column. Only the following values are '
-                         'allowed: {}. Invalid value(s): {}'
-                         .format(valid_structures, struct_diff))
-
-    if not validate:
-        return atlas_info
-
-
 def check_metric(metric):
     """
     Confirms `metric` is a valid aggregation metric
@@ -234,3 +140,37 @@ def efficient_corr(x, y):
     corr = np.sum(zscore(x, ddof=1) * zscore(y, ddof=1), axis=0) / (len(x) - 1)
 
     return corr
+
+
+def labeltable_to_df(labels):
+    """
+    Converts GIFTI label table dictionaries to uniform pandas.DataFrame
+
+    Parameters
+    ----------
+    labels : (2,) tuple of dict
+        Where dictionaries have parcel IDs as keys and parcel labels as values
+
+    Returns
+    -------
+    info : pandas.DataFrame or None
+        If provided `labels` are not empty, returns a dataframe with info about
+        corresponding atlas. Dataframe will have columns ['id', 'label',
+        'hemisphere', 'structure'] containing information mapping atlas IDs to
+        hemisphere (i.e., "L" or "R") and structure (i.e., "cortex")
+    """
+
+    info = pd.DataFrame(columns=['id', 'label', 'hemisphere', 'structure'])
+    for table, hemi in zip(labels, ('L', 'R')):
+        if len(table) == 0:
+            continue
+        ids, label = zip(*table.items())
+        info = info.append(
+            pd.DataFrame(
+                dict(id=ids, label=label, hemisphere=hemi, structure='cortex')
+            ), ignore_index=True
+        )
+    info = info.set_index('id')
+
+    if len(info) != 0:
+        return info

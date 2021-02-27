@@ -13,6 +13,9 @@ from .datasets import fetch_freesurfer, fetch_raw_mri
 MNI152TO305 = np.array([[1.0022, 0.0071, -0.0177, 0.0528],
                         [-0.0146, 0.9990, 0.0027, -1.5519],
                         [0.0129, 0.0094, 1.0027, -1.2012]])
+MNI305TO152 = np.array([[0.9975, -0.0073, 0.0176, -0.0429],
+                        [0.0146, 1.0009, -0.0024, 1.5496],
+                        [-0.0130, -0.0093, 0.9971, 1.1840]])
 
 
 def ijk_to_fsnative(ijk, donor, data_dir=None):
@@ -70,35 +73,30 @@ def mni152_to_fsaverage(xyz):
     Returns
     -------
     ras : (N, 3) np.ndarray
-        RAS (MNI305) coordinates
+        fsaverage (MNI305) coordinates
     """
 
     xyz = np.asarray(xyz)
     return np.c_[xyz, np.ones(len(xyz))] @ MNI152TO305.T
 
 
-def _check_coord_inputs(coords):
+def fsaverage_to_mni152(xyz):
     """
-    Confirms `coords` are appropriate shape for coordinate transform
+    Converts fsaverage RAS (MNI305) `xyz` coordinates to MNI152 coordinates
 
     Parameters
     ----------
-    coords : array-like
+    xyz : (N, 3) array_like
+        fsaverage (MNI305) coordinates
 
     Returns
     -------
-    coords : (3, N) np.ndarray
+    ras : (N, 3) np.ndarray
+        MNI152 coordinates
     """
 
-    coords = np.atleast_2d(coords).T
-    if 3 not in coords.shape:
-        raise ValueError('Input coordinates must be of shape (3 x N). '
-                         'Provided coordinate shape: {}'.format(coords.shape))
-    if coords.shape[0] != 3:
-        coords = coords.T
-    # add constant term to coords to make 4 x N
-    coords = np.row_stack([coords, np.ones_like(coords[0])])
-    return coords
+    xyz = np.asarray(xyz)
+    return np.c_[xyz, np.ones(len(xyz))] @ MNI305TO152.T
 
 
 def ijk_to_xyz(coords, affine):

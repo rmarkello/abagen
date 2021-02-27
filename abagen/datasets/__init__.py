@@ -6,10 +6,10 @@ dataset
 __all__ = [
     'fetch_microarray', 'fetch_raw_mri', 'fetch_desikan_killiany',
     'fetch_gene_group', 'fetch_rnaseq', 'fetch_donor_info', 'fetch_freesurfer',
-    'WELL_KNOWN_IDS', '_get_dataset_dir'
+    'fetch_fsaverage5', 'WELL_KNOWN_IDS', '_get_dataset_dir'
 ]
 
 from .fetchers import (fetch_microarray, fetch_raw_mri, fetch_desikan_killiany,
                        fetch_gene_group, fetch_rnaseq, fetch_donor_info,
-                       fetch_freesurfer, WELL_KNOWN_IDS)
+                       fetch_freesurfer, fetch_fsaverage5, WELL_KNOWN_IDS)
 from .utils import _get_dataset_dir
