@@ -74,13 +74,13 @@ def annotation(mm_annotation):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def test_update_mni_coords():
+def test_update_coords():
     # xyz coordinates are getting replaced so who cares about the original
     # but ids are important and need to be real!
     x = y = z = [-10, 20, 30, 40]
     ids = [594, 2985, 1058, 1145]
     annotation = pd.DataFrame(dict(mni_x=x, mni_y=y, mni_z=z, well_id=ids))
-    out = samples_.update_mni_coords(annotation)
+    out = samples_.update_coords(annotation, corrected_mni=True)
 
     # confirm that no samples were lost / reordered during the update process
     # and that we still have all our columns
@@ -258,9 +258,13 @@ def test_aggregate_samples():
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def test_update_mni_coords_real(testfiles):
-    for annotation in flatten_dict(testfiles, 'annotation').values():
-        samples_.update_mni_coords(annotation)
+@pytest.mark.parametrize('mni, ns', [
+    (True, True), (False, True), (True, False)
+])
+def test_update_mni_coords_real(testfiles, rawmri, mni, ns):
+    for donor, annotation in flatten_dict(testfiles, 'annotation').items():
+        ns = rawmri[donor]['t1w'] if ns else None
+        samples_.update_coords(annotation, corrected_mni=mni, native_space=ns)
 
 
 def test_drop_mismatch_samples_real(testfiles):

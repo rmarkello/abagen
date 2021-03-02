@@ -3,11 +3,15 @@
 Tests for abagen.images module
 """
 
+import gzip
+
+import nibabel as nib
 import numpy as np
 import pandas as pd
 import pytest
 
 from abagen import images
+from abagen.matching import AtlasTree
 
 
 def test_leftify_atlas(atlas):
@@ -16,11 +20,82 @@ def test_leftify_atlas(atlas):
     assert np.all(np.asarray(out.dataobj)[98:] == 0)
 
 
+@pytest.mark.xfail
+def test_relabel_gifti():
+    assert False
+
+
+@pytest.mark.xfail
+def test_annot_to_gifti():
+    assert False
+
+
 def test_check_img(atlas):
     # some really basic, silly checks
     out = images.check_img(atlas['image'])
     assert out.header.get_data_dtype() == np.dtype('int32')
     assert len(out.shape) == 3
+
+    with pytest.raises(TypeError):
+        images.check_img('doesnotexist.nii.gz')
+
+    with pytest.raises(ValueError):
+        images.check_img(nib.Nifti1Image(np.zeros((5, 5, 5, 2)), np.eye(4)))
+
+
+def test_check_surface(surface):
+    surface = surface['image']
+    # default; load images
+    atlas, info = images.check_surface(surface)
+    assert atlas.shape == (20484,)
+    assert isinstance(info, pd.DataFrame)
+    assert info.shape == (68, 3)
+    assert all(info.columns == ['label', 'hemisphere', 'structure'])
+    assert info.index.name == 'id'
+    assert all(info['structure'] == 'cortex')
+
+    # load pre-loaded images
+    imgs = []
+    for hemi in surface:
+        with gzip.GzipFile(hemi) as gz:
+            imgs.append(nib.GiftiImage.from_bytes(gz.read()))
+    atlas2, info2 = images.check_surface(imgs)
+    assert np.allclose(atlas, atlas2)
+    pd.testing.assert_frame_equal(info, info2)
+
+    # array is simply returned
+    atlas3, info3 = images.check_surface(atlas)
+    assert np.allclose(atlas, atlas3)
+    assert info3 is None
+
+    with pytest.raises(TypeError):
+        images.check_surface(surface[0])
+
+    with pytest.raises(TypeError):
+        images.check_surface(('lh.nii.gz', 'rh.nii.gz'))
+
+
+def test_check_atlas(atlas, surface):
+    # check loading volumetric atlas
+    tree = images.check_atlas(atlas['image'])
+    assert isinstance(tree, AtlasTree)
+    assert tree.atlas_info is None
+    assert not tree.surface
+    assert len(tree.coords) == 819621
+
+    # check loading volumetric atlas with info
+    tree = images.check_atlas(atlas['image'], atlas['info'])
+    assert isinstance(tree, AtlasTree)
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    assert not tree.surface
+    assert len(tree.coords) == 819621
+
+    # check loading surface (info is intuited)
+    tree = images.check_atlas(surface['image'])
+    assert isinstance(tree, AtlasTree)
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    assert tree.surface
+    assert len(tree.coords) == 18426
 
 
 def test_check_atlas_info(atlas):
@@ -77,13 +152,3 @@ def test_check_atlas_info(atlas):
     bad_struct_df.loc[1, 'structure'] = 'notastructure'
     with pytest.raises(ValueError):
         images.check_atlas_info(atlas['image'], bad_struct_df)
-
-
-@pytest.mark.xfail
-def test_get_centroids():
-    assert False
-
-
-@pytest.mark.xfail
-def test_closest_centroid():
-    assert False

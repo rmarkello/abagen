@@ -110,7 +110,7 @@ def test_fetch_desikan_killiany():
     assert len(atlas['image']) == 2
     for hemi, img in zip(('lh', 'rh'), atlas['image']):
         img = Path(img)
-        assert img.name == f'atlas-desikankilliany.{hemi}.gii'
+        assert img.name == f'atlas-desikankilliany-{hemi}.gii.gz'
         assert img.exists()
     assert Path(atlas['info']).name == 'atlas-desikankilliany.csv.gz'
 
