@@ -9,6 +9,29 @@ import pytest
 from abagen import transforms
 
 
+@pytest.mark.parametrize('ijk, fsnative, donor', [
+    ([91, 108, 90], [0, 19, -17], '12876'),
+    ([90, 109, 91], [1, 18, -18], '15496')
+])
+def test_ijk_to_fsnative(ijk, fsnative, donor):
+    assert np.allclose(transforms.ijk_to_fsnative(ijk, donor), fsnative)
+
+
+# honestly no clue how to actually test this beyond just trusting the affine
+# matrices provided by FreeSurfer are accurate :man_shrugging:
+@pytest.mark.parametrize('mni, fsavg', [
+    ([0, 0, 0], [0.0528, -1.5519, -1.2012])
+])
+def test_mni152_fsaverage(mni, fsavg):
+    assert np.allclose(transforms.mni152_to_fsaverage(mni), fsavg)
+    assert np.allclose(transforms.fsaverage_to_mni152(fsavg), mni)
+
+    with pytest.raises(ValueError):
+        transforms.mni152_to_fsaverage([[0, 0]])
+    with pytest.raises(ValueError):
+        transforms.fsaverage_to_mni152([[0, 0]])
+
+
 @pytest.mark.parametrize('ijk, xyz', [
     ([0, 0, 0],
      np.array([[-90, -150, -80]])),
