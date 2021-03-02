@@ -12,10 +12,9 @@ from .datasets import fetch_freesurfer, fetch_raw_mri
 
 MNI152TO305 = np.array([[1.0022, 0.0071, -0.0177, 0.0528],
                         [-0.0146, 0.9990, 0.0027, -1.5519],
-                        [0.0129, 0.0094, 1.0027, -1.2012]])
-MNI305TO152 = np.array([[0.9975, -0.0073, 0.0176, -0.0429],
-                        [0.0146, 1.0009, -0.0024, 1.5496],
-                        [-0.0130, -0.0093, 0.9971, 1.1840]])
+                        [0.0129, 0.0094, 1.0027, -1.2012],
+                        [0.0000, 0.0000, 0.0000, 1.000]])
+MNI305TO152 = np.linalg.inv(MNI152TO305)
 
 
 def ijk_to_fsnative(ijk, donor, data_dir=None):
@@ -27,12 +26,14 @@ def ijk_to_fsnative(ijk, donor, data_dir=None):
     Parameters
     ----------
     ijk : (N, 3) array_like
-        IJK coordinates to be transformed to RAS surface space
+        IJK coordinates (in donor native space) to be transformed to RAS
+        surface space
     donor : str
-        Which donor `coords` belongs to
+        Which donor `ijk` coordinates belong to
     data_dir : str, optional
-        Directory where data should be downloaded and unpacked. Default: $HOME/
-        abagen-data
+        Directory where data should be downloaded and unpacked. This function
+        will fetch both the raw T1w MRI and FreeSurfer directory of `donor`.
+        Default: $HOME/abagen-data
 
     Returns
     -------
@@ -40,7 +41,7 @@ def ijk_to_fsnative(ijk, donor, data_dir=None):
         RAS coordinates
     """
 
-    ijk = np.asarray(ijk)
+    ijk = np.atleast_2d(ijk)
 
     # load orig.mgz volume from freesurfer and get torig
     orig = fetch_freesurfer(donors=donor, data_dir=data_dir, verbose=0)[donor]
@@ -53,7 +54,7 @@ def ijk_to_fsnative(ijk, donor, data_dir=None):
 
     # convert ijk to xyz (in raw mri space) then to ijk (in orig.mgz space)
     ijk = np.c_[
-        xyz_to_ijk(ijk_to_xyz(raw_affine, ijk), mgz.affine),
+        xyz_to_ijk(ijk_to_xyz(ijk, raw_affine), mgz.affine),
         np.ones(len(ijk))
     ]
 
@@ -76,8 +77,8 @@ def mni152_to_fsaverage(xyz):
         fsaverage (MNI305) coordinates
     """
 
-    xyz = np.asarray(xyz)
-    return np.c_[xyz, np.ones(len(xyz))] @ MNI152TO305.T
+    xyz = np.atleast_2d(xyz)
+    return ijk_to_xyz(xyz, MNI152TO305)
 
 
 def fsaverage_to_mni152(xyz):
@@ -95,8 +96,8 @@ def fsaverage_to_mni152(xyz):
         MNI152 coordinates
     """
 
-    xyz = np.asarray(xyz)
-    return np.c_[xyz, np.ones(len(xyz))] @ MNI305TO152.T
+    xyz = np.atleast_2d(xyz)
+    return ijk_to_xyz(xyz, MNI305TO152)
 
 
 def ijk_to_xyz(coords, affine):
@@ -116,6 +117,7 @@ def ijk_to_xyz(coords, affine):
         Provided ``coords`` in ``affine`` space
     """
 
+    coords, affine = np.atleast_2d(coords), np.asarray(affine)
     return nib.affines.apply_affine(affine, coords)
 
 
@@ -136,4 +138,5 @@ def xyz_to_ijk(coords, affine):
         Provided `coords` in cartesian space
     """
 
+    coords, affine = np.atleast_2d(coords), np.asarray(affine)
     return nib.affines.apply_affine(np.linalg.inv(affine), coords).astype(int)
