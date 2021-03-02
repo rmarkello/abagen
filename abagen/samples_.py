@@ -4,6 +4,7 @@ Functions for cleaning and processing the AHBA microarray dataset
 """
 
 import logging
+import os
 from pkg_resources import resource_filename
 
 import nibabel as nib
@@ -79,7 +80,9 @@ def update_mni_coords(annotation):
     POSSIBILITY OF SUCH DAMAGE.
     """
 
-    coords = resource_filename('abagen', 'data/corrected_mni_coordinates.csv')
+    coords = resource_filename(
+        'abagen', os.path.join('data', 'corrected_mni_coordinates.csv.gz')
+    )
     coords = pd.read_csv(coords).rename(dict(corrected_mni_x='mni_x',
                                              corrected_mni_y='mni_y',
                                              corrected_mni_z='mni_z'),

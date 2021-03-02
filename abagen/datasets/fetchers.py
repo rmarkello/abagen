@@ -4,16 +4,16 @@ Functions for downloading the Allen Brain Atlas human microarray dataset.
 """
 
 from collections import namedtuple
-import gzip
+from functools import partial
 import multiprocessing as mp
 import os
 from pkg_resources import resource_filename
 
-import nibabel as nib
 from nibabel.volumeutils import Recoder
 import pandas as pd
 
 from .. import io
+from ..utils import load_gifti, first_entry
 from .utils import _get_dataset_dir, _fetch_files
 
 WELL_KNOWN_IDS = Recoder(
@@ -27,6 +27,7 @@ WELL_KNOWN_IDS = Recoder(
 )
 VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
+RESOURCE = partial(resource_filename, 'abagen')
 
 
 def check_donors(donors, default='12876', valid=VALID_DONORS):
@@ -331,22 +332,28 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
     }
 
 
-def fetch_desikan_killiany(native=False, *args, **kwargs):
+def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
     """
     Fetches Desikan-Killiany atlas shipped with `abagen`
 
     Parameters
     ----------
     native : bool, optional
-        Whether to return group-level atlas in MNI space (False) instead of
-        individualized atlases in donor native space (True). Default: False
+        Whether to return individualized atlases in donor native space.
+        Default: False
+    surface : bool, optional
+        Whether to return surface instead of volumetric parcellation. This
+        option is currently incompatible with ``native=True``; instead, refer
+        to :func:`abagen.datasets.fetch_freesurfer` for donor-specific surface
+        atlases. Default: False
 
     Returns
     -------
     atlas : dict
         Dictionary with keys ['image', 'info'] pointing to atlas image
         (.nii.gz) and information (.csv) files. If ``native=True`` then 'image'
-        is a dictionary where keys are donor IDs and values are image paths.
+        is a dictionary where keys are donor IDs and values are image paths. If
+        ``surface=True`` then 'image' is a tuple of GIFTI files (.label.gii)
 
     References
     ----------
@@ -362,7 +369,7 @@ def fetch_desikan_killiany(native=False, *args, **kwargs):
     >>> print(atlas['image'])  # doctest: +ELLIPSIS
     /.../abagen/data/atlas-desikankilliany.nii.gz
     >>> print(atlas['info'])  # doctest: +ELLIPSIS
-    /.../abagen/data/atlas-desikankilliany.csv
+    /.../abagen/data/atlas-desikankilliany.csv.gz
 
     When fetching native-space atlases, `atlas['image']` will be a dictionary
     where the keys are donor IDs and the values are paths to the donor-specific
@@ -376,14 +383,20 @@ def fetch_desikan_killiany(native=False, *args, **kwargs):
     """
 
     # grab resource filenames
+    img = dict()
+    for donor in check_donors('all'):
+        fp = 'data' if not native else os.path.join('data', 'native_dk', donor)
+        if surface:
+            impath = tuple([
+                RESOURCE(os.path.join(fp, f'atlas-desikankilliany-{h}.gii.gz'))
+                for h in ('lh', 'rh')
+            ])
+        else:
+            impath = RESOURCE(os.path.join(fp, 'atlas-desikankilliany.nii.gz'))
+        img[donor] = impath
     if not native:
-        img = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
-    else:
-        img = dict()
-        for donor in check_donors('all'):
-            imgpath = f'data/native_dk/{donor}/atlas-desikankilliany.nii.gz'
-            img[donor] = resource_filename('abagen', imgpath)
-    info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
+        img = first_entry(img)
+    info = RESOURCE('data/atlas-desikankilliany.csv.gz')
 
     return dict(image=img, info=info)
 
@@ -418,7 +431,7 @@ def fetch_gene_group(group):
                          'groups: {}'.format(group, groups))
 
     group = group.lower()
-    fn = resource_filename('abagen', 'data/burt2018_natneuro.csv')
+    fn = RESOURCE(os.path.join('data', 'burt2018_natneuro.csv.gz'))
     genes = pd.read_csv(fn).query('group == "{}"'.format(group))['acronym']
 
     return sorted(list(genes))
@@ -436,7 +449,7 @@ def fetch_donor_info():
         donors
     """
 
-    fn = resource_filename('abagen', 'data/donor_info.csv')
+    fn = RESOURCE(os.path.join('data', 'donor_info.csv.gz'))
     donors = pd.read_csv(fn)
 
     return donors
@@ -458,9 +471,7 @@ def fetch_fsaverage5():
 
     hemispheres = []
     for hemi in ('lh', 'rh'):
-        fn = resource_filename('abagen', f'data/pial.{hemi}.surf.gii.gz')
-        with gzip.GzipFile(fn) as gz:
-            img = nib.GiftiImage.from_bytes(gz.read())
-        hemispheres.append(Surface(*img.agg_data()))
+        fn = RESOURCE(os.path.join('data', f'pial.{hemi}.surf.gii.gz'))
+        hemispheres.append(Surface(*load_gifti(fn).agg_data()))
 
     return Brain(*hemispheres)

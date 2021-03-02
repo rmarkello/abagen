@@ -156,7 +156,7 @@ def fetch_rubinov2015_structures(entry_type=None):
                          'entry_type must be one of {}.'
                          .format(entry_type, entries))
 
-    fname = resource_filename('abagen', 'data/rubinov2015_pnas.csv')
+    fname = resource_filename('abagen', 'data/rubinov2015_pnas.csv.gz')
     structures = pd.read_csv(fname)[entries]
 
     if entry_type is not None:
