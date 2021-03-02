@@ -6,10 +6,11 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-
 from .datasets import fetch_fsaverage5
+from .matching import AtlasTree
 from .samples_ import ONTOLOGY
-from . import matching, transforms, utils
+from .utils import labeltable_to_df, load_gifti
+from . import transforms
 
 DROP = [
     'unknown', 'corpuscallosum',
@@ -19,7 +20,7 @@ DROP = [
 
 def leftify_atlas(atlas):
     """
-    Zeroes out all ROIs in the right hemisphere of `atlas`
+    Zeroes out all ROIs in the right hemisphere of volumetric `atlas`
 
     Assumes that positive X values indicate the right hemisphere (e.g., RAS+
     orientation) and that the X-origin is in the middle of the brain
@@ -38,7 +39,7 @@ def leftify_atlas(atlas):
     atlas = check_img(atlas)
 
     # get ijk corresponding to zero-point
-    i, j, k = transforms.xyz_to_ijk([0, 0, 0], atlas.affine)
+    i, j, k = np.squeeze(transforms.xyz_to_ijk([0, 0, 0], atlas.affine))
 
     # zero out all positive voxels; img is RAS+ so positive = right hemisphere
     data = np.array(atlas.dataobj, copy=True)
@@ -47,22 +48,134 @@ def leftify_atlas(atlas):
     return atlas.__class__(data, atlas.affine, header=atlas.header)
 
 
-def relabel_gifti(atlas, drop=DROP):
+def annot_to_gifti(atlas, drop=DROP):
     """
-    Upates GIFTI files in `atlas` so labels are consecutive across hemispheres
+    Converts FreeSurfer-style annotation file `atlas` to in-memory GIFTI image
+
+    Parameters
+    ----------
+    annot : os.PathLike
+        Surface annotation file (.annot)
+    drop : list-of-str, optional
+        If provided, a list of IDS in `atlas` that should be set to 0 (the
+        presumptive background value). Other IDS will remain unchanged so
+        this may result in non-consecutive IDS. Default: `abagen.images.DROP`
+
+    Returns
+    -------
+    gifti : nib.gifti.GiftiImage
+        Converted gifti image
+    """
+
+    labels, ctab, names = nib.freesurfer.read_annot(atlas)
+    names = [f.decode() for f in names]
+
+    # get rid of labels we want to drop
+    if drop is not None:
+        for val in drop:
+            idx = names.index(val) if val in names else 0
+            if idx == 0:
+                continue
+            labels[labels == idx] = 0
+            ctab = np.delete(ctab, idx, axis=0)
+            names.pop(idx)
+        labels = _relabel(labels)
+
+    darr = nib.gifti.GiftiDataArray(labels, intent='NIFTI_INTENT_LABEL',
+                                    datatype='NIFTI_TYPE_INT32')
+    labeltable = nib.gifti.GiftiLabelTable()
+    for k, v in enumerate(names):
+        (r, g, b), a = (ctab[k, :3] / 255), (1.0 if k != 0 else 0.0)
+        glabel = nib.gifti.GiftiLabel(k, r, g, b, a)
+        glabel.label = v
+        labeltable.labels.append(glabel)
+
+    return nib.GiftiImage(darrays=[darr], labeltable=labeltable)
+
+
+def _relabel(labels, minval=0, background=None):
+    """
+    Relabels `labels` so that they're consecutive
+
+    Parameters
+    ----------
+    labels : (N,) array_like
+        Labels to be re-labelled
+    minval : int, optional
+        What the new minimum value of the labels should be. Default: 0
+    background : int, optional
+        What value the lowest value of the new labels should be set to. If not
+        specified the lowest value is `minval`. Default: None
+
+    Returns
+    ------
+    labels : (N,) np.ndarray
+        New labels
+    """
+
+    labels = np.unique(labels, return_inverse=True)[-1] + minval
+    if background is not None:
+        labels[labels == minval] = background
+    return labels
+
+
+def relabel_gifti(atlas, drop=DROP, offset=None):
+    """
+    Updates GIFTI images so label IDs are consecutive across hemispheres
 
     Parameters
     ----------
     atlas : (2,) tuple-of-str
-        Surface files in GIFTI format (lh, rh)
+        Surface label files in GIFTI format (lh.label.gii, rh.label.gii)
     drop : list-of-str, optional
-        If provided, a list of labels in `atlas` that should be set to 0 (the
-        presumptive background value). Default: `abagen.images.DROP`
+        If provided, a list of IDs in `atlas` that should be set to 0 (the
+        presumptive background value). Other IDs will be shifted so they are
+        consecutive (i.e., 0--N). Default: `abagen.images.DROP`
+    offset : int, optional
+        What the lowest value in `atlas[1]` should be not including background
+        value. If not specified it will be purely consecutive from `atlas[0]`.
+        Default: None
 
     Returns
     -------
-    atlas : (2,) tuple-of-GiftiImage
+    relabelled : (2,) tuple-of-nib.gifti.GiftiImage
+        Re-labelled `atlas` files
     """
+
+    out = tuple()
+    minval = 0
+    for hemi in atlas:
+        # get necessary info from file
+        img = load_gifti(hemi)
+        data = img.agg_data()
+        labels = img.labeltable.labels
+        lt = {v: k for k, v in img.labeltable.get_labels_as_dict().items()}
+
+        # get rid of labels we want to drop
+        if drop is not None:
+            for val in drop:
+                idx = lt.get(val, 0)
+                if idx == 0:
+                    continue
+                data[data == idx] = 0
+                labels = [f for f in labels if f.key != idx]
+
+        # reset labels so they're consecutive and update label keys
+        data = _relabel(data, minval=minval, background=0)
+        ids = np.unique(data)
+        for n, i in enumerate(ids):
+            labels[n].key = i
+        minval = len(ids) - 1 if offset is None else int(offset) - 1
+
+        # make new gifti image with updated information
+        darr = nib.gifti.GiftiDataArray(data, intent='NIFTI_INTENT_LABEL',
+                                        datatype='NIFTI_TYPE_INT32')
+        labeltable = nib.gifti.GiftiLabelTable()
+        labeltable.labels = labels
+        img = nib.GiftiImage(darrays=[darr], labeltable=labeltable)
+        out += (img,)
+
+    return out
 
 
 def check_img(img):
@@ -111,7 +224,7 @@ def check_img(img):
 
 def check_surface(atlas):
     """
-    Checks that provided `atlas` tuple is in expected surface format
+    Very basic checker that loads provided surface `atlas`
 
     Parameters
     ----------
@@ -135,19 +248,17 @@ def check_surface(atlas):
             raise TypeError('Must provide a tuple of surface atlases')
         return atlas, None
     for img in atlas:
-        if not isinstance(img, nib.GiftiImage) and not img.endswith('.gii'):
+        if (not isinstance(img, nib.GiftiImage)
+                and not (img.endswith('.gii') or img.endswith('.gii.gz'))):
             raise TypeError('Provided surface atlases must be in GIFTI format')
 
     adata, labs = [], []
     for hemi in atlas:
-        try:
-            hemi = nib.load(hemi)
-        except TypeError as err:
-            if not str(err).endswith('not GiftiImage'):
-                raise err
+        hemi = load_gifti(hemi)
         data = np.squeeze(hemi.agg_data())
         if data.ndim > 1:
-            raise ValueError('Provided GIFTIs must have only one data array')
+            raise ValueError('Provided GIFTIs must have only a single, vector '
+                             'data array')
         # if data aren't integer then they might not be a parcellation.
         # check that they're safely castable and, if so, use the casted int
         if data.dtype.char not in ('i'):
@@ -170,7 +281,7 @@ def check_surface(atlas):
         labs[1] = {k + offset: v for k, v in labs[1].items()}
 
     adata = np.hstack(adata)
-    atlas_info = utils.labeltable_to_df(labs)
+    atlas_info = labeltable_to_df(labs)
 
     return adata, atlas_info
 
@@ -195,19 +306,14 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
 
     Returns
     -------
-    atlas : niimg-like object or np.ndarray
+    atlas : :obj:`abagen.AtlasTree`
         Pre-loaded volumetric `atlas` image or parcellation information from
         surface `atlas`
-    atlas_info : pandas.DataFrame or None
-        Dataframe containing information about the atlas of interest. Must have
-        at least columns ['id', 'hemisphere', 'structure'] containing
-        information mapping atlas IDs to hemisphere and broad structural class
-    surface : bool, optional
-        Whether `atlas` is a surface parcellated (np.ndarray) instead of a
-        volumetric parcellation
     """
 
-    if isinstance(atlas, matching.AtlasTree):
+    if isinstance(atlas, AtlasTree):
+        if atlas_info is not None and check_info:
+            atlas.atlas_info = atlas_info
         return atlas
 
     try:
@@ -220,10 +326,10 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
         if atlas_info is None and info is not None:
             atlas_info = info
 
-    atlas = matching.AtlasTree(atlas, coords)
+    atlas = AtlasTree(atlas, coords)
 
     if atlas_info is not None and check_info:
-        atlas.atlas_info = check_atlas_info(atlas, atlas_info)
+        atlas.atlas_info = atlas_info
 
     return atlas
 
