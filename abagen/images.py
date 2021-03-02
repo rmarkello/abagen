@@ -7,10 +7,9 @@ import numpy as np
 import pandas as pd
 
 from .datasets import fetch_fsaverage5
-from .matching import AtlasTree
 from .samples_ import ONTOLOGY
 from .utils import labeltable_to_df, load_gifti
-from . import transforms
+from . import matching, transforms
 
 DROP = [
     'unknown', 'corpuscallosum',
@@ -311,7 +310,7 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
         surface `atlas`
     """
 
-    if isinstance(atlas, AtlasTree):
+    if isinstance(atlas, matching.AtlasTree):
         if atlas_info is not None and check_info:
             atlas.atlas_info = atlas_info
         return atlas
@@ -326,7 +325,7 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
         if atlas_info is None and info is not None:
             atlas_info = info
 
-    atlas = AtlasTree(atlas, coords)
+    atlas = matching.AtlasTree(atlas, coords)
 
     if atlas_info is not None and check_info:
         atlas.atlas_info = atlas_info

@@ -53,6 +53,13 @@ class AtlasTree:
         self._centroids = get_centroids(self.atlas, coords)
         self.atlas_info = atlas_info
 
+    def __repr__(self):
+        if self.surface:
+            suff = f'n_vertex={self.tree.n}'
+        else:
+            suff = f'n_voxel={self.tree.n}'
+        return f'{self.__class__.__name__}[n_rois={len(self.labels)}, {suff}]'
+
     @property
     def tree(self):
         """ Returns cKDTree constructed from provided atlas and coordinates
@@ -160,7 +167,13 @@ class AtlasTree:
         are assigned a label of 0.
         """
 
-        samples = io.read_annotation(annotation, copy=True)
+        try:
+            samples = io.read_annotation(annotation, copy=True)
+        except TypeError:
+            samples = pd.DataFrame(np.atleast_2d(annotation),
+                                   columns=['mni_x', 'mni_y', 'mni_z'])
+            if self.surface:
+                samples['structure'] = 'cortex'
 
         if not self.surface:
             labels = self._match_volume(samples, tolerance)
@@ -203,7 +216,10 @@ class AtlasTree:
         if self.atlas_info is not None:
             labels = _check_label(labels, samples, self.atlas_info)
 
-        labels[dist > dist.mean() + (dist.std(ddof=1) * tolerance)] = 0
+        if len(labels) > 1:
+            with np.errstate(invalid='ignore'):
+                mask = dist > dist.mean() + (dist.std(ddof=1) * tolerance)
+            labels[mask] = 0
 
         return labels
 
