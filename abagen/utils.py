@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import gzip
+
+import nibabel as nib
+from nibabel.filebasedimages import ImageFileError
 import numpy as np
 import pandas as pd
 from scipy.stats import zscore
@@ -67,8 +71,9 @@ def first_entry(dictionary, subkey=None):
     ----------
      dictionary : dict
         Input dictionary, where values are sub-dictionaries
-    subkey : str
-        Key to extract from `dictionary` entries
+    subkey : str, optional
+        Key to extract from `dictionary` entries. If not provided just returns
+        value of first key in `dictionary`. Default: None
 
     Returns
     -------
@@ -137,6 +142,13 @@ def efficient_corr(x, y):
         Correlations of columns in `x` and `y`
     """
 
+    x, y = np.asarray(x), np.asarray(y)
+    if len(x) != len(y):
+        raise ValueError('Provided arrays do not have same length')
+
+    if x.size == 0 or y.size == 0:
+        return np.nan
+
     corr = np.sum(zscore(x, ddof=1) * zscore(y, ddof=1), axis=0) / (len(x) - 1)
 
     return corr
@@ -170,7 +182,41 @@ def labeltable_to_df(labels):
                 dict(id=ids, label=label, hemisphere=hemi, structure='cortex')
             ), ignore_index=True
         )
-    info = info.set_index('id')
+    info = info.set_index('id').drop([0], axis=0)
 
     if len(info) != 0:
         return info
+
+
+def load_gifti(img):
+    """
+    Loads gifti file `img`
+
+    Will try to gunzip `img` if gzip is detected, and will pass pre-loaded
+    GiftiImage object
+
+    Parameters
+    ----------
+    img : os.PathLike or nib.GiftiImage object
+        Image to be loaded
+
+    Returns
+    -------
+    img : nib.GiftiImage
+        Loaded GIFTI images
+    """
+
+    try:
+        img = nib.load(img)
+    except (ImageFileError, TypeError) as err:
+        # it's gzipped, so read the gzip and pipe it in
+        if isinstance(err, ImageFileError) and str(err).endswith('.gii.gz"'):
+            with gzip.GzipFile(img) as gz:
+                img = nib.GiftiImage.from_bytes(gz.read())
+        # it's not a pre-loaded GiftiImage so error out
+        elif (isinstance(err, TypeError)
+              and not str(err) == 'stat: path should be string, bytes, os.'
+                                  'PathLike or integer, not GiftiImage'):
+            raise err
+
+    return img
