@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from . import correct, datasets, images, io, matching, probes_, samples_, utils
+from .datasets import WELL_KNOWN_IDS
 from .utils import first_entry, flatten_dict
 
 import logging
@@ -600,8 +601,7 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
     # FIXME: so that we're not depending on type checks so much :grimacing:
     if isinstance(atlas, dict):
         atlas = {
-            datasets.WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl,
-                                                                    atlas_info)
+            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info)
             for donor, atl in atlas.items()
         }
         group_atlas = False
