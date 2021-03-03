@@ -3,6 +3,7 @@
 Tests for abagen.utils module
 """
 
+import nibabel as nib
 import numpy as np
 import pytest
 
@@ -72,3 +73,16 @@ def test_efficient_corr():
     # different lengths
     with pytest.raises(ValueError):
         utils.efficient_corr(a[:2], b)
+
+
+def test_load_gifti(atlas, surface):
+    gii = utils.load_gifti(surface['image'][0])
+    assert isinstance(gii, nib.GiftiImage)
+
+    # providing a GiftiImage object will just pass that object back
+    gii2 = utils.load_gifti(gii)
+    assert gii is gii2
+
+    # cannot load non-GiftiImage object
+    with pytest.raises(TypeError):
+        utils.load_gifti(nib.load(atlas['image']))
