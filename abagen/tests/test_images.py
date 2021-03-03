@@ -14,20 +14,62 @@ from abagen import images
 from abagen.matching import AtlasTree
 
 
+@pytest.fixture(scope='module')
+def annotation(tmp_path_factory):
+    labels = np.tile([0, 1, 2, 3, 4], 5)
+    ctab = np.asarray([
+        [25, 5, 25, 0, 1639705],
+        [25, 100, 40, 0, 2647065],
+        [125, 100, 160, 0, 10511485],
+        [100, 25, 0, 0, 6500],
+        [120, 70, 50, 0, 3294840]
+    ])
+    names = [b'background', b'label1', b'label2', b'label3', b'label4']
+    fname = tmp_path_factory.mktemp('annot') / 'test.annot'
+    nib.freesurfer.write_annot(fname, labels, ctab, names, False)
+
+    return fname
+
+
 def test_leftify_atlas(atlas):
     out = images.leftify_atlas(atlas['image'])
     assert len(np.unique(out.dataobj)) == 44
     assert np.all(np.asarray(out.dataobj)[98:] == 0)
 
 
-@pytest.mark.xfail
-def test_relabel_gifti():
-    assert False
+def test_relabel_gifti(surface):
+    # basic usage (`surface` has gap between left + right hemi for subcortex)
+    lh, rh = images.relabel_gifti(surface, background=None)
+    data = np.hstack((lh.agg_data(), rh.agg_data()))
+    assert np.allclose(np.unique(data), np.arange(69))
+
+    # usage with unique "background"
+    lh, rh = images.relabel_gifti(surface, background=['bankssts'])
+    data = np.hstack((lh.agg_data(), rh.agg_data()))
+    assert np.allclose(np.unique(data), np.arange(67))
+
+    # usage with offset
+    lh, rh = images.relabel_gifti(surface, offset=100)
+    assert np.allclose(np.unique(lh.agg_data())[1:], np.arange(1, 35))
+    assert np.allclose(np.unique(rh.agg_data())[1:], np.arange(100, 134))
 
 
-@pytest.mark.xfail
-def test_annot_to_gifti():
-    assert False
+def test_annot_to_gifti(annotation):
+    labels = [
+        'background', 'label1', 'label2', 'label3', 'label4'
+    ]
+    gii = images.annot_to_gifti(annotation)
+    assert np.allclose(np.unique(gii.agg_data()), np.arange(5))
+    lt = gii.labeltable.get_labels_as_dict()
+    assert np.allclose(list(lt.keys()), np.arange(5))
+    assert np.all(list(lt.values()) == labels)
+
+    # if we drop label4 (highest label) we lose one value
+    gii = images.annot_to_gifti(annotation, background=['label4'])
+    assert np.allclose(np.unique(gii.agg_data()), np.arange(4))
+    lt = gii.labeltable.get_labels_as_dict()
+    assert np.allclose(list(lt.keys()), np.arange(4))
+    assert np.all(list(lt.values()) == labels[:-1])
 
 
 def test_check_img(atlas):
@@ -80,21 +122,21 @@ def test_check_atlas(atlas, surface):
     tree = images.check_atlas(atlas['image'])
     assert isinstance(tree, AtlasTree)
     assert tree.atlas_info is None
-    assert not tree.surface
+    assert tree.volumetric
     assert len(tree.coords) == 819621
 
     # check loading volumetric atlas with info
     tree = images.check_atlas(atlas['image'], atlas['info'])
     assert isinstance(tree, AtlasTree)
     assert isinstance(tree.atlas_info, pd.DataFrame)
-    assert not tree.surface
+    assert tree.volumetric
     assert len(tree.coords) == 819621
 
     # check loading surface (info is intuited)
     tree = images.check_atlas(surface['image'])
     assert isinstance(tree, AtlasTree)
     assert isinstance(tree.atlas_info, pd.DataFrame)
-    assert tree.surface
+    assert not tree.volumetric
     assert len(tree.coords) == 18426
 
 

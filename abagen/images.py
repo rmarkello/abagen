@@ -11,7 +11,7 @@ from .samples_ import ONTOLOGY
 from .utils import labeltable_to_df, load_gifti
 from . import matching, transforms
 
-DROP = [
+BACKGROUND = [
     'unknown', 'corpuscallosum',
     'Background+FreeSurfer_Defined_Medial_Wall', '???'
 ]
@@ -47,7 +47,7 @@ def leftify_atlas(atlas):
     return atlas.__class__(data, atlas.affine, header=atlas.header)
 
 
-def annot_to_gifti(atlas, drop=DROP):
+def annot_to_gifti(atlas, background=BACKGROUND):
     """
     Converts FreeSurfer-style annotation file `atlas` to in-memory GIFTI image
 
@@ -55,10 +55,10 @@ def annot_to_gifti(atlas, drop=DROP):
     ----------
     annot : os.PathLike
         Surface annotation file (.annot)
-    drop : list-of-str, optional
+    background : list-of-str, optional
         If provided, a list of IDS in `atlas` that should be set to 0 (the
-        presumptive background value). Other IDS will remain unchanged so
-        this may result in non-consecutive IDS. Default: `abagen.images.DROP`
+        presumptive background value). Other IDS will remain unchanged so this
+        may result in non-consecutive IDS. Default: `abagen.images.BACKGROUND`
 
     Returns
     -------
@@ -70,12 +70,12 @@ def annot_to_gifti(atlas, drop=DROP):
     names = [f.decode() for f in names]
 
     # get rid of labels we want to drop
-    if drop is not None:
-        for val in drop:
+    if background is not None:
+        for val in background:
             idx = names.index(val) if val in names else 0
+            labels[labels == idx] = 0
             if idx == 0:
                 continue
-            labels[labels == idx] = 0
             ctab = np.delete(ctab, idx, axis=0)
             names.pop(idx)
         labels = _relabel(labels)
@@ -92,7 +92,7 @@ def annot_to_gifti(atlas, drop=DROP):
     return nib.GiftiImage(darrays=[darr], labeltable=labeltable)
 
 
-def _relabel(labels, minval=0, background=None):
+def _relabel(labels, minval=0, bgval=None):
     """
     Relabels `labels` so that they're consecutive
 
@@ -113,12 +113,12 @@ def _relabel(labels, minval=0, background=None):
     """
 
     labels = np.unique(labels, return_inverse=True)[-1] + minval
-    if background is not None:
-        labels[labels == minval] = background
+    if bgval is not None:
+        labels[labels == minval] = bgval
     return labels
 
 
-def relabel_gifti(atlas, drop=DROP, offset=None):
+def relabel_gifti(atlas, background=BACKGROUND, offset=None):
     """
     Updates GIFTI images so label IDs are consecutive across hemispheres
 
@@ -126,10 +126,10 @@ def relabel_gifti(atlas, drop=DROP, offset=None):
     ----------
     atlas : (2,) tuple-of-str
         Surface label files in GIFTI format (lh.label.gii, rh.label.gii)
-    drop : list-of-str, optional
+    background : list-of-str, optional
         If provided, a list of IDs in `atlas` that should be set to 0 (the
         presumptive background value). Other IDs will be shifted so they are
-        consecutive (i.e., 0--N). Default: `abagen.images.DROP`
+        consecutive (i.e., 0--N). Default: `abagen.images.BACKGROUND`
     offset : int, optional
         What the lowest value in `atlas[1]` should be not including background
         value. If not specified it will be purely consecutive from `atlas[0]`.
@@ -151,8 +151,8 @@ def relabel_gifti(atlas, drop=DROP, offset=None):
         lt = {v: k for k, v in img.labeltable.get_labels_as_dict().items()}
 
         # get rid of labels we want to drop
-        if drop is not None:
-            for val in drop:
+        if background is not None:
+            for val in background:
                 idx = lt.get(val, 0)
                 if idx == 0:
                     continue
@@ -160,7 +160,7 @@ def relabel_gifti(atlas, drop=DROP, offset=None):
                 labels = [f for f in labels if f.key != idx]
 
         # reset labels so they're consecutive and update label keys
-        data = _relabel(data, minval=minval, background=0)
+        data = _relabel(data, minval=minval, bgval=0)
         ids = np.unique(data)
         for n, i in enumerate(ids):
             labels[n].key = i
