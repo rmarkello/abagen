@@ -471,7 +471,7 @@ def fetch_fsaverage5():
 
     hemispheres = []
     for hemi in ('lh', 'rh'):
-        fn = RESOURCE(os.path.join('data', f'pial.{hemi}.surf.gii.gz'))
+        fn = RESOURCE(os.path.join('data', f'fsaverage5-pial-{hemi}.gii.gz'))
         hemispheres.append(Surface(*load_gifti(fn).agg_data()))
 
     return Brain(*hemispheres)
