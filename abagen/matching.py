@@ -3,6 +3,8 @@
 Structures and functions used for matching samples to atlas
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
@@ -17,7 +19,8 @@ class AtlasTree:
     Parameters
     ----------
     atlas : (N,) niimg-like object or array_like
-        Volumetric (niimg-like)
+        Volumetric (niimg-like) or array of parcellation labels. If providing
+        an array you must provide
     coords : (N,) array_like, optional
         Coordinates representing points in `atlas`. If provided it is assumed
         that `atlas` is a surface representation (i.e., if `atlas` is
@@ -34,18 +37,26 @@ class AtlasTree:
     def __init__(self, atlas, coords=None, atlas_info=None):
         from .images import check_img
 
-        # if we're explicitly provided coordinates assume this is a surface
-        self._surface = coords is not None
-
-        # if it's not a surface, `atlas` is likely a niimg-like object so
-        if not self.surface:
+        try:  # let's first check if it's an image
             atlas = check_img(atlas)
             data, affine = np.asarray(atlas.dataobj), atlas.affine
             nz = data.nonzero()
+            if coords is not None:
+                warnings.warn('Volumetric image supplied but `coords` is not '
+                              'None. Ignoring supplied `coords` and using '
+                              'coordinates derived from image.')
             atlas, coords = data[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
-        else:
+            self._volumetric = True
+        except TypeError:
+            if coords is None:
+                raise ValueError('When providing a surface atlas you must '
+                                 'also supply relevant geometry `coords`.')
+            if len(atlas) != len(coords):
+                raise ValueError('Provided `atlas` and `coords` are of '
+                                 'differing length.')
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], coords[nz]
+            self._volumetric = False
 
         self._tree = cKDTree(coords)
         self._atlas = np.asarray(atlas)
@@ -54,10 +65,10 @@ class AtlasTree:
         self.atlas_info = atlas_info
 
     def __repr__(self):
-        if self.surface:
-            suff = f'n_vertex={self.tree.n}'
-        else:
+        if self.volumetric:
             suff = f'n_voxel={self.tree.n}'
+        else:
+            suff = f'n_vertex={self.tree.n}'
         return f'{self.__class__.__name__}[n_rois={len(self.labels)}, {suff}]'
 
     @property
@@ -73,10 +84,10 @@ class AtlasTree:
         return self._atlas
 
     @property
-    def surface(self):
-        """ Return whether `self.atlas` is a surface representation
+    def volumetric(self):
+        """ Return whether `self.atlas` is derived from a volumetric image
         """
-        return self._surface
+        return self._volumetric
 
     @property
     def labels(self):
@@ -158,9 +169,9 @@ class AtlasTree:
 
         Notes
         -----
-        If `self.surface` is False then the previously described matching
+        If `self.volumetric` is False then the previously described matching
         procedure is used (i.e., `tolerance` is treated as a distace cutoff, in
-        mm). If `self.surface` is True, then `tolerance` is treated as a
+        mm). If `self.volumetric` is True, then `tolerance` is treated as a
         standard deviation threshold. That is, all samples are matched to the
         nearest vertex, and then samples whose distance to the nearest vertex
         are more than `tolerance` s.d. above the mean distance for all samples
@@ -172,10 +183,10 @@ class AtlasTree:
         except TypeError:
             samples = pd.DataFrame(np.atleast_2d(annotation),
                                    columns=['mni_x', 'mni_y', 'mni_z'])
-            if self.surface:
+            if not self.volumetric:
                 samples['structure'] = 'cortex'
 
-        if not self.surface:
+        if self.volumetric:
             labels = self._match_volume(samples, tolerance)
         else:
             cortex = samples['structure'] == 'cortex'
