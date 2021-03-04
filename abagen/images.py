@@ -47,7 +47,7 @@ def leftify_atlas(atlas):
     return atlas.__class__(data, atlas.affine, header=atlas.header)
 
 
-def annot_to_gifti(atlas, background=BACKGROUND):
+def annot_to_gifti(atlas):
     """
     Converts FreeSurfer-style annotation file `atlas` to in-memory GIFTI image
 
@@ -55,10 +55,6 @@ def annot_to_gifti(atlas, background=BACKGROUND):
     ----------
     annot : os.PathLike
         Surface annotation file (.annot)
-    background : list-of-str, optional
-        If provided, a list of IDS in `atlas` that should be set to 0 (the
-        presumptive background value). Other IDS will remain unchanged so this
-        may result in non-consecutive IDS. Default: `abagen.images.BACKGROUND`
 
     Returns
     -------
@@ -67,26 +63,14 @@ def annot_to_gifti(atlas, background=BACKGROUND):
     """
 
     labels, ctab, names = nib.freesurfer.read_annot(atlas)
-    names = [f.decode() for f in names]
-
-    # get rid of labels we want to drop
-    if background is not None:
-        for val in background:
-            idx = names.index(val) if val in names else 0
-            labels[labels == idx] = 0
-            if idx == 0:
-                continue
-            ctab = np.delete(ctab, idx, axis=0)
-            names.pop(idx)
-        labels = _relabel(labels)
 
     darr = nib.gifti.GiftiDataArray(labels, intent='NIFTI_INTENT_LABEL',
                                     datatype='NIFTI_TYPE_INT32')
     labeltable = nib.gifti.GiftiLabelTable()
-    for k, v in enumerate(names):
-        (r, g, b), a = (ctab[k, :3] / 255), (1.0 if k != 0 else 0.0)
-        glabel = nib.gifti.GiftiLabel(k, r, g, b, a)
-        glabel.label = v
+    for key, label in enumerate(names):
+        (r, g, b), a = (ctab[key, :3] / 255), (1.0 if key != 0 else 0.0)
+        glabel = nib.gifti.GiftiLabel(key, r, g, b, a)
+        glabel.label = label.decode()
         labeltable.labels.append(glabel)
 
     return nib.GiftiImage(darrays=[darr], labeltable=labeltable)
@@ -102,9 +86,10 @@ def _relabel(labels, minval=0, bgval=None):
         Labels to be re-labelled
     minval : int, optional
         What the new minimum value of the labels should be. Default: 0
-    background : int, optional
-        What value the lowest value of the new labels should be set to. If not
-        specified the lowest value is `minval`. Default: None
+    bgval : int, optional
+        What the background value should be; the new labels will start at
+        `minval` but the first value of these labels (i.e., labels == `minval`)
+        will be set to `bgval`. Default: None
 
     Returns
     ------
