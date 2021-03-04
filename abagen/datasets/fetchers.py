@@ -9,14 +9,14 @@ import multiprocessing as mp
 import os
 from pkg_resources import resource_filename
 
-from nibabel.volumeutils import Recoder
+import nibabel as nib
 import pandas as pd
 
 from .. import io
 from ..utils import load_gifti, first_entry
 from .utils import _get_dataset_dir, _fetch_files
 
-WELL_KNOWN_IDS = Recoder(
+WELL_KNOWN_IDS = nib.volumeutils.Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636', '157722638'),
      ('10021', 'H0351.2002', '178238373', '157723301', '157723303'),
      ('12876', 'H0351.1009', '178238359', '157722290', '157722292'),
@@ -455,6 +455,10 @@ def fetch_donor_info():
     return donors
 
 
+Brain = namedtuple('Brain', ('lh', 'rh'))
+Surface = namedtuple('Surface', ('vertices', 'faces'))
+
+
 def fetch_fsaverage5():
     """
     Fetches and load fsaverage5 surface
@@ -466,12 +470,52 @@ def fetch_fsaverage5():
         namedtuple with fields ('vertices', 'faces')
     """
 
-    Brain = namedtuple('Brain', ('lh', 'rh'))
-    Surface = namedtuple('Surface', ('vertices', 'faces'))
-
     hemispheres = []
     for hemi in ('lh', 'rh'):
         fn = RESOURCE(os.path.join('data', f'fsaverage5-pial-{hemi}.gii.gz'))
         hemispheres.append(Surface(*load_gifti(fn).agg_data()))
+
+    return Brain(*hemispheres)
+
+
+def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
+    """
+    Fetches and load fsnative surface of `donor`
+
+    Parameters
+    ----------
+    donors : str or list-of-str
+        Donor(s) to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors.
+    surf : {'orig', 'white', 'pial', 'inflated', 'sphere'}, optional
+        Which surface to load. Default: 'pial'
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
+    resume : bool, optional
+        Whether to resume download of a partly-downloaded file. Default: True
+    verbose : int, optional
+        Verbosity level (0 means no message). Default: 1
+
+    Returns
+    -------
+    brain : namedtuple ('lh', 'rh')
+        Where each entry in the tuple is a hemisphere, represented as a
+        namedtuple with fields ('vertices', 'faces'). If multiple donors are
+        requested a dictionary is returned where keys are donor IDs.
+    """
+
+    donors = check_donors(donors)
+    if len(donors) > 1:
+        return {donor: fetch_fsnative(donor, surf, data_dir, resume, verbose)
+                for donor in donors}
+
+    donors = donors[0]
+    fpath = fetch_freesurfer(donors=donors, data_dir=data_dir, resume=resume,
+                             verbose=verbose)[donors]
+    hemispheres = []
+    for hemi in ('lh', 'rh'):
+        fn = os.path.join(fpath, 'surf', f'{hemi}.{surf}')
+        hemispheres.append(Surface(*nib.freesurfer.read_geometry(fn)))
 
     return Brain(*hemispheres)
