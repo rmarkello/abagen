@@ -38,7 +38,7 @@ parcellation:
     >>> print(atlas['image'])  # doctest: +ELLIPSIS
     /.../data/atlas-desikankilliany.nii.gz
     >>> print(atlas['info'])  # doctest: +ELLIPSIS
-    /.../data/atlas-desikankilliany.csv.gz
+    /.../data/atlas-desikankilliany.csv
 
 .. _usage_parcellations_additional:
 
