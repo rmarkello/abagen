@@ -452,15 +452,19 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
         between region pairs
     """
 
+    if labels is None:
+        labels = atlas.labels
+
+    if len(labels) != len(coexpression):
+        raise ValueError(f'Provided labels {labels} are a different length '
+                         'than provided coexpression matrix of size '
+                         f'{coexpression.shape}. Please confirm inputs and '
+                         'try again.')
+
     # load atlas_info, if provided
     atlas = images.check_atlas(atlas)
     if atlas_info is not None:
-        atlas_info = images.check_atlas_info(atlas, atlas_info, labels=labels)
-        if labels is not None and len(labels) != len(coexpression):
-            raise ValueError(f'Provided labels {labels} are a different '
-                             'length than provided coexpression matrix of '
-                             f'size {coexpression.shape}. Please confirm '
-                             'inputs and try again.')
+        atlas_info = images.check_atlas_info(atlas_info, labels)
 
     # check that provided coexpression array is symmetric
     if not np.allclose(coexpression, coexpression.T, atol=1e-10):

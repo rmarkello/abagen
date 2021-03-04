@@ -285,7 +285,7 @@ def check_surface(atlas):
     return adata, atlas_info
 
 
-def check_atlas(atlas, atlas_info=None, check_info=True):
+def check_atlas(atlas, atlas_info=None):
     """
     Checks that `atlas` is a valid atlas
 
@@ -300,8 +300,6 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
         information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
-    check_info : bool, optional
-        Whether to validate `atlas_info`. Default: True
 
     Returns
     -------
@@ -311,7 +309,7 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
     """
 
     if isinstance(atlas, matching.AtlasTree):
-        if atlas_info is not None and check_info:
+        if atlas_info is not None:
             atlas.atlas_info = atlas_info
         return atlas
 
@@ -327,45 +325,32 @@ def check_atlas(atlas, atlas_info=None, check_info=True):
 
     atlas = matching.AtlasTree(atlas, coords)
 
-    if atlas_info is not None and check_info:
+    if atlas_info is not None:
         atlas.atlas_info = atlas_info
 
     return atlas
 
 
-def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
+def check_atlas_info(atlas_info, labels):
     """
-    Checks whether provided `info` on `atlas` is sufficient for processing
+    Checks whether provided `atlas_info` is correct format for processing
 
     Parameters
     ----------
-    atlas : niimg-like object
-        Parcellation image, where voxels belonging to a given parcel should be
-        identified with a unique integer ID
     atlas_info : str or pandas.DataFrame
-        Filepath or dataframe containing information about `atlas`. Must have
+        Filepath or dataframe containing information about atlas. Must have
         at least columns 'id', 'hemisphere', and 'structure' containing
-        information mapping atlas IDs to hemisphere (i.e., "L" or "R") and
+        information mapping atlas IDs to hemisphere (i.e., "L", "R", "B") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other").
-    labels : array_like, optional
-        List of values containing labels to compare between `atlas` and
-        `atlas_info`, if they don't all match. If not specified this function
-        will attempt to confirm that all IDs present in `atlas` have entries in
-        `atlas_info` and vice versa. Default: None
-    validate : bool, optional
-        Whether to only validate (True) the provided `atlas` and `atlas_info`
-        instead of returning (False) the validated dataframe. Default: False
+    labels : array_like
+        List of parcel IDs that should be present in `atlas_info`
 
     Returns
     -------
     atlas_info : pandas.DataFrame
         Loaded dataframe with information on atlas
     """
-
-    atlas = check_atlas(atlas, check_info=False)
-    if labels is None:
-        labels = atlas.labels
 
     valid_structures = list(ONTOLOGY.value_set('structure'))
     hemi_swap = {
@@ -390,7 +375,7 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
         if 'id' in atlas_info.columns:
             atlas_info = atlas_info.set_index('id')
     except AttributeError:
-        raise TypeError('Provided atlas_info must be a filepath or pandas.'
+        raise TypeError('Provided `atlas_info` must be a filepath or pandas.'
                         'DataFrame. Please confirm inputs and try again.')
 
     try:
@@ -398,11 +383,11 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
         assert 'id' == atlas_info.index.name
         assert len(np.setdiff1d(labels, atlas_info.index)) == 0
     except AssertionError:
-        raise ValueError('Provided atlas_info does not have adequate '
-                         'information on supplied atlas. Please confirm '
+        raise ValueError('Provided `atlas_info` does not have adequate '
+                         'information on all `labels`. Please confirm '
                          'that atlas_info has columns [\'id\', '
                          '\'hemisphere\', \'structure\'], and that the region '
-                         'IDs listed in atlas_info account for all those '
+                         'IDs listed in `atlas_info` account for all those '
                          'found in atlas.')
 
     try:
@@ -410,7 +395,7 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
         hemi_diff = np.setdiff1d(atlas_info['hemisphere'], ['L', 'R', 'B'])
         assert len(hemi_diff) == 0
     except AssertionError:
-        raise ValueError('Provided atlas_info has invalid values in the'
+        raise ValueError('Provided `atlas_info` has invalid values in the'
                          '\'hemisphere\' column. Only the following values '
                          'are allowed: {}. Invalid value(s): {}'
                          .format(['L', 'R', 'B'], hemi_diff))
@@ -420,10 +405,9 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
         struct_diff = np.setdiff1d(atlas_info['structure'], valid_structures)
         assert len(struct_diff) == 0
     except AssertionError:
-        raise ValueError('Provided atlas_info has invalid values in the'
+        raise ValueError('Provided `atlas_info` has invalid values in the'
                          '\'structure\' column. Only the following values are '
                          'allowed: {}. Invalid value(s): {}'
                          .format(valid_structures, struct_diff))
 
-    if not validate:
-        return atlas_info
+    return atlas_info

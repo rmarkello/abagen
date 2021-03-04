@@ -131,7 +131,7 @@ class AtlasTree:
         """
         from .images import check_atlas_info
         if info is not None:
-            self._atlas_info = check_atlas_info(self, info)
+            self._atlas_info = check_atlas_info(info, self.labels)
         else:
             self._atlas_info = info
 

@@ -86,13 +86,17 @@ def test_AtlasTree(atlas, surface, testfiles):
     assert len(tree.centroids) == 2 and list(tree.centroids.keys()) == [1, 2]
     tree.atlas_info = atlas_info
     pd.testing.assert_frame_equal(tree.atlas_info, atlas_info)
+
+    # check sample matching
     labels = tree.label_samples([[0, 0, 0], [3, 3, 3]])
     assert np.all(labels['label'] == [1, 2])
-    # check coordinate reversal AND outlier removal in same go
+
+    # check coordinate assignment AND outlier removal in same go
     tree.coords = coords[::-1]
     labels = tree.label_samples(np.row_stack((coords, [1000, 1000, 1000])))
     assert np.all(labels['label'] == [2, 2, 2, 1, 1, 1, 0])
 
+    # check providing niimg-like atlas
     tree = matching.AtlasTree(nib.load(atlas['image']))
     assert str(tree) == 'AtlasTree[n_rois=83, n_voxel=819621]'
     assert tree.volumetric
@@ -104,6 +108,7 @@ def test_AtlasTree(atlas, surface, testfiles):
     labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
     assert np.all(labels['label'] == [1, 2])
 
+    # check surface AtlasTree
     tree = images.check_atlas(surface['image'])
     assert str(tree) == 'AtlasTree[n_rois=68, n_vertex=18426]'
     assert not tree.volumetric
