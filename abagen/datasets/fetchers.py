@@ -369,7 +369,7 @@ def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
     >>> print(atlas['image'])  # doctest: +ELLIPSIS
     /.../abagen/data/atlas-desikankilliany.nii.gz
     >>> print(atlas['info'])  # doctest: +ELLIPSIS
-    /.../abagen/data/atlas-desikankilliany.csv.gz
+    /.../abagen/data/atlas-desikankilliany.csv
 
     When fetching native-space atlases, `atlas['image']` will be a dictionary
     where the keys are donor IDs and the values are paths to the donor-specific
@@ -396,7 +396,7 @@ def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
         img[donor] = impath
     if not native:
         img = first_entry(img)
-    info = RESOURCE('data/atlas-desikankilliany.csv.gz')
+    info = RESOURCE('data/atlas-desikankilliany.csv')
 
     return dict(image=img, info=info)
 
@@ -449,7 +449,7 @@ def fetch_donor_info():
         donors
     """
 
-    fn = RESOURCE(os.path.join('data', 'donor_info.csv.gz'))
+    fn = RESOURCE(os.path.join('data', 'donor_info.csv'))
     donors = pd.read_csv(fn)
 
     return donors

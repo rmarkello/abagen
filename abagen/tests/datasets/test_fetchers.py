@@ -93,7 +93,7 @@ def test_fetch_desikan_killiany():
     assert sorted(atlas) == ['image', 'info']
     img, info = Path(atlas['image']), Path(atlas['info'])
     assert img.name == 'atlas-desikankilliany.nii.gz' and img.exists()
-    assert info.name == 'atlas-desikankilliany.csv.gz' and info.exists()
+    assert info.name == 'atlas-desikankilliany.csv' and info.exists()
 
     atlas = fetchers.fetch_desikan_killiany(native=True)
     donors = ['10021', '12876', '14380', '15496', '15697', '9861']
@@ -103,7 +103,7 @@ def test_fetch_desikan_killiany():
         img = Path(atlas['image'][donor])
         assert img.name == 'atlas-desikankilliany.nii.gz' and img.exists()
     info = Path(atlas['info'])
-    assert info.name == 'atlas-desikankilliany.csv.gz' and info.exists()
+    assert info.name == 'atlas-desikankilliany.csv' and info.exists()
 
     atlas = fetchers.fetch_desikan_killiany(surface=True)
     assert sorted(atlas) == ['image', 'info']
@@ -112,7 +112,7 @@ def test_fetch_desikan_killiany():
         img = Path(img)
         assert img.name == f'atlas-desikankilliany-{hemi}.gii.gz'
         assert img.exists()
-    assert Path(atlas['info']).name == 'atlas-desikankilliany.csv.gz'
+    assert Path(atlas['info']).name == 'atlas-desikankilliany.csv'
 
     atlas = fetchers.fetch_desikan_killiany(native=True, surface=True)
     donors = ['10021', '12876', '14380', '15496', '15697', '9861']
@@ -125,4 +125,4 @@ def test_fetch_desikan_killiany():
             assert img.endswith('.gii.gz')
             assert Path(img).exists()
     info = Path(atlas['info'])
-    assert info.name == 'atlas-desikankilliany.csv.gz' and info.exists()
+    assert info.name == 'atlas-desikankilliany.csv' and info.exists()
