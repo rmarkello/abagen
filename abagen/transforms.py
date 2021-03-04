@@ -8,7 +8,7 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-from .datasets import fetch_freesurfer, fetch_raw_mri
+from .datasets import fetch_freesurfer
 
 MNI152TO305 = np.array([[1.0022, 0.0071, -0.0177, 0.0528],
                         [-0.0146, 0.9990, 0.0027, -1.5519],
@@ -17,23 +17,50 @@ MNI152TO305 = np.array([[1.0022, 0.0071, -0.0177, 0.0528],
 MNI305TO152 = np.linalg.inv(MNI152TO305)
 
 
-def ijk_to_fsnative(ijk, donor, data_dir=None):
+def _get_fs_affine_torig(donor, data_dir=None):
     """
-    Converts provided `ijk` coordinates to RAS fsnative space of `donor`
-
-    Fsnative space is returned with :func:`abagen.fetch_freesurfer`
+    Gets FreeSurfer orig.mgz affine and torig matrices for `donor`
 
     Parameters
     ----------
-    ijk : (N, 3) array_like
-        IJK coordinates (in donor native space) to be transformed to RAS
-        surface space
     donor : str
-        Which donor `ijk` coordinates belong to
+        Which donor to get data from
     data_dir : str, optional
         Directory where data should be downloaded and unpacked. This function
-        will fetch both the raw T1w MRI and FreeSurfer directory of `donor`.
-        Default: $HOME/abagen-data
+        will fetch the FreeSurfer directory of `donor` to get the necessary
+        information. Default: $HOME/abagen-data
+
+    Returns
+    -------
+    affine : (4, 4) np.ndarray
+        Affine matrix of orig.mgz
+    torig : (4, 4) np.ndarray
+        Torig matrix of orig.mgz
+    """
+
+    # load orig.mgz volume from freesurfer and get torig
+    orig = fetch_freesurfer(donors=donor, data_dir=data_dir, verbose=0)[donor]
+    mgz = nib.load(Path(orig) / 'mri' / 'orig.mgz')
+    torig = mgz.header.get_vox2ras_tkr()
+
+    return mgz.affine, torig
+
+
+def xyz_to_fsnative(xyz, donor, data_dir=None):
+    """
+    Converts provided `xyz` image coordinates to RAS fsnative space of `donor`
+
+    Parameters
+    ----------
+    xyz : (N, 3) array_like
+        XYZ coordinates (in `donor` image space) to be transformed to RAS
+        surface space
+    donor : str
+        Which donor `xyz` coordinates belong to
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. This function
+        will fetch the FreeSurfer directory of `donor` to get the necessary
+        information for converting the coordinates. Default: $HOME/abagen-data
 
     Returns
     -------
@@ -41,25 +68,36 @@ def ijk_to_fsnative(ijk, donor, data_dir=None):
         RAS coordinates
     """
 
-    ijk = np.atleast_2d(ijk)
+    xyz = np.atleast_2d(xyz)
+    affine, torig = _get_fs_affine_torig(donor, data_dir=data_dir)
+    return ijk_to_xyz(xyz_to_ijk(xyz, affine, floor=False), torig)
 
-    # load orig.mgz volume from freesurfer and get torig
-    orig = fetch_freesurfer(donors=donor, data_dir=data_dir, verbose=0)[donor]
-    mgz = nib.load(Path(orig) / 'mri' / 'orig.mgz')
-    torig = mgz.header.get_vox2ras_tkr()
 
-    # load raw mri from AHBA and get affine
-    raw_mri = fetch_raw_mri(donors=donor, data_dir=data_dir, verbose=0)[donor]
-    raw_affine = nib.load(raw_mri['t1w']).affine
+def fsnative_to_xyz(fsnative, donor, data_dir=None):
+    """
+    Converts provided `fsnative` RAS coordinates to xyz image space for `donor`
 
-    # convert ijk to xyz (in raw mri space) then to ijk (in orig.mgz space)
-    ijk = np.c_[
-        xyz_to_ijk(ijk_to_xyz(ijk, raw_affine), mgz.affine),
-        np.ones(len(ijk))
-    ]
+    Parameters
+    ----------
+    fsnative : (N, 3) array_like
+        RAS coordinates (in `donor` fsnative space) to be transformed to xyz
+        image space
+    donor : str
+        Which donor `fsnative` coordinates belong to
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. This function
+        will fetch the FreeSurfer directory of `donor` to get the necessary
+        information for converting the coordinates. Default: $HOME/abagen-data
 
-    # convert ijk (in orig.mgz) to RAS (in fsnative)
-    return ijk @ torig[:-1].T
+    Returns
+    -------
+    xyz : (N, 3) np.ndarray
+        XYZ coordinates
+    """
+
+    fsnative = np.atleast_2d(fsnative)
+    affine, torig = _get_fs_affine_torig(donor, data_dir=data_dir)
+    return ijk_to_xyz(xyz_to_ijk(fsnative, torig, floor=False), affine)
 
 
 def mni152_to_fsaverage(xyz):
@@ -121,7 +159,7 @@ def ijk_to_xyz(coords, affine):
     return nib.affines.apply_affine(affine, coords)
 
 
-def xyz_to_ijk(coords, affine):
+def xyz_to_ijk(coords, affine, floor=True):
     """
     Converts `coords` in `affine` space to cartesian space
 
@@ -131,6 +169,8 @@ def xyz_to_ijk(coords, affine):
         Image coordinate (xyz) values
     affine : (4, 4) array_like
         Affine matrix containing displacement + boundary
+    floor : bool, optional
+        Whether to round down converted `ijk` coordinates to int. Default: True
 
     Returns
     ------
@@ -140,4 +180,6 @@ def xyz_to_ijk(coords, affine):
 
     coords, affine = np.atleast_2d(coords), np.asarray(affine)
     ijk = nib.affines.apply_affine(np.linalg.inv(affine), coords)
-    return np.asarray(np.floor(ijk), dtype=int)
+    if floor:
+        ijk = np.asarray(np.floor(ijk), dtype=int)
+    return ijk

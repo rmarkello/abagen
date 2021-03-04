@@ -9,12 +9,13 @@ import pytest
 from abagen import transforms
 
 
-@pytest.mark.parametrize('ijk, fsnative, donor', [
-    ([91, 108, 90], [0, 19, -17], '12876'),
-    ([90, 109, 91], [1, 18, -18], '15496')
+@pytest.mark.parametrize('xyz, fsnative, donor', [
+    ([0, 0, 0], [0, 1, 1], '12876'),
+    ([0, 0, 0], [1, 18, -18], '15496')
 ])
-def test_ijk_to_fsnative(ijk, fsnative, donor):
-    assert np.allclose(transforms.ijk_to_fsnative(ijk, donor), fsnative)
+def test_ijk_to_fsnative(xyz, fsnative, donor):
+    assert np.allclose(transforms.xyz_to_fsnative(xyz, donor), fsnative)
+    assert np.allclose(transforms.fsnative_to_xyz(fsnative, donor), xyz)
 
 
 # honestly no clue how to actually test this beyond just trusting the affine
