@@ -370,7 +370,11 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
     valid_structures = list(ONTOLOGY.value_set('structure'))
     hemi_swap = {
         'lh': 'L', 'LH': 'L', 'l': 'L', 'left': 'L',
-        'rh': 'R', 'RH': 'R', 'r': 'R', 'right': 'R'
+        'rh': 'R', 'RH': 'R', 'r': 'R', 'right': 'R',
+        'bilateral': 'B'
+    }
+    struct_swap = {
+        'subcortex': 'subcortex/brainstem', 'brainstem': 'subcortex/brainstem'
     }
     expected_cols = ['hemisphere', 'structure']
 
@@ -403,15 +407,16 @@ def check_atlas_info(atlas, atlas_info, labels=None, validate=False):
 
     try:
         atlas_info['hemisphere'] = atlas_info['hemisphere'].replace(hemi_swap)
-        hemi_diff = np.setdiff1d(atlas_info['hemisphere'], ['L', 'R'])
+        hemi_diff = np.setdiff1d(atlas_info['hemisphere'], ['L', 'R', 'B'])
         assert len(hemi_diff) == 0
     except AssertionError:
         raise ValueError('Provided atlas_info has invalid values in the'
                          '\'hemisphere\' column. Only the following values '
                          'are allowed: {}. Invalid value(s): {}'
-                         .format(['L', 'R'], hemi_diff))
+                         .format(['L', 'R', 'B'], hemi_diff))
 
     try:
+        atlas_info['structure'] = atlas_info['structure'].replace(struct_swap)
         struct_diff = np.setdiff1d(atlas_info['structure'], valid_structures)
         assert len(struct_diff) == 0
     except AssertionError:

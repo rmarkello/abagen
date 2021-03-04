@@ -81,4 +81,4 @@ id,label,hemisphere,structure
 80,accumbensarea,R,subcortex/brainstem
 81,hippocampus,R,subcortex/brainstem
 82,amygdala,R,subcortex/brainstem
-83,brainstem,R,subcortex/brainstem
+83,brainstem,B,subcortex/brainstem

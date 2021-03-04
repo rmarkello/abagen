@@ -246,9 +246,10 @@ class AtlasTree:
         """
 
         cols = ['mni_x', 'mni_y', 'mni_z']
-        tol, labels = 0, np.zeros(len(samples))
-        while tol <= tolerance:
-            idx = labels == 0
+        tol = 0
+        labels = np.zeros(len(samples))
+        idx = np.ones(len(samples), dtype=bool)
+        while tol <= tolerance and np.sum(idx) > 0:
             subsamp = samples.loc[idx]
             matches = self.tree.query_ball_point(subsamp[cols], tol)
             labs = np.zeros(len(subsamp))
@@ -257,6 +258,7 @@ class AtlasTree:
                     labs[n] = self._assign_sample(self.atlas[match],
                                                   subsamp.iloc[[n]])
             labels[idx] = labs
+            idx = labels == 0
             tol += 1
 
         return labels
@@ -283,7 +285,7 @@ class AtlasTree:
         # if atlas_info and sample_info are provided, drop potential labels who
         # don't match hemisphere or structural class defined in `sample_info`
         if self.atlas_info is not None:
-            possible = _check_label(possible, sample, self.atlas_info)
+            possible = _check_label(labels, sample, self.atlas_info)
             labels, counts = np.unique(possible[possible.nonzero()],
                                        return_counts=True)
 
@@ -317,7 +319,7 @@ def _check_label(label, sample_info, atlas_info):
     ----------
     label : int or array_like
         Tenative label(s) for sample(s) described by `sample_info`
-    sample_info : pandas.DataFrame
+    sample_info : pandas.Series or pandas.DataFrame
         Row(s) of an `annotation` file, corresponding to the given `label`
     atlas_info : pandas.DataFrame
         Dataframe containing information about the atlas of interest. Must have
@@ -326,15 +328,27 @@ def _check_label(label, sample_info, atlas_info):
 
     Returns
     -------
-    label : int or array_like
+    label : np.ndarray
         New label(s) for sample(s)
     """
 
     cols = ['hemisphere', 'structure']
+    label = np.atleast_1d(label)
+
+    if len(sample_info) != len(label):
+        sample_info = pd.concat([sample_info] * len(label))
 
     try:
-        drop = np.any(np.asarray(atlas_info.loc[label, cols])
-                      != np.asarray(sample_info[cols]), axis=1)
+        ai = atlas_info.loc[label, cols]
+        drop = np.zeros_like(label, dtype=bool)
+        # only compare structure for bilateral ROIs
+        mask = np.asarray(ai['hemisphere'] == "B")
+        drop[mask] = (np.asarray(atlas_info.loc[ai[mask].index, 'structure'])
+                      != np.asarray(sample_info.loc[mask, 'structure']))
+        # but compare hemisphere + structure for L/R ROIs
+        mask = np.logical_not(mask)
+        drop[mask] = np.any(np.asarray(atlas_info.loc[ai[mask].index, cols])
+                            != np.asarray(sample_info.loc[mask, cols]), axis=1)
         label[drop] = 0
     except KeyError:
         pass
@@ -361,6 +375,8 @@ def get_centroids(data, coordinates, labels=None):
     centroids : dict
         Where keys are labels and values are centroids
     """
+
+    data, coordinates = np.asarray(data), np.atleast_2d(coordinates)
 
     if labels is None:
         labels = np.trim_zeros(np.unique(data))
