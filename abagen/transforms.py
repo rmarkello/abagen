@@ -139,4 +139,5 @@ def xyz_to_ijk(coords, affine):
     """
 
     coords, affine = np.atleast_2d(coords), np.asarray(affine)
-    return nib.affines.apply_affine(np.linalg.inv(affine), coords).astype(int)
+    ijk = nib.affines.apply_affine(np.linalg.inv(affine), coords)
+    return np.asarray(np.floor(ijk), dtype=int)

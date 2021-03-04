@@ -11,6 +11,7 @@ import pandas as pd
 
 from . import correct, datasets, images, io, matching, probes_, samples_, utils
 from .datasets import WELL_KNOWN_IDS
+from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
 import logging
@@ -536,13 +537,7 @@ def get_samples_in_mask(mask=None, **kwargs):
         affine[:-1, -1] = np.floor(coords).min(axis=0)
 
         # downsample coordinates to specified resolution and convert to ijk
-        ijk = np.unique(
-            np.asarray(
-                np.floor(
-                    nib.affines.apply_affine(np.linalg.inv(affine), coords),
-                ), dtype='int'
-            ), axis=0
-        )
+        ijk = np.unique(xyz_to_ijk(coords, affine), axis=0)
 
         # generate atlas image where each voxel has
         img = np.zeros(ijk.max(axis=0) + 2, dtype='int')
