@@ -3,11 +3,11 @@
 Tests for abagen.matching module
 """
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import pytest
 
-from abagen import matching
+from abagen import images, matching
 
 
 def test_check_label():
@@ -86,3 +86,28 @@ def test_AtlasTree(atlas, surface, testfiles):
     assert len(tree.centroids) == 2 and list(tree.centroids.keys()) == [1, 2]
     tree.atlas_info = atlas_info
     pd.testing.assert_frame_equal(tree.atlas_info, atlas_info)
+    labels = tree.label_samples([[0, 0, 0], [3, 3, 3]])
+    assert np.all(labels['label'] == [1, 2])
+    # check coordinate reversal AND outlier removal in same go
+    tree.coords = coords[::-1]
+    labels = tree.label_samples(np.row_stack((coords, [1000, 1000, 1000])))
+    assert np.all(labels['label'] == [2, 2, 2, 1, 1, 1, 0])
+
+    tree = matching.AtlasTree(nib.load(atlas['image']))
+    assert str(tree) == 'AtlasTree[n_rois=83, n_voxel=819621]'
+    assert tree.volumetric
+    assert tree.atlas_info is None
+    assert np.all(tree.labels == np.arange(1, 84))
+    assert len(tree.centroids) == 83
+    tree.atlas_info = atlas['info']
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
+    assert np.all(labels['label'] == [1, 2])
+
+    tree = images.check_atlas(surface['image'])
+    assert str(tree) == 'AtlasTree[n_rois=68, n_vertex=18426]'
+    assert not tree.volumetric
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    assert len(tree.centroids) == 68
+    labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
+    assert np.all(labels['label'] == [1, 2])
