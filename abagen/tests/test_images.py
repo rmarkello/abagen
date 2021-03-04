@@ -38,6 +38,8 @@ def test_leftify_atlas(atlas):
 
 
 def test_relabel_gifti(surface):
+    surface = surface['image']
+
     # basic usage (`surface` has gap between left + right hemi for subcortex)
     lh, rh = images.relabel_gifti(surface, background=None)
     data = np.hstack((lh.agg_data(), rh.agg_data()))
