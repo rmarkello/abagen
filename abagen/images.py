@@ -6,7 +6,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from .datasets import fetch_fsaverage5
+from .datasets import fetch_fsaverage5, fetch_fsnative
 from .samples_ import ONTOLOGY
 from .utils import labeltable_to_df, load_gifti
 from . import matching, transforms
@@ -285,7 +285,7 @@ def check_surface(atlas):
     return adata, atlas_info
 
 
-def check_atlas(atlas, atlas_info=None):
+def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
     """
     Checks that `atlas` is a valid atlas
 
@@ -300,12 +300,20 @@ def check_atlas(atlas, atlas_info=None):
         information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
+    donor : str, optional
+        If specified, indicates which donor the specified `atlas` belongs to.
+        Only relevant when `atlas` is surface-based, to ensure the correct
+        geometry files are fetched. Default: None (i.e., group-level atlas)
+    data_dir : str, optional
+        Directory where donor-specific FreeSurfer data should be downloaded and
+        unpacked. Only used if provided `donor` is not None. Default: $HOME/
+        abagen-data
 
     Returns
     -------
     atlas : :obj:`abagen.AtlasTree`
-        Pre-loaded volumetric `atlas` image or parcellation information from
-        surface `atlas`
+        AtlasTree object with information about `atlas` and functionality for
+        labelling coordinates
     """
 
     if isinstance(atlas, matching.AtlasTree):
@@ -317,9 +325,16 @@ def check_atlas(atlas, atlas_info=None):
         atlas, coords = check_img(atlas), None
     except TypeError:
         atlas, info = check_surface(atlas)
-        coords = transforms.fsaverage_to_mni152(
-            np.row_stack([hemi.vertices for hemi in fetch_fsaverage5()])
-        )
+        if donor is None:
+            coords = transforms.fsaverage_to_mni152(
+                np.row_stack([hemi.vertices for hemi in fetch_fsaverage5()])
+            )
+        else:
+            coords = transforms.fsnative_to_xyz(
+                np.row_stack([hemi.vertices for hemi
+                              in fetch_fsnative(donor, data_dir=data_dir)]),
+                donor
+            )
         if atlas_info is None and info is not None:
             atlas_info = info
 

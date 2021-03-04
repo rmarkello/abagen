@@ -558,7 +558,7 @@ def get_samples_in_mask(mask=None, **kwargs):
     return exp, coords
 
 
-def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
+def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
     """
     Coerces `atlas` to dict with keys `donors`
 
@@ -579,13 +579,17 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
         and broad structural class (i.e., "cortex", "subcortex/brainstem",
         "cerebellum"). If provided, this will constrain matching of tissue
         samples to regions in `atlas`. Default: None
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Only used if
+        provided `atlas` is a dictionary of surface files. Default: $HOME/
+        abagen-data
 
     Returns
     -------
     atlas : dict
         Dict where keys are `donors` and values are `atlas`. If a dict was
         provided it is checked to ensure
-    same : bool
+    group_atlas : bool
         Whether one atlas was provided for all donors (True) instead of
         donor-specific atlases (False)
     """
@@ -596,7 +600,8 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
     # FIXME: so that we're not depending on type checks so much :grimacing:
     if isinstance(atlas, dict):
         atlas = {
-            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info)
+            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info,
+                                                           donor, data_dir)
             for donor, atl in atlas.items()
         }
         group_atlas = False
@@ -604,12 +609,12 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
         if len(missing) > 0:
             raise ValueError('Provided `atlas` does not have entry for all '
                              f'requested donors. Missing donors: {donors}.')
-        lgr.info('Donor-specific atlases provided; using native MRI '
-                 'coordinates for tissue samples')
+        lgr.info('Donor-specific atlases provided; using native coords for '
+                 'tissue samples')
     else:
         atlas = images.check_atlas(atlas, atlas_info)
         atlas = {donor: atlas for donor in donors}
-        lgr.info('Group-level atlas provided; using MNI coordinates for '
+        lgr.info('Group-level atlas provided; using MNI coords for '
                  'tissue samples')
 
     return atlas, group_atlas

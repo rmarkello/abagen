@@ -4,6 +4,7 @@ Tests for abagen.images module
 """
 
 import gzip
+from pkg_resources import resource_filename
 
 import nibabel as nib
 import numpy as np
@@ -65,13 +66,6 @@ def test_annot_to_gifti(annotation):
     lt = gii.labeltable.get_labels_as_dict()
     assert np.allclose(list(lt.keys()), np.arange(5))
     assert np.all(list(lt.values()) == labels)
-
-    # if we drop label4 (highest label) we lose one value
-    gii = images.annot_to_gifti(annotation, background=['label4'])
-    assert np.allclose(np.unique(gii.agg_data()), np.arange(4))
-    lt = gii.labeltable.get_labels_as_dict()
-    assert np.allclose(list(lt.keys()), np.arange(4))
-    assert np.all(list(lt.values()) == labels[:-1])
 
 
 def test_check_img(atlas):
@@ -140,6 +134,17 @@ def test_check_atlas(atlas, surface):
     assert isinstance(tree.atlas_info, pd.DataFrame)
     assert not tree.volumetric
     assert len(tree.coords) == 18426
+
+    # check loading donor-specific surface file
+    fp = 'data/native_dk/12876/atlas-desikankilliany-{}.gii.gz'
+    surf = [
+        resource_filename('abagen', fp.format(hemi)) for hemi in ('lh', 'rh')
+    ]
+    tree = images.check_atlas(surf, donor='12876')
+    assert isinstance(tree, AtlasTree)
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    assert not tree.volumetric
+    assert len(tree.coords) == 386566
 
 
 def test_check_atlas_info(atlas):
