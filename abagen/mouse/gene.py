@@ -74,6 +74,7 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
     Examples
     --------
     Get gene ID and name corresponding to gene acronym 'Pdyn':
+
     >>> from abagen import mouse
     >>> mouse.get_gene_info(acronym='Pdyn', attributes=['id', 'name'])
                 id          name
@@ -81,6 +82,7 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
     Pdyn     18376  prodynorphin
 
     You can also supply multiple genes to the query:
+
     >>> mouse.get_gene_info(acronym=['Ace', 'Cd99'], attributes=['id', 'name'])
                  id                                               name
     acronym

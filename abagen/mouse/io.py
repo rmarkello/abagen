@@ -128,7 +128,7 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
 
 def fetch_rubinov2015_structures(entry_type=None):
     """
-    Loads subset of anatomical structures in Allen Reference Atlas used in [1]_
+    Loads subset of anatomical structures in Allen Reference Atlas from [MI1]_
 
     Parameters
     ----------
@@ -141,11 +141,11 @@ def fetch_rubinov2015_structures(entry_type=None):
     Returns
     -------
     structures : list or :obj:`pandas.DataFrame`
-        Anatomical structures in Allen Reference Atlas from [1]_
+        Anatomical structures in Allen Reference Atlas from [MI1]_
 
     References
     ----------
-    .. [1] Rubinov, M., Ypma, R. J., Watson, C., & Bullmore, E. T. (2015).
+    .. [MI1] Rubinov, M., Ypma, R. J., Watson, C., & Bullmore, E. T. (2015).
        Wiring cost and topological participation of the mouse brain connectome.
        Proceedings of the National Academy of Sciences, 112(32), 10032-10037.
     """

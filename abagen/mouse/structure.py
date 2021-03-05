@@ -75,6 +75,7 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
     Examples
     --------
     Get the full names of structures 22 and 1018:
+
     >>> from abagen import mouse
     >>> mouse.get_structure_info(id=[22, 1018], attributes=['acronym', 'name'])
          acronym                                  name
@@ -138,6 +139,7 @@ def get_structure_coordinates(id=None, acronym=None, name=None,
     Examples
     --------
     Get the coordinates of structure 1018:
+
     >>> from abagen import mouse
     >>> mouse.get_structure_coordinates(id=1018)
        structure_id     x     y     z

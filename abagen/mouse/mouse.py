@@ -83,8 +83,8 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     structures : list, optional
         List of structures (id, acronym, or name) for which to get unionization
         information associated with provided `experiment_id`. If not specified
-        uses structures documented in [1]_. Specifying either the id or name is
-        recommended as acronyms are not unique to structures. Default: None
+        uses structures documented in [MI1]_. Specifying either the id or name
+        is recommended as acronyms are not unique to structures. Default: None
     attributes : str or list, optional
         Which attributes / information to obtain for the provided structure.
         See :func:`abagen.mouse.available_unionization_info` for list of
@@ -102,12 +102,6 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
     unionization : pandas.DataFrame
         Where columns are unionization attributes and the index corresponds to
         gene ids and strucuture ids
-
-    References
-    ----------
-    .. [1] Rubinov, M., Ypma, R. J., Watson, C., & Bullmore, E. T. (2015).
-       Wiring cost and topological participation of the mouse brain connectome.
-       Proceedings of the National Academy of Sciences, 112(32), 10032-10037.
     """
 
     if isinstance(experiment_id, (str, int)):
@@ -175,7 +169,7 @@ def _get_unionization_from_experiment(experiment_id, structures=None,
 
 
 def available_unionization_info():
-    """ Lists available attributes for `get_unionization_from_` functions
+    """ Lists attributes for :func:`abagen.mouse.get_unionization_from_gene`
     """
 
     return _UNIONIZATION_ATTRIBUTES
@@ -202,8 +196,8 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
     structures : list, optional
         List of structures (id, acronym, or name) for which to get unionization
         information associated with provided `experiment_id`. If not specified
-        uses structures documented in [1]_. Specifying either the id or name is
-        recommended as acronyms are not unique to structures. Default: None
+        uses structures documented in [MI1]_. Specifying either the id or name
+        is recommended as acronyms are not unique to structures. Default: None
     attributes : str or list, optional
         Which attributes / information to obtain for the provided gene. See
         :func:`abagen.mouse.available_gene_info` for list of available
@@ -242,12 +236,6 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
             31                      0.001427
     163028  22                      0.067537
             31                      0.056442
-
-    References
-    ----------
-    .. [1] Rubinov, M., Ypma, R. J., Watson, C., & Bullmore, E. T. (2015).
-       Wiring cost and topological participation of the mouse brain connectome.
-       Proceedings of the National Academy of Sciences, 112(32), 10032-10037.
     """  # noqa
 
     directions = ['sagittal', 'coronal']
