@@ -56,7 +56,7 @@ Currently, ``abagen`` works with Python 3.6+ and requires a few dependencies:
 
     - nibabel
     - numpy (>=1.14.0)
-    - pandas, and
+    - pandas (>=0.25.0), and
     - scipy
 
 There are some additional (optional) dependencies you can install to speed up
