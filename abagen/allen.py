@@ -9,7 +9,9 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from . import correct, datasets, io, probes_, samples_, utils
+from . import correct, datasets, images, io, matching, probes_, samples_, utils
+from .datasets import WELL_KNOWN_IDS
+from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
 import logging
@@ -94,9 +96,9 @@ def get_expression_data(atlas,
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
-        and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
-        If provided, this will constrain matching of tissue samples to regions
-        in `atlas`. Default: None
+        and broad structural class (i.e., "cortex", "subcortex/brainstem",
+        "cerebellum"). If provided, this will constrain matching of tissue
+        samples to regions in `atlas`. Default: None
     ibf_threshold : [0, 1] float, optional
         Threshold for intensity-based filtering. This number specifies the
         ratio of samples, across all supplied donors, for which a probe must
@@ -306,7 +308,7 @@ def get_expression_data(atlas,
     lgr.setLevel(lgr_levels.get(int(verbose), 1))
 
     # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, atlas_info, same = coerce_atlas_to_dict(atlas, donors, atlas_info)
+    atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -333,18 +335,12 @@ def get_expression_data(atlas,
         datasets.fetch_rnaseq(data_dir=data_dir, donors=donors,
                               verbose=verbose)
 
-    # get some info on labels in `atlas_img`
-    all_labels = utils.get_unique_labels(utils.first_entry(atlas))
+    # get some info on labels in `atlas`
+    all_labels = utils.first_entry(atlas).labels
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
         lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
                     'GB RAM.')
-    if not exact and same:
-        lgr.info(f'Pre-calculating centroids for {len(all_labels)} regions in '
-                 'provided atlas')
-        centroids = utils.get_centroids(utils.first_entry(atlas),
-                                        labels=all_labels,
-                                        image_space=True)
 
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
@@ -352,7 +348,7 @@ def get_expression_data(atlas,
     for donor, data in files.items():
         annot, ontol = data['annotation'], data['ontology']
         t1w = None
-        if not same:
+        if not group_atlas:
             t1w = datasets.fetch_raw_mri(donors=donor,
                                          data_dir=data_dir,
                                          verbose=verbose)[donor]['t1w']
@@ -397,8 +393,7 @@ def get_expression_data(atlas,
             microarray[subj] = microarray[subj].reset_index(drop=True)
 
         # assign samples to regions
-        labels = samples_.label_samples(annotation[subj], atlas[subj],
-                                        atlas_info, tolerance=tolerance)
+        labels = atlas[subj].label_samples(annotation[subj], tolerance)
 
         # if we're doing exact matching and want to aggregate samples w/i
         # regions, remove the non-labelled samples prior to normalization.
@@ -428,20 +423,17 @@ def get_expression_data(atlas,
         # missing data and the expression data for the closest sample to that
         # parcel; we'll use this once we've iterated through all donors
         if not exact:
-            if not same:
-                centroids = utils.get_centroids(atlas[subj], labels=all_labels,
-                                                image_space=True)
-            empty = np.logical_not(np.in1d(all_labels, labs))
+            empty = np.setdiff1d(all_labels, labs)
             cols = ['mni_x', 'mni_y', 'mni_z']
-            idx, dist = utils.closest_centroid(annotation[subj][cols],
-                                               centroids[empty],
-                                               return_dist=True)
+            centroids = np.r_[[atlas[subj].centroids[lab] for lab in empty]]
+            idx, dist = matching.closest_centroid(centroids,
+                                                  annotation[subj][cols],
+                                                  return_dist=True)
             if not hasattr(idx, '__len__'):  # TODO: better way to check this?
                 idx, dist = np.array([idx]), np.array([dist])
             idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
-            empty = all_labels[empty]
             idx.index = pd.Series(empty, name='label')
-            missing += [(idx, dict(zip(empty, np.diag(dist))))]
+            missing += [(idx, dict(zip(empty, dist)))]
 
         microarray[subj].index = labels['label']
 
@@ -504,7 +496,7 @@ def get_samples_in_mask(mask=None, **kwargs):
         `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
         ignored. If `atlas` is supplied instead of `mask` then `atlas` will be
         used instead as a modified binary image. If both `atlas` and `mask` are
-        supplied then `mask` will be usedin
+        supplied then `mask` will be used
 
     Returns
     -------
@@ -545,13 +537,7 @@ def get_samples_in_mask(mask=None, **kwargs):
         affine[:-1, -1] = np.floor(coords).min(axis=0)
 
         # downsample coordinates to specified resolution and convert to ijk
-        ijk = np.unique(
-            np.asarray(
-                np.floor(
-                    nib.affines.apply_affine(np.linalg.inv(affine), coords),
-                ), dtype='int'
-            ), axis=0
-        )
+        ijk = np.unique(xyz_to_ijk(coords, affine), axis=0)
 
         # generate atlas image where each voxel has
         img = np.zeros(ijk.max(axis=0) + 2, dtype='int')
@@ -572,7 +558,7 @@ def get_samples_in_mask(mask=None, **kwargs):
     return exp, coords
 
 
-def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
+def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
     """
     Coerces `atlas` to dict with keys `donors`
 
@@ -590,46 +576,45 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None):
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
         containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
-        and broad structural class (i.e., "cortex", "subcortex", "cerebellum").
-        If provided, this will constrain matching of tissue samples to regions
-        in `atlas`. Default: None
+        and broad structural class (i.e., "cortex", "subcortex/brainstem",
+        "cerebellum"). If provided, this will constrain matching of tissue
+        samples to regions in `atlas`. Default: None
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Only used if
+        provided `atlas` is a dictionary of surface files. Default: $HOME/
+        abagen-data
 
     Returns
     -------
     atlas : dict
         Dict where keys are `donors` and values are `atlas`. If a dict was
         provided it is checked to ensure
-    atlas_info : pandas.DataFrame
-        Loaded dataframe with information on atlas
-    same : bool
+    group_atlas : bool
         Whether one atlas was provided for all donors (True) instead of
         donor-specific atlases (False)
     """
 
     donors = datasets.fetchers.check_donors(donors)
-    same = True
+    group_atlas = True
 
     # FIXME: so that we're not depending on type checks so much :grimacing:
     if isinstance(atlas, dict):
         atlas = {
-            datasets.WELL_KNOWN_IDS.subj[d]: utils.check_img(a)
-            for d, a in atlas.items()
+            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info,
+                                                           donor, data_dir)
+            for donor, atl in atlas.items()
         }
-        same = False
+        group_atlas = False
         missing = set(donors) - set(atlas)
         if len(missing) > 0:
             raise ValueError('Provided `atlas` does not have entry for all '
                              f'requested donors. Missing donors: {donors}.')
-        lgr.info('Donor-specific atlases provided; using native MRI '
-                 'coordinates for tissue samples')
+        lgr.info('Donor-specific atlases provided; using native coords for '
+                 'tissue samples')
     else:
-        atlas = utils.check_img(atlas)
+        atlas = images.check_atlas(atlas, atlas_info)
         atlas = {donor: atlas for donor in donors}
-        lgr.info('Group-level atlas provided; using MNI coordinates for '
+        lgr.info('Group-level atlas provided; using MNI coords for '
                  'tissue samples')
 
-    if atlas_info is not None:
-        for donor, atl in atlas.items():
-            atlas_info = utils.check_atlas_info(atlas[donor], atlas_info)
-
-    return atlas, atlas_info, same
+    return atlas, group_atlas

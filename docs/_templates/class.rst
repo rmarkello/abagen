@@ -4,7 +4,6 @@
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
-   :no-members:
    :no-inherited-members:
 
 .. raw:: html

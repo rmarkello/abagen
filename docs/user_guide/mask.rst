@@ -19,16 +19,19 @@ atlas:
 .. doctest::
 
     >>> import nibabel as nib
+    >>> import pandas as pd
     >>> atlas = abagen.fetch_desikan_killiany()
     >>> dk = nib.load(atlas['image'])
-    >>> phg = dk.__class__(dk.dataobj[:] == 67, dk.affine, dk.header)
+    >>> info = pd.read_csv(atlas['info'])
+    >>> phg = int(info.query('label == "parahippocampal" & hemisphere == "L"')['id'])
+    >>> img = dk.__class__(dk.dataobj[:] == phg, dk.affine, dk.header)
 
 We can then use this mask to obtain all the microarray samples that fall within
 its boundaries:
 
 .. doctest::
 
-    >>> expression, coords = abagen.get_samples_in_mask(mask=phg)
+    >>> expression, coords = abagen.get_samples_in_mask(mask=img)
 
 :func:`abagen.get_samples_in_mask` returns two objects: (1) the the samples x
 gene expression matrix (``exp``), and (2) an array of MNI coordinates for those
@@ -47,18 +50,18 @@ of the relevant sample (rather than the atlas region):
 
 .. doctest::
 
-    >>> expression
+    >>> print(expression)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     well_id                                    ...
     2850         0.654914  0.234039  0.283280  ...  0.020379  0.228080  0.000000
     998          0.428705  0.375819  0.457741  ...  0.254195  0.315383  0.502122
     990          0.400673  0.409852  0.561666  ...  0.270064  0.397740  0.522261
     ...               ...       ...       ...  ...       ...       ...       ...
-    141667159    0.829192  0.923891  0.408131  ...  0.347914  0.302548  0.615491
-    159226157    0.558571  0.710222  0.372123  ...  0.360930  0.337352  0.453750
+    159226055    0.418706  0.751837  0.087808  ...  0.651541  0.410095  0.462773
     159226117    0.533079  0.773214  0.265615  ...  0.441826  0.389615  0.455249
+    158158343    0.362038  0.553050  0.314730  ...  0.346605  0.261426  0.337738
     <BLANKLINE>
-    [40 rows x 15633 columns]
+    [38 rows x 15633 columns]
 
 This allows you to match up the samples with additional data provided by
 the AHBA (e.g., ontological information) as desired.

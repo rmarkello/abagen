@@ -262,3 +262,11 @@ def test_collapse_probes_donors(testfiles, donor_probes):
     assert len(out) == 2  # number of donors
     assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])
     assert np.all([len(exp.columns) == 29131 for exp in out])
+
+
+def test_collapse_probes_errors(testfiles):
+    with pytest.raises(ValueError):
+        probes_.collapse_probes(flatten_dict(testfiles, 'microarray'),
+                                flatten_dict(testfiles, 'annotation'),
+                                first_entry(testfiles, 'probes'),
+                                method='notamethod')

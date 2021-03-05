@@ -3,17 +3,20 @@
 Functions for downloading the Allen Brain Atlas human microarray dataset.
 """
 
+from collections import namedtuple
+from functools import partial
 import multiprocessing as mp
 import os
 from pkg_resources import resource_filename
 
-from nibabel.volumeutils import Recoder
+import nibabel as nib
 import pandas as pd
 
 from .. import io
+from ..utils import load_gifti, first_entry
 from .utils import _get_dataset_dir, _fetch_files
 
-WELL_KNOWN_IDS = Recoder(
+WELL_KNOWN_IDS = nib.volumeutils.Recoder(
     (('9861', 'H0351.2001', '178238387', '157722636', '157722638'),
      ('10021', 'H0351.2002', '178238373', '157723301', '157723303'),
      ('12876', 'H0351.1009', '178238359', '157722290', '157722292'),
@@ -24,6 +27,7 @@ WELL_KNOWN_IDS = Recoder(
 )
 VALID_DONORS = sorted(WELL_KNOWN_IDS.value_set('subj')
                       | WELL_KNOWN_IDS.value_set('uid'))
+RESOURCE = partial(resource_filename, 'abagen')
 
 
 def check_donors(donors, default='12876', valid=VALID_DONORS):
@@ -93,7 +97,8 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
     Returns
     -------
     data : dict
-        Dictionary with keys ['microarray', 'ontology', 'pacall', 'probes',
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['microarray', 'ontology', 'pacall', 'probes',
         'annotation'], where corresponding values are lists of filepaths to
         downloaded CSV files.
 
@@ -175,7 +180,8 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     Returns
     -------
     data : dict
-        Dictionary with keys ['counts', 'tpm', 'ontology', 'genes',
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['counts', 'tpm', 'ontology', 'genes',
         'annotation'], where corresponding values are lists of filepaths to
         downloaded CSV files.
 
@@ -243,7 +249,8 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     Returns
     -------
     mris : dict
-        Dictionary with keys ['t1w', 't2w'], where corresponding values are
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['t1w', 't2w'], where corresponding values are
         lists of filepaths to downloaded Nifti files
     """
 
@@ -293,8 +300,9 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
 
     Returns
     -------
-    freesurfer : list
-        List to FreeSurfer directories for requested `donors`
+    freesurfer : dict
+        Dictionary where keys are donor IDs and values are paths to FreeSurfer
+        directories for requested `donors`
 
     References
     ----------
@@ -328,22 +336,28 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
     }
 
 
-def fetch_desikan_killiany(native=False, *args, **kwargs):
+def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
     """
     Fetches Desikan-Killiany atlas shipped with `abagen`
 
     Parameters
     ----------
     native : bool, optional
-        Whether to return group-level atlas in MNI space (False) instead of
-        individualized atlases in donor native space (True). Default: False
+        Whether to return individualized atlases in donor native space.
+        Default: False
+    surface : bool, optional
+        Whether to return surface instead of volumetric parcellation. This
+        option is currently incompatible with ``native=True``; instead, refer
+        to :func:`abagen.datasets.fetch_freesurfer` for donor-specific surface
+        atlases. Default: False
 
     Returns
     -------
     atlas : dict
-        Dictionary with keys ['image', 'info'] pointing to atlas image
-        (.nii.gz) and information (.csv) files. If ``native=True`` then 'image'
-        is a dictionary where keys are donor IDs and values are image paths.
+        Dictionary with keys ['image', 'info'] pointing to atlas image and
+        information files. If ``native`` then 'image' is a dictionary where
+        keys are donor IDs and values are image paths. If ``surface`` then
+        'image' is a tuple of GIFTI files (.label.gii.gz)
 
     References
     ----------
@@ -373,14 +387,22 @@ def fetch_desikan_killiany(native=False, *args, **kwargs):
     """
 
     # grab resource filenames
+    img = dict()
+    for donor in check_donors('all'):
+        fp = 'data' if not native else os.path.join('data', 'native_dk', donor)
+        if surface:
+            impath = tuple([
+                RESOURCE(
+                    os.path.join(fp, f'atlas-desikankilliany-{h}.label.gii.gz')
+                )
+                for h in ('lh', 'rh')
+            ])
+        else:
+            impath = RESOURCE(os.path.join(fp, 'atlas-desikankilliany.nii.gz'))
+        img[donor] = impath
     if not native:
-        img = resource_filename('abagen', 'data/atlas-desikankilliany.nii.gz')
-    else:
-        img = dict()
-        for donor in check_donors('all'):
-            imgpath = f'data/native_dk/{donor}/atlas-desikankilliany.nii.gz'
-            img[donor] = resource_filename('abagen', imgpath)
-    info = resource_filename('abagen', 'data/atlas-desikankilliany.csv')
+        img = first_entry(img)
+    info = RESOURCE('data/atlas-desikankilliany.csv')
 
     return dict(image=img, info=info)
 
@@ -415,7 +437,7 @@ def fetch_gene_group(group):
                          'groups: {}'.format(group, groups))
 
     group = group.lower()
-    fn = resource_filename('abagen', 'data/burt2018_natneuro.csv')
+    fn = RESOURCE(os.path.join('data', 'burt2018_natneuro.csv.gz'))
     genes = pd.read_csv(fn).query('group == "{}"'.format(group))['acronym']
 
     return sorted(list(genes))
@@ -433,7 +455,75 @@ def fetch_donor_info():
         donors
     """
 
-    fn = resource_filename('abagen', 'data/donor_info.csv')
+    fn = RESOURCE(os.path.join('data', 'donor_info.csv'))
     donors = pd.read_csv(fn)
 
     return donors
+
+
+Brain = namedtuple('Brain', ('lh', 'rh'))
+Surface = namedtuple('Surface', ('vertices', 'faces'))
+
+
+def fetch_fsaverage5():
+    """
+    Fetches and load fsaverage5 surface
+
+    Returns
+    -------
+    brain : namedtuple ('lh', 'rh')
+        Where each entry in the tuple is a hemisphere, represented as a
+        namedtuple with fields ('vertices', 'faces')
+    """
+
+    hemispheres = []
+    for hemi in ('lh', 'rh'):
+        fn = RESOURCE(
+            os.path.join('data', f'fsaverage5-pial-{hemi}.surf.gii.gz')
+        )
+        hemispheres.append(Surface(*load_gifti(fn).agg_data()))
+
+    return Brain(*hemispheres)
+
+
+def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
+    """
+    Fetches and load fsnative surface of `donor`
+
+    Parameters
+    ----------
+    donors : str or list-of-str
+        Donor(s) to download; can be either donor number or UID. Can also
+        specify 'all' to download all available donors.
+    surf : {'orig', 'white', 'pial', 'inflated', 'sphere'}, optional
+        Which surface to load. Default: 'pial'
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
+    resume : bool, optional
+        Whether to resume download of a partly-downloaded file. Default: True
+    verbose : int, optional
+        Verbosity level (0 means no message). Default: 1
+
+    Returns
+    -------
+    brain : namedtuple ('lh', 'rh')
+        Where each entry in the tuple is a hemisphere, represented as a
+        namedtuple with fields ('vertices', 'faces'). If multiple donors are
+        requested a dictionary is returned where keys are donor IDs.
+    """
+
+    donors = check_donors(donors)
+    if len(donors) > 1:
+        return {donor: fetch_fsnative(donor, surf, data_dir, resume, verbose)
+                for donor in donors}
+
+    donors = donors[0]
+    fpath = fetch_freesurfer(donors=donors, data_dir=data_dir, resume=resume,
+                             verbose=verbose)[donors]
+    hemispheres = []
+    for hemi in ('lh', 'rh'):
+        fn = os.path.join(fpath, 'surf', f'{hemi}.{surf}')
+        hemispheres.append(Surface(*nib.freesurfer.read_geometry(fn)))
+
+    return Brain(*hemispheres)

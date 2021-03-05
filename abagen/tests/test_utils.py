@@ -3,94 +3,36 @@
 Tests for abagen.utils module
 """
 
+import nibabel as nib
 import numpy as np
-import pandas as pd
 import pytest
 
 from abagen import utils
 
 
-@pytest.mark.xfail
-def test_check_dict():
-    assert False
+@pytest.mark.parametrize('indict, outdict', [
+    ('val', {0: 'val'}),
+    (['val1', 'val2'], {0: 'val1', 1: 'val2'}),
+    ({'key': 'val'}, {'key': 'val'})
+])
+def test_check_dict(indict, outdict):
+    assert utils.check_dict(indict) == outdict
 
 
-@pytest.mark.xfail
-def test_flatten_dict():
-    assert False
+@pytest.mark.parametrize('indict, subkey, outdict', [
+    ({'0': {'key': 0}, '1': {'key': 1}}, 'key', {'0': 0, '1': 1}),
+    ({'0': {'key': 0}, '1': {}}, 'key', {'0': 0, '1': None})
+])
+def test_flatten_dict(indict, subkey, outdict):
+    assert utils.flatten_dict(indict, subkey) == outdict
 
 
-@pytest.mark.xfail
-def test_first_entry():
-    assert False
-
-
-def test_leftify_atlas(atlas):
-    out = utils.leftify_atlas(atlas['image'])
-    assert len(np.unique(out.dataobj)) == 44
-    assert np.all(np.asarray(out.dataobj)[98:] == 0)
-
-
-def test_check_img(atlas):
-    # some really basic, silly checks
-    out = utils.check_img(atlas['image'])
-    assert out.header.get_data_dtype() == np.dtype('int32')
-    assert len(out.shape) == 3
-
-
-def test_check_atlas_info(atlas):
-    # general usage (providing two filenames) works as expected
-    out = utils.check_atlas_info(atlas['image'], atlas['info'])
-    assert all(out.columns == ['label', 'hemisphere', 'structure'])
-    assert out.index.name == 'id'
-
-    # can accept dataframe as input
-    atlas_df = pd.read_csv(atlas['info'])
-    out2 = utils.check_atlas_info(atlas['image'], atlas_df)
-    pd.testing.assert_frame_equal(out, out2)
-
-    # setting ID as index of dataframe is acceptable usage
-    atlas_df = atlas_df.set_index('id')
-    out3 = utils.check_atlas_info(atlas['image'], atlas_df)
-    pd.testing.assert_frame_equal(out, out3)
-
-    # check that coercion of different hemisphere designations works
-    atlas_df.loc[atlas_df['hemisphere'] == "L", 'hemisphere'] = "lh"
-    atlas_df.loc[atlas_df['hemisphere'] == "R", 'hemisphere'] = "r"
-    out4 = utils.check_atlas_info(atlas['image'], atlas_df)
-    pd.testing.assert_frame_equal(out, out4)
-
-    # validate = True returns None
-    none = utils.check_atlas_info(atlas['image'], atlas['info'], validate=True)
-    assert none is None
-
-    # providing labels allows for missing ids in atlas_info (i.e., does not
-    # raise ValueError)
-    drop_last_df = atlas_df.copy().iloc[:-1]
-    out5 = utils.check_atlas_info(atlas['image'], drop_last_df,
-                                  labels=range(1, 83))
-    assert len(out5) == 82
-
-    # not a filename or dataframe = failure
-    with pytest.raises(TypeError):
-        utils.check_atlas_info(atlas['image'], [1, 2, 3])
-
-    # missing data = failure
-    empty_df = pd.DataFrame(columns=['id', 'hemisphere', 'structure'])
-    with pytest.raises(ValueError):
-        utils.check_atlas_info(atlas['image'], empty_df)
-
-    # invalid hemisphere designations
-    bad_hemi_df = atlas_df.copy()
-    bad_hemi_df.loc[1, 'hemisphere'] = 'notahemisphere'
-    with pytest.raises(ValueError):
-        utils.check_atlas_info(atlas['image'], bad_hemi_df)
-
-    # invalid structural designation
-    bad_struct_df = atlas_df.copy()
-    bad_struct_df.loc[1, 'structure'] = 'notastructure'
-    with pytest.raises(ValueError):
-        utils.check_atlas_info(atlas['image'], bad_struct_df)
+@pytest.mark.parametrize('indict, subkey, out', [
+    ({'0': {'key': 'val0'}, '1': {'key': 'val1'}}, None, {'key': 'val0'}),
+    ({'0': {'key': 'val0'}, '1': {'key': 'val1'}}, 'key', 'val0')
+])
+def test_first_entry(indict, subkey, out):
+    assert utils.first_entry(indict, subkey) == out
 
 
 @pytest.mark.parametrize('metric, check, confirm, kwargs', [
@@ -103,6 +45,8 @@ def test_check_metric(metric, check, confirm, kwargs):
     metric = utils.check_metric(metric)
     assert np.allclose(metric(check, **kwargs), confirm)
 
+
+def test_check_metric_errors():
     # not an appropriate str
     with pytest.raises(ValueError):
         utils.check_metric('blargh')
@@ -112,49 +56,33 @@ def test_check_metric(metric, check, confirm, kwargs):
         utils.check_metric(lambda x: np.mean(x))
 
 
-@pytest.mark.xfail
 def test_efficient_corr():
-    assert False
+    # valid inputs
+    a, b = np.random.rand(2, 100, 10)
+    corrs = utils.efficient_corr(a, b)
+    assert len(corrs) == 10
 
+    # known output
+    a, b = np.arange(9).reshape(3, 3), np.arange(9).reshape(3, 3)[::-1]
+    corrs = utils.efficient_corr(a, b)
+    assert np.all(corrs == [-1, -1, -1])
 
-@pytest.mark.xfail
-def test_get_unique_labels():
-    assert False
+    # empty input yields NaN
+    assert np.isnan(utils.efficient_corr([], []))
 
-
-@pytest.mark.xfail
-def test_get_centroids():
-    assert False
-
-
-@pytest.mark.xfail
-def test_closest_centroid():
-    assert False
-
-
-@pytest.mark.parametrize('ijk, xyz', [
-    ([0, 0, 0],
-     np.array([[-90, -150, -80]])),
-    ([[10, 10, 10], [100, 50, 100]],
-     np.array([[-80, -140, -70], [10, -100, 20]])),
-    ([[54, 32, 20], [82, 205, 38], [32, 51, 82]],
-     np.array([[-36, -118, -60], [-8, 55, -42], [-58, -99, 2]])),
-])
-def test_coords_transform(ijk, xyz):
-    affine = np.array([[1, 0, 0, -90],
-                       [0, 1, 0, -150],
-                       [0, 0, 1, -80],
-                       [0, 0, 0, 1]])
-
-    assert np.all(utils.xyz_to_ijk(xyz, affine) == ijk)
-    assert np.all(utils.ijk_to_xyz(ijk, affine) == xyz)
-
+    # different lengths
     with pytest.raises(ValueError):
-        utils.xyz_to_ijk([[10, 10], [20, 30]], affine)
-    with pytest.raises(ValueError):
-        utils.ijk_to_xyz([[10, 10], [20, 30]], affine)
+        utils.efficient_corr(a[:2], b)
 
 
-@pytest.mark.xfail
-def test_expand_roi():
-    assert False
+def test_load_gifti(atlas, surface):
+    gii = utils.load_gifti(surface['image'][0])
+    assert isinstance(gii, nib.GiftiImage)
+
+    # providing a GiftiImage object will just pass that object back
+    gii2 = utils.load_gifti(gii)
+    assert gii is gii2
+
+    # cannot load non-GiftiImage object
+    with pytest.raises(TypeError):
+        utils.load_gifti(nib.load(atlas['image']))

@@ -75,14 +75,15 @@ def get_structure_info(id=None, acronym=None, name=None, attributes=None,
     Examples
     --------
     Get the full names of structures 22 and 1018:
+
     >>> from abagen import mouse
-    >>> mouse.get_structure_info(id=[22, 1018], attributes=['acronym', 'name'])
+    >>> mouse.get_structure_info(id=[22, 1018],
+    ...                          attributes=['acronym', 'name'])  # doctest: +NORMALIZE_WHITESPACE
          acronym                                  name
     id
     22      PTLp  Posterior parietal association areas
     1018    AUDv                 Ventral auditory area
-
-    """
+    """  # noqa
 
     criteria = [
         _coerce_inputs(id=id, acronym=acronym, name=name),
@@ -138,11 +139,12 @@ def get_structure_coordinates(id=None, acronym=None, name=None,
     Examples
     --------
     Get the coordinates of structure 1018:
+
     >>> from abagen import mouse
-    >>> mouse.get_structure_coordinates(id=1018)
+    >>> mouse.get_structure_coordinates(id=1018)  # doctest: +NORMALIZE_WHITESPACE
        structure_id     x     y     z
     0          1018  7800  3400  1050
-    """
+    """  # noqa
 
     spaces = {'sagittal': 10, 'coronal': 9}
     if reference_space not in spaces:

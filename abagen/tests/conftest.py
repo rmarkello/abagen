@@ -8,6 +8,7 @@ import pytest
 
 from abagen.datasets import (fetch_desikan_killiany,
                              fetch_microarray,
+                             fetch_raw_mri,
                              fetch_rnaseq)
 
 
@@ -31,5 +32,15 @@ def rnafiles(datadir):
 
 
 @pytest.fixture(scope='session')
+def rawmri(datadir):
+    return fetch_raw_mri(data_dir=datadir, donors=['12876', '15496'])
+
+
+@pytest.fixture(scope='session')
 def atlas():
-    return fetch_desikan_killiany()
+    return fetch_desikan_killiany(native=False, surface=False)
+
+
+@pytest.fixture(scope='session')
+def surface():
+    return fetch_desikan_killiany(native=False, surface=True)

@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from abagen import samples_
-from abagen.utils import first_entry, flatten_dict
+from abagen.utils import flatten_dict
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #  generate fake data (based largely on real data) so we know what to expect  #
@@ -74,13 +74,13 @@ def annotation(mm_annotation):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def test_update_mni_coords():
+def test_update_coords():
     # xyz coordinates are getting replaced so who cares about the original
     # but ids are important and need to be real!
     x = y = z = [-10, 20, 30, 40]
     ids = [594, 2985, 1058, 1145]
     annotation = pd.DataFrame(dict(mni_x=x, mni_y=y, mni_z=z, well_id=ids))
-    out = samples_.update_mni_coords(annotation)
+    out = samples_.update_coords(annotation, corrected_mni=True)
 
     # confirm that no samples were lost / reordered during the update process
     # and that we still have all our columns
@@ -102,12 +102,12 @@ def test_update_mni_coords():
 
 
 @pytest.mark.parametrize('path, expected', [
-    ('/4005/4006/4007/4275/4276/4277/4278/12899/4286/', 'subcortex'),
-    ('/4005/4006/4007/4275/4327/4341/4342/4344/', 'subcortex'),
+    ('/4005/4006/4007/4275/4276/4277/4278/12899/4286/', 'subcortex/brainstem'),
+    ('/4005/4006/4007/4275/4327/4341/4342/4344/', 'subcortex/brainstem'),
     ('/4005/4006/4007/4008/4084/4103/4111/4112/4113/', 'cortex'),
     ('/4005/4006/4833/4696/4697/12930/12931/12933/4751/', 'cerebellum'),
-    ('/4005/4006/9512/9676/9677/9680/9681/', 'brainstem'),
-    ('/4005/4006/4833/9131/9132/9133/9492/', 'brainstem'),
+    ('/4005/4006/9512/9676/9677/9680/9681/', 'subcortex/brainstem'),
+    ('/4005/4006/4833/9131/9132/9133/9492/', 'subcortex/brainstem'),
     ('/4005/9218/9298/12959/265505622/', 'white matter'),
     ('/4005/9218/9219/9220/9227/', 'white matter'),
     ('/4005/9352/9418/9419/9708/', 'other'),
@@ -126,7 +126,9 @@ def test_drop_mismatch_samples(mm_annotation, ontology):
     expected = pd.DataFrame(dict(hemisphere=['L', 'R', np.nan],
                                  mni_x=[-10, 30, 0],
                                  structure_acronym=['S', 'Cl', 'CC'],
-                                 structure=['subcortex', 'subcortex', 'other'],
+                                 structure=['subcortex/brainstem',
+                                            'subcortex/brainstem',
+                                            'other'],
                                  structure_id=[4251, 4323, 9422],
                                  structure_name=['subiculum, left',
                                                  'claustrum, right',
@@ -169,24 +171,6 @@ def test_mirror_samples(annotation, ontology):
     # but let's confirm all the outputs are as-expected
     a = samples_.mirror_samples(annotation, ontology)
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
-
-
-@pytest.mark.xfail
-def test__assign_sample(atlas):
-    atlas = atlas['image']
-    assert samples_._assign_sample([[0, 0, 0]], atlas, tolerance=0) == 0
-    assert samples_._assign_sample([[26, 96, 66]], atlas, tolerance=0) == 71
-    assert False
-
-
-@pytest.mark.xfail
-def test__check_label():
-    assert False
-
-
-@pytest.mark.xfail
-def test_label_samples():
-    assert False
 
 
 def test_groupby_index():
@@ -274,17 +258,13 @@ def test_aggregate_samples():
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
-def test_update_mni_coords_real(testfiles):
-    for annotation in flatten_dict(testfiles, 'annotation').values():
-        samples_.update_mni_coords(annotation)
-
-
-def test_label_samples_real(testfiles, atlas):
-    out = samples_.label_samples(first_entry(testfiles, 'annotation'),
-                                 atlas['image'])
-    assert isinstance(out, pd.DataFrame)
-    assert out.index.name == 'sample_id'
-    assert out.columns == ['label']
+@pytest.mark.parametrize('mni, ns', [
+    (True, True), (False, True), (True, False)
+])
+def test_update_mni_coords_real(testfiles, rawmri, mni, ns):
+    for donor, annotation in flatten_dict(testfiles, 'annotation').items():
+        ns = rawmri[donor]['t1w'] if ns else None
+        samples_.update_coords(annotation, corrected_mni=mni, native_space=ns)
 
 
 def test_drop_mismatch_samples_real(testfiles):
