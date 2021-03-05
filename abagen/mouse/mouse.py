@@ -223,13 +223,14 @@ def get_unionization_from_gene(id=None, acronym=None, name=None,
     Examples
     --------
     >>> from abagen import mouse
-    >>> mouse.get_unionization_from_gene(acronym='Pdyn', structures=[22, 31])
+    >>> mouse.get_unionization_from_gene(acronym='Pdyn',
+    ...                                  structures=[22, 31])  # doctest: +NORMALIZE_WHITESPACE
                           expression_density
     gene_id structure_id
     18376   22                      0.024840
             31                      0.017199
-
-    >>> mouse.get_unionization_from_gene(acronym=['Ace', 'Cd99'], structures=[22, 31])
+    >>> mouse.get_unionization_from_gene(acronym=['Ace', 'Cd99'],
+    ...                                  structures=[22, 31])  # doctest: +NORMALIZE_WHITESPACE
                           expression_density
     gene_id structure_id
     11210   22                      0.001283

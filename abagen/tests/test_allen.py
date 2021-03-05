@@ -13,7 +13,16 @@ from abagen.images import check_img
 
 
 def test_vanilla_get_expression_data(testfiles, atlas):
-    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
+    out = allen.get_expression_data(atlas['image'],
+                                    donors=['12876', '15496'])
+    assert np.allclose(out.index, range(1, 84))
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
+
+
+def test_vanilla_surface_expression_data(testfiles, surface):
+    out = allen.get_expression_data(surface['image'],
+                                    donors=['12876', '15496'])
     assert np.allclose(out.index, range(1, 84))
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
@@ -22,7 +31,6 @@ def test_vanilla_get_expression_data(testfiles, atlas):
 @pytest.mark.parametrize('opts', [
     ({'atlas_info': True}),
     ({'exact': False}),
-    ({'reannotated': False}),
     ({'atlas_info': True, 'exact': False}),
 ])
 def test_extra_get_expression_data(testfiles, atlas, opts):
@@ -37,6 +45,13 @@ def test_extra_get_expression_data(testfiles, atlas, opts):
 
 def test_individualized_get_expression_data(testfiles):
     atlas = allen.datasets.fetch_desikan_killiany(native=True)
+    out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
+    assert out.index.name == 'label'
+    assert out.columns.name == 'gene_symbol'
+
+
+def test_individualized_surface_expression_data(testfiles):
+    atlas = allen.datasets.fetch_desikan_killiany(native=True, surface=True)
     out = allen.get_expression_data(atlas['image'], donors=['12876', '15496'])
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'

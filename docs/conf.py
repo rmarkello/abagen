@@ -96,8 +96,8 @@ html_static_path = ['_static']
 
 # https://github.com/rtfd/sphinx_rtd_theme/issues/117
 def setup(app):  # noqa
-    app.add_stylesheet('theme_overrides.css')
-    app.add_javascript('https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js')  # noqa
+    app.add_css_file('theme_overrides.css')
+    app.add_js_file('https://cdn.rawgit.com/chrisfilo/zenodo.js/v0.1/zenodo.js')  # noqa
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -108,7 +108,7 @@ htmlhelp_basename = 'abagendoc'
 
 # -- Extension configuration -------------------------------------------------
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.6', None),
+    'python': ('https://docs.python.org/3.7', None),
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'pandas': ('https://pandas-docs.github.io/pandas-docs-travis/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),

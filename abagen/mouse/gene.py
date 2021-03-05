@@ -76,19 +76,21 @@ def get_gene_info(id=None, acronym=None, name=None, attributes=None,
     Get gene ID and name corresponding to gene acronym 'Pdyn':
 
     >>> from abagen import mouse
-    >>> mouse.get_gene_info(acronym='Pdyn', attributes=['id', 'name'])
+    >>> mouse.get_gene_info(acronym='Pdyn',
+    ...                     attributes=['id', 'name'])  # doctest: +NORMALIZE_WHITESPACE
                 id          name
     acronym
     Pdyn     18376  prodynorphin
 
     You can also supply multiple genes to the query:
 
-    >>> mouse.get_gene_info(acronym=['Ace', 'Cd99'], attributes=['id', 'name'])
+    >>> mouse.get_gene_info(acronym=['Ace', 'Cd99'],
+    ...                     attributes=['id', 'name'])  # doctest: +NORMALIZE_WHITESPACE
                  id                                               name
     acronym
     Ace       11210  angiotensin I converting enzyme (peptidyl-dipe...
     Cd99     163028                                       CD99 antigen
-    """
+    """  # noqa
 
     criteria = [
         _coerce_inputs(id=id, acronym=acronym, name=name),
