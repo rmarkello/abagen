@@ -44,7 +44,7 @@ parameter:
 
     >>> atlas = abagen.fetch_desikan_killiany(surface=True)
     >>> print(atlas['image'])  # doctest: +ELLIPSIS
-    ('/.../data/atlas-desikankilliany-lh.gii.gz', '/.../data/atlas-desikankilliany-rh.gii.gz')
+    ('/.../data/atlas-desikankilliany-lh.label.gii.gz', '/.../data/atlas-desikankilliany-rh.label.gii.gz')
 
 .. NOTE: Add this in v1.0 and remove this in v1.3
 .. .. warning::
@@ -172,7 +172,7 @@ These atlases are also shipped with ``abagen`` and can be loaded with:
     >>> print(atlas['image'].keys())
     dict_keys(['9861', '10021', '12876', '14380', '15496', '15697'])
     >>> print(atlas['image']['9861'])  # doctest: +ELLIPSIS
-    ('/.../9861/atlas-desikankilliany-lh.gii.gz', '/.../9861/atlas-desikankilliany-rh.gii.gz')
+    ('/.../9861/atlas-desikankilliany-lh.label.gii.gz', '/.../9861/atlas-desikankilliany-rh.label.gii.gz')
 
 Note that if you are using your own donor-specific surface atlases they must,
 by default, be based on the geometry of the FreeSurfer surfaces provided with

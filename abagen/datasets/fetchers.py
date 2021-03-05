@@ -392,7 +392,9 @@ def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
         fp = 'data' if not native else os.path.join('data', 'native_dk', donor)
         if surface:
             impath = tuple([
-                RESOURCE(os.path.join(fp, f'atlas-desikankilliany-{h}.gii.gz'))
+                RESOURCE(
+                    os.path.join(fp, f'atlas-desikankilliany-{h}.label.gii.gz')
+                )
                 for h in ('lh', 'rh')
             ])
         else:
@@ -476,7 +478,9 @@ def fetch_fsaverage5():
 
     hemispheres = []
     for hemi in ('lh', 'rh'):
-        fn = RESOURCE(os.path.join('data', f'fsaverage5-pial-{hemi}.gii.gz'))
+        fn = RESOURCE(
+            os.path.join('data', f'fsaverage5-pial-{hemi}.surf.gii.gz')
+        )
         hemispheres.append(Surface(*load_gifti(fn).agg_data()))
 
     return Brain(*hemispheres)

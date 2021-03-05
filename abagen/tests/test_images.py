@@ -136,7 +136,7 @@ def test_check_atlas(atlas, surface):
     assert len(tree.coords) == 18426
 
     # check loading donor-specific surface file
-    fp = 'data/native_dk/12876/atlas-desikankilliany-{}.gii.gz'
+    fp = 'data/native_dk/12876/atlas-desikankilliany-{}.label.gii.gz'
     surf = [
         resource_filename('abagen', fp.format(hemi)) for hemi in ('lh', 'rh')
     ]
