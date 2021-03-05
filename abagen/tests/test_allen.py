@@ -23,7 +23,6 @@ def test_vanilla_get_expression_data(testfiles, atlas):
 def test_vanilla_surface_expression_data(testfiles, surface):
     out = allen.get_expression_data(surface['image'],
                                     donors=['12876', '15496'])
-    assert np.allclose(out.index, range(1, 84))
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
 
