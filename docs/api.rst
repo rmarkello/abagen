@@ -95,7 +95,7 @@ Reference API
 .. currentmodule:: abagen
 
 .. autosummary::
-   :template: function.rst
+   :template: class.rst
    :toctree: generated/
 
    abagen.AtlasTree
@@ -123,6 +123,7 @@ Reference API
    abagen.io.read_tpm
    abagen.io.read_counts
 
+.. _ref_mouse:
 
 :mod:`abagen.mouse` - Working with the Allen Mouse Brain Atlas
 --------------------------------------------------------------

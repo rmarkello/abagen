@@ -20,7 +20,7 @@ class AtlasTree:
     ----------
     atlas : (N,) niimg-like object or array_like
         Volumetric (niimg-like) or array of parcellation labels. If providing
-        an array you must provide
+        an array you must provide `coords` as well
     coords : (N,) array_like, optional
         Coordinates representing points in `atlas`. If provided it is assumed
         that `atlas` is a surface representation (i.e., if `atlas` is
@@ -140,8 +140,8 @@ class AtlasTree:
         Matches all samples in `annotation` to parcels in `self.atlas`
 
         Attempts to place each sample provided in `annotation` into a parcel in
-        `self.atlas`. The functions tries to best match samples in `annotation`
-        to parcels in `self.atlas` by:
+        `self.atlas`. If `self.volumetric` is True, this function tries to best
+        match samples in `annotation` to parcels in `self.atlas` by:
 
             1. Determining if the sample falls directly within a parcel,
             2. Checking to see if there are nearby parcels by slowly expanding
@@ -155,27 +155,27 @@ class AtlasTree:
         process is terminated. If there is still no parcel for a given sample
         after this process the sample is provided a label of 0.
 
+        On the other hand, if `self.volumetric` is False, then samples are
+        simply matched to the nearest coordinate in `self.atlas`. Once matched,
+        `tolerance` is treated as a standard deviation threshold. That is, all
+        samples are matched to the nearest vertex, and then samples whose
+        distance to the nearest vertex are more than `tolerance` s.d. above the
+        mean distance for all samples are assigned a label of 0.
+
         Parameters
         ----------
-        annotation : (S, 13) pandas.DataFrame
-            Pre-loaded annotation information for a given AHBA donor
+        annotation : (S, 3) array_like
+            At a minimum, an array of XYZ coordinates must be provided. If a
+            full annotation dataframe is provided, then information from the
+            data frame (i.e., on hemisphere + structural assignments of tissue
+            samples) is used to constrain matching of regions.
         tolerance : float, optional
-            Threshold for assigning samples to parcels (see Notes). Default: 2
+            Threshold for assigning samples to parcels. Default: 2
 
         Returns
         -------
         labels : (S, 1) pandas.DataFrame
             Dataframe with parcel labels for each of `S` samples
-
-        Notes
-        -----
-        If `self.volumetric` is False then the previously described matching
-        procedure is used (i.e., `tolerance` is treated as a distace cutoff, in
-        mm). If `self.volumetric` is True, then `tolerance` is treated as a
-        standard deviation threshold. That is, all samples are matched to the
-        nearest vertex, and then samples whose distance to the nearest vertex
-        are more than `tolerance` s.d. above the mean distance for all samples
-        are assigned a label of 0.
         """
 
         try:
