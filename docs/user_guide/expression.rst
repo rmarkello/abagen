@@ -9,15 +9,15 @@ Basic usage
 -----------
 
 Once you've downladed the microarray data and selected your parcellation you
-can process the data. This is as simple as:
+can process the data. This should be as simple as:
 
 .. doctest::
     :options: +SKIP
 
     >>> expression = abagen.get_expression_data(atlas['image'])
 
-But it is highly recommended you provide the additional information on your
-parcellation, which can be done with:
+If you are using a volumetric image it is highly recommended you provide the
+additional information on your parcellation, which can be done with:
 
 .. doctest::
 
@@ -28,8 +28,9 @@ parcellation, which can be done with:
     By default this function will use data from *all* the donors! Wrangling all
     this raw microarray data can be quite time-consuming, so if you'd like to
     speed up this step make sure you've performed the :ref:`io_installation`.
-    Alternatively, if you don’t want to use all the donors you can provide the
-    subject IDs of the donors you want (e.g., ``donors=['9861', '10021']``).
+    Alternatively, if you don’t want to use all the donors when testing or
+    debugging the code, you can provide the subject IDs of the donors you want
+    (e.g., ``donors=['9861', '10021']``).
 
 The :func:`abagen.get_expression_data` function will print out some information
 about what's happening as it goes. However, briefly the function:
@@ -86,16 +87,15 @@ expression data normalized and aggregated across donors:
     >>> print(expression)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    1            0.589953  0.681338  0.458420  ...  0.628172  0.374296  0.487883
-    2            0.522952  0.648717  0.390436  ...  0.552265  0.292999  0.562721
-    3                 NaN       NaN       NaN  ...       NaN       NaN       NaN
+    1            0.489283  0.662200  0.406655  ...  0.667864  0.535496  0.470541
+    2            0.631899  0.590207  0.485607  ...  0.471412  0.410375  0.547112
+    3            0.510861  0.609256  0.507600  ...  0.728691  0.382782  0.460113
     ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.494707  0.342917  0.422670  ...  0.266772  0.574363  0.490976
-    82           0.754930  0.392403  0.446941  ...  0.291581  0.378054  0.671553
-    83           0.424567  0.223367  0.647518  ...  0.410338  0.657933  0.436435
+    81           0.394157  0.278577  0.475707  ...  0.288418  0.478292  0.414809
+    82           0.826058  0.602138  0.333444  ...  0.198249  0.449373  0.744999
+    83           0.384256  0.203426  0.744536  ...  0.377976  0.710638  0.511407
     <BLANKLINE>
     [83 rows x 15633 columns]
-
 
 By default the data are normalized using a scaled robust sigmoid function such
 that expression values for a given gene will range from 0-1, where 0 indicates
@@ -113,11 +113,11 @@ Getting dense expression data
 
 Unfortunately, due to how tissue samples were collected from the donor brains
 it is possible that some regions in an atlas may not be represented by any
-expression data. As you can see above, the third row in the returned DataFrame
-is filled with NaN values. That region, corresponding to the right frontal pole
-in the Desikan-Killiany atlas, was not matched to any tissue samples; this is
-likely due to the fact that only two of the six donors have tissue samples
-taken from the right hemisphere.
+expression data. In the above example, one of the rows (not displayed) is
+missing data. That region, corresponding to the right temporal pole in the
+Desikan-Killiany atlas, was not matched to any tissue samples; this is likely
+due to the fact that only two of the six donors have tissue samples taken from
+the right hemisphere.
 
 If you require a *dense* matrix---that is, you need expression values for
 **every** region in your ``atlas``---there are a few parameters that you can
@@ -163,16 +163,15 @@ will return a dense matrix (at the expense of some anatomical precision):
     >>> print(exp_exact)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    1            0.581974  0.690351  0.463989  ...  0.557508  0.377660  0.498366
-    2            0.513875  0.657256  0.398198  ...  0.482027  0.298519  0.569767
-    3            0.676728  0.821721  0.261042  ...  0.542162  0.155866  0.629143
+    1            0.489283  0.662200  0.406655  ...  0.667864  0.535496  0.470541
+    2            0.631899  0.590207  0.485607  ...  0.471412  0.410375  0.547112
+    3            0.510861  0.609256  0.507600  ...  0.728691  0.382782  0.460113
     ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.486355  0.355684  0.434629  ...  0.252527  0.568906  0.499018
-    82           0.748311  0.412807  0.463478  ...  0.270580  0.375286  0.666856
-    83           0.413359  0.239471  0.644237  ...  0.388827  0.652598  0.446439
+    81           0.394157  0.278577  0.475707  ...  0.288418  0.478292  0.414809
+    82           0.826058  0.602138  0.333444  ...  0.198249  0.449373  0.744999
+    83           0.384256  0.203426  0.744536  ...  0.377976  0.710638  0.511407
     <BLANKLINE>
     [83 rows x 15633 columns]
-
 
 .. note::
 
@@ -207,16 +206,15 @@ but it will dramatically increase the likelihood that this will happen:
     >>> print(exp_mirror)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    1            0.628105  0.686137  0.451324  ...  0.624768  0.396115  0.548684
-    2            0.582377  0.623956  0.489549  ...  0.615581  0.302118  0.542759
-    3            0.825647  0.692281  0.487182  ...  0.640661  0.515407  0.831552
+    1            0.505284  0.688720  0.400495  ...  0.682562  0.519779  0.469955
+    2            0.641774  0.621878  0.475088  ...  0.491574  0.398122  0.545147
+    3            0.523947  0.638872  0.488426  ...  0.741343  0.375409  0.461046
     ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.478442  0.349393  0.417992  ...  0.273961  0.575161  0.497606
-    82           0.764514  0.425207  0.421973  ...  0.268270  0.387107  0.685583
-    83           0.409792  0.220437  0.666533  ...  0.415927  0.666416  0.450219
+    81           0.404679  0.322615  0.453263  ...  0.302231  0.462381  0.420745
+    82           0.829403  0.647386  0.318405  ...  0.212194  0.439064  0.730029
+    83           0.396287  0.233113  0.705838  ...  0.404869  0.680109  0.487530
     <BLANKLINE>
     [83 rows x 15633 columns]
-
 
 Note that since this effectively duplicates the number of tissue samples the
 function runtime will increase somewhat. Also notice how the ``lr_mirror``
