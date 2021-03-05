@@ -97,7 +97,8 @@ def fetch_microarray(data_dir=None, donors=None, resume=True, verbose=1,
     Returns
     -------
     data : dict
-        Dictionary with keys ['microarray', 'ontology', 'pacall', 'probes',
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['microarray', 'ontology', 'pacall', 'probes',
         'annotation'], where corresponding values are lists of filepaths to
         downloaded CSV files.
 
@@ -179,7 +180,8 @@ def fetch_rnaseq(data_dir=None, donors=None, resume=True, verbose=1):
     Returns
     -------
     data : dict
-        Dictionary with keys ['counts', 'tpm', 'ontology', 'genes',
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['counts', 'tpm', 'ontology', 'genes',
         'annotation'], where corresponding values are lists of filepaths to
         downloaded CSV files.
 
@@ -247,7 +249,8 @@ def fetch_raw_mri(data_dir=None, donors=None, resume=True, verbose=1):
     Returns
     -------
     mris : dict
-        Dictionary with keys ['t1w', 't2w'], where corresponding values are
+        Two-level nested dictionary, where top-level keys are donor IDs and
+        second-level keys are ['t1w', 't2w'], where corresponding values are
         lists of filepaths to downloaded Nifti files
     """
 
@@ -297,8 +300,9 @@ def fetch_freesurfer(data_dir=None, donors=None, resume=True, verbose=1):
 
     Returns
     -------
-    freesurfer : list
-        List to FreeSurfer directories for requested `donors`
+    freesurfer : dict
+        Dictionary where keys are donor IDs and values are paths to FreeSurfer
+        directories for requested `donors`
 
     References
     ----------
@@ -350,10 +354,10 @@ def fetch_desikan_killiany(native=False, surface=False, *args, **kwargs):
     Returns
     -------
     atlas : dict
-        Dictionary with keys ['image', 'info'] pointing to atlas image
-        (.nii.gz) and information (.csv) files. If ``native=True`` then 'image'
-        is a dictionary where keys are donor IDs and values are image paths. If
-        ``surface=True`` then 'image' is a tuple of GIFTI files (.label.gii)
+        Dictionary with keys ['image', 'info'] pointing to atlas image and
+        information files. If ``native`` then 'image' is a dictionary where
+        keys are donor IDs and values are image paths. If ``surface`` then
+        'image' is a tuple of GIFTI files (.label.gii.gz)
 
     References
     ----------
