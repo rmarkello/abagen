@@ -172,6 +172,23 @@ def test_mirror_samples(annotation, ontology):
     a = samples_.mirror_samples(annotation, ontology)
     pd.testing.assert_frame_equal(a, aexp, check_like=True)
 
+    b = samples_.mirror_samples(annotation, ontology, 'leftright')
+    pd.testing.assert_frame_equal(b, aexp.iloc[[0, 1, 2, 3]], check_like=True)
+
+    c = samples_.mirror_samples(annotation, ontology, 'rightleft')
+    pd.testing.assert_frame_equal(c, aexp.iloc[[0, 1, 2, 4]], check_like=True)
+
+    right_only = annotation.iloc[[1, 2]].copy()
+    d = samples_.mirror_samples(right_only, ontology, 'leftright')
+    pd.testing.assert_frame_equal(d, aexp.iloc[[1, 2]], check_like=True)
+
+    left_only = annotation.iloc[[0, 2]].copy()
+    e = samples_.mirror_samples(left_only, ontology, 'rightleft')
+    pd.testing.assert_frame_equal(e, aexp.iloc[[0, 2]], check_like=True)
+
+    with pytest.raises(ValueError):
+        samples_.mirror_samples(annotation, ontology, 'notaswap')
+
 
 def test_groupby_index():
     # default usage (no params)
