@@ -319,6 +319,62 @@ class AtlasTree:
         centroids = np.row_stack([self.centroids[lab] for lab in labels])
         return labels[closest_centroid(coords, centroids)]
 
+    def match_closest_centroids(self, annotation, return_dist=False):
+        """
+        Matches samples in `annotation` to closest centroids in `self.atlas`
+
+        Parameters
+        ----------
+        annotation : (S, 3) array_like
+            At a minimum, an array of XYZ coordinates must be provided. If a
+            full annotation dataframe is provided, then information from the
+            data frame (i.e., on hemisphere + structural assignments of tissue
+            samples) is used to constrain matching of regions (if
+            `self.atlas_info` is not None).
+        return_dist : bool, optional
+            Whether to also return distance to matched centroids
+
+        Returns
+        -------
+        labels : (S,) np.ndarray
+            ID of parcel with closest centroid to samples in `annotation`
+        distance : (S,) np.ndarray
+            Distances of matched centroid to samples in `annotation`. Only
+            returned if `return_dist=True`
+        """
+
+        cols = ['mni_x', 'mni_y', 'mni_z']
+        try:
+            samples = io.read_annotation(annotation, copy=True)
+        except TypeError:
+            samples = pd.DataFrame(np.atleast_2d(annotation), columns=cols)
+
+        missing_info = any(col not in samples.columns
+                           for col in ('structure', 'hemisphere'))
+        if self.atlas_info is None or missing_info:
+            distances, idx = self.tree.query(samples[cols], k=1)
+            labels = self.atlas[idx]
+        else:
+            labels = np.full(len(samples), -1, dtype=int)
+            distances = np.full(len(samples), np.inf)
+            gb = samples.groupby(['structure', 'hemisphere'])
+            for (struct, hemi), idx in gb.groups.items():
+                same = self.atlas_info.query(
+                    f'hemisphere == "{hemi}" & structure == "{struct}"'
+                ).index
+                if len(same) == 0:
+                    continue
+                centroids = np.r_[[self.centroids[lab] for lab in same]]
+                match, dist = closest_centroid(samples.loc[idx, cols],
+                                               centroids,
+                                               return_dist=True)
+                iloc = np.isin(samples.index, idx)
+                labels[iloc], distances[iloc] = same[match], dist
+
+        if return_dist:
+            return labels, distances
+        return labels
+
 
 def _check_label(label, sample_info, atlas_info):
     """

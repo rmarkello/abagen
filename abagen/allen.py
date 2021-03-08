@@ -457,14 +457,26 @@ def get_expression_data(atlas,
         if not exact:
             empty = np.setdiff1d(all_labels, labs)
             cols = ['mni_x', 'mni_y', 'mni_z']
+            annotation_iloc = pd.Series(np.arange(len(annotation[subj])) + 1,
+                                        name='id')
+            annotree = matching.AtlasTree(
+                np.asarray(annotation_iloc),
+                np.asarray(annotation[subj][cols]),
+                annotation[subj].set_axis(annotation_iloc)
+            )
             centroids = np.r_[[atlas[subj].centroids[lab] for lab in empty]]
-            idx, dist = matching.closest_centroid(centroids,
-                                                  annotation[subj][cols],
-                                                  return_dist=True)
+            if atlas[subj].atlas_info is not None:
+                centinfo = atlas[subj].atlas_info.loc[empty]
+                centinfo[cols] = centroids
+                centroids = centinfo
+            idx, dist = annotree.match_closest_centroids(centroids,
+                                                         return_dist=True)
             if not hasattr(idx, '__len__'):  # TODO: better way to check this?
                 idx, dist = np.array([idx]), np.array([dist])
-            idx = microarray[subj].loc[annotation[subj].iloc[idx].index]
+            drop = idx == -1
+            idx = microarray[subj].loc[annotation[subj].iloc[idx - 1].index]
             idx.index = pd.Series(empty, name='label')
+            idx[drop] = np.nan
             missing += [(idx, dict(zip(empty, dist)))]
 
         microarray[subj].index = labels['label']
@@ -472,7 +484,8 @@ def get_expression_data(atlas,
     if not exact:  # check for missing ROIs and fill in, as needed
         # labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info(f'Matching {len(empty)} regions w/no data to nearest samples')
+        lgr.info(f'Matching {len(empty)} region(s) with no data to the '
+                 'nearest tissue sample(s)')
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([dist.get(roi) for micro, dist in missing])
