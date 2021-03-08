@@ -4,6 +4,7 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 """
 
 from functools import reduce
+import warnings
 
 import nibabel as nib
 import numpy as np
@@ -26,7 +27,7 @@ def get_expression_data(atlas,
                         ibf_threshold=0.5,
                         probe_selection='diff_stability',
                         donor_probes='aggregate',
-                        lr_mirror=False,
+                        lr_mirror=None,
                         exact=True,
                         tolerance=2,
                         sample_norm='srs',
@@ -117,11 +118,12 @@ def get_expression_data(atlas,
         donor ('independent'), or based on the most common selected probe
         across donors ('common'). Not all combinations of `probe_selection`
         and `donor_probes` methods are viable. Default: 'aggregate'
-    lr_mirror : bool, optional
+    lr_mirror : {None, 'bidirectional', 'leftright', 'rightleft'}, optional
         Whether to mirror microarray expression samples across hemispheres to
-        increase spatial coverage. This will duplicate samples across both
-        hemispheres (i.e., L->R and R->L), approximately doubling the number of
-        available samples. Default: False
+        increase spatial coverage. Using 'bidirectional' will mirror samples
+        across both hemispheres, 'leftright' will mirror samples in the left
+        hemisphere to the right, and 'rightleft' will mirror the right to the
+        left. Default: 'bidirectional'
     exact : bool, optional
         Whether to use exact matching of donor tissue samples to parcels in
         `atlas`. If True, this function will ONLY match tissue samples to
@@ -328,6 +330,19 @@ def get_expression_data(atlas,
                          f'one of [\'aggregate\', \'independent\']. Received '
                          f'value: \'{donor_probes}\'')
 
+    if isinstance(lr_mirror, bool):
+        warnings.warn('Setting lr_mirror to a boolean value will be '
+                      'deprecated in an upcoming release. Use either '
+                      '`lr_mirror=None` or `lr_mirror="bidirectional"` '
+                      'instead. See documentation for more details.',
+                      DeprecationWarning, stacklevel=2)
+        lr_mirror = 'bidirectional' if lr_mirror else None
+
+    mirror_opts = (None, 'bidirectional', 'leftright', 'rightleft')
+    if lr_mirror not in mirror_opts:
+        raise ValueError('Provided lr_mirror method is invalid, must be one '
+                         f'of {mirror_opts}. Received value: \'{lr_mirror}\'')
+
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose, n_proc=n_proc)
@@ -360,8 +375,8 @@ def get_expression_data(atlas,
         annot = samples_.update_coords(annot, corrected_mni=corrected_mni,
                                        native_space=t1w)
         annot = samples_.drop_mismatch_samples(annot, ontol)
-        if lr_mirror:
-            annot = samples_.mirror_samples(annot, ontol)
+        if lr_mirror is not None:
+            annot = samples_.mirror_samples(annot, ontol, swap=lr_mirror)
         data['annotation'] = annot
     annotation = flatten_dict(files, 'annotation')
 
@@ -392,10 +407,10 @@ def get_expression_data(atlas,
                           index=np.append([0], all_labels),
                           columns=microarray.keys())
     for subj in microarray:
-        if lr_mirror:  # reset index (duplicates will cause issues if we don't)
+        if lr_mirror is not None:  # reset index
             # TODO: come up with alternative sample IDs for mirrored samples
-            annotation[subj] = annotation[subj].reset_index(drop=True)
             microarray[subj] = microarray[subj].reset_index(drop=True)
+            annotation[subj] = annotation[subj].reset_index(drop=True)
 
         # assign samples to regions
         labels = atlas[subj].label_samples(annotation[subj], tolerance)

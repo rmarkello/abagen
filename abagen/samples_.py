@@ -267,7 +267,7 @@ def _mirror_ontology(annotation, ontology):
     return annotation
 
 
-def mirror_samples(annotation, ontology):
+def mirror_samples(annotation, ontology, swap='bidirectional'):
     """
     Mirrors all tissue samples across hemispheres (L->R and R->L)
 
@@ -284,6 +284,10 @@ def mirror_samples(annotation, ontology):
         Filepath to ontology file from Allen Brain Institute (i.e., as
         obtained by calling :func:`abagen.fetch_microarray` and accessing the
         `ontology` attribute on the resulting object).
+    swap : {'bidirectional', 'leftright', 'rightleft'}, optional
+        Which hemispheres to mirror, where 'bidirectional' will mirror both
+        hemispheres, 'leftright' will mirror the left to the right, and
+        'rightleft' will mirror the right to the left. Default: 'bidirectional'
 
     Returns
     -------
@@ -306,18 +310,24 @@ def mirror_samples(annotation, ontology):
        layers of the human cortex. NeuroImage, 171, 256-267.
     """
 
+    avail_swap = ('bidirectional', 'leftright', 'rightleft')
+    if swap not in avail_swap:
+        raise ValueError('Provided hemisphere `swap` value not recognized. '
+                         f'Must be one of {avail_swap}. Received: {swap}')
+
     annotation = io.read_annotation(annotation)
     ontology = io.read_ontology(ontology)
 
     # take all lh and rh samples and flip x-coordinate
     # also update ontology information (structure_id/acronym/name) as this is
     # used when dropping mismatched samples later in the workflow
-    lh = _mirror_ontology(annotation[annotation['mni_x'] < 0], ontology)
-    rh = _mirror_ontology(annotation[annotation['mni_x'] > 0], ontology)
-
-    # update mni-x coordinate (simply flip the sign)
-    for df in [lh, rh]:
-        df['mni_x'] *= -1
+    lh = rh = pd.DataFrame()
+    if swap in ('leftright', 'bidirectional'):
+        lh = _mirror_ontology(annotation[annotation['mni_x'] < 0], ontology)
+        lh['mni_x'] *= -1
+    if swap in ('rightleft', 'bidirectional'):
+        rh = _mirror_ontology(annotation[annotation['mni_x'] > 0], ontology)
+        rh['mni_x'] *= -1
 
     # grow microarray and pacall based on duplicated samples
     annotation = pd.concat([annotation, lh, rh])

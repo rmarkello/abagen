@@ -189,20 +189,26 @@ regions in the left hemisphere (for which all six donors have tissue samples)
 will be matched to at least one sample, whereas regions in the right hemisphere
 may come up short.
 
-To remedy this you can try setting the ``lr_mirror`` parameter to ``True`` when
-calling :func:`abagen.get_expression_data`. This, as the name suggests,
-performs a left/right mirroring of all the tissue samples from all donors. That
-is, all samples in the left hemisphere are duplicated and mirrored onto the
-right hemisphere, and vice-versa for right to left. Unlike the ``exact=False``
-parameter this will not *guarantee* that all regions are matched to a sample,
-but it will dramatically increase the likelihood that this will happen:
+To remedy this you can try modifying the ``lr_mirror`` parameter when calling
+:func:`abagen.get_expression_data`. This parameter accepts four options:
+``None`` (default), ``"bidirectional"``, ``"leftright"``, and ``"rightleft"``.
+As the name suggests, the ``lr_mirror`` options control whether tissue samples
+are mirrored across the left/right hemisphere axis. By supplying the
+'bidirectional' options, all samples in the left hemisphere are duplicated and
+mirrored onto the right hemisphre, and vice-versa for right to left. The other
+options ('leftright' and 'rightleft) will mirror only one hemisphere (i.e.,
+'leftright' will mirror samples in the left onto the right hemisphere.
+
+Unlike the ``exact=False`` parameter this will *not guarantee* that all regions
+are matched to a sample, but it will dramatically increase the likelihood that
+this will happen:
 
 .. insert figure demonstrating duplication of samples across hemispheres
 
 .. doctest::
     :options: +SKIP
 
-    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'], lr_mirror=True)
+    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'], lr_mirror='bidirectional')
     >>> print(exp_mirror)
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
