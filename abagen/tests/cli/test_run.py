@@ -40,20 +40,15 @@ def test_run_get_parser(capsys, atlas, datadir):
     assert 'abagen {}'.format(version) == capsys.readouterr().out.strip()
 
     # arguments with invalid choices (probe_selection) raise errors
-    with pytest.raises(SystemExit):
-        parser.parse_args(['--probe-selection', 'notamethod', atlas['image']])
-    assert "invalid choice: 'notamethod'" in capsys.readouterr().err
-    with pytest.raises(SystemExit):
-        parser.parse_args(['--gene-norm', 'notamethod', atlas['image']])
-    assert "invalid choice: 'notamethod'" in capsys.readouterr().err
-    with pytest.raises(SystemExit):
-        parser.parse_args(['--sample-norm', 'notamethod', atlas['image']])
-    assert "invalid choice: 'notamethod'" in capsys.readouterr().err
+    for arg in ('--probe-selection', '--gene-norm',
+                '--sample-norm', '--lr-mirror'):
+        with pytest.raises(SystemExit):
+            parser.parse_args([arg, 'notamethod', atlas['image']])
+        assert "invalid choice: 'notamethod'" in capsys.readouterr().err
 
     # just test every option
     args = parser.parse_args([
         '-v', '-v', '-v',
-        '--quiet',
         '--debug',
         '--atlas-info', atlas['info'],
         '--donors', '12876', '15496',
@@ -64,7 +59,9 @@ def test_run_get_parser(capsys, atlas, datadir):
         '--region-agg', 'donors',
         '--agg-metric', 'median',
         '--probe-selection', 'average',
-        '--lr_mirror',
+        '--norm-all',
+        '--norm-structures',
+        '--lr_mirror', 'bidirectional',
         '--gene-norm', 'srs',
         '--sample-norm', 'srs',
         '--no-reannotated', '--no-corrected-mni',

@@ -42,7 +42,7 @@ def get_expression_data(atlas,
                         return_donors=False,
                         donors='all',
                         data_dir=None,
-                        verbose=1,
+                        verbose=0,
                         n_proc=1):
     """
     Assigns microarray expression data to ROIs defined in `atlas`
@@ -54,10 +54,13 @@ def get_expression_data(atlas,
 
         1. Intensity-based filtering of microarray probes to remove probes that
            do not exceed a certain level of background noise (specified via the
-           `ibf_threshold` parameter), and
+           `ibf_threshold` parameter),
         2. Selection of a single, representative probe (or collapsing across
            probes) for each gene, specified via the `probe_selection`
-           parameter.
+           parameter (and influenced by the `donor_probes` parameter), and
+        3. Optional mirroring of the tissue samples across the left/right
+           hemisphere boundary, as specified via the `lr_mirror` parameter
+           (turned off by default).
 
     Tissue samples are then matched to parcels in the defined `atlas` for each
     donor. If `atlas_info` is provided then this matching is constrained by
@@ -78,29 +81,33 @@ def get_expression_data(atlas,
            closest parcel, as determined by the parcel centroid.
 
     If at any step a sample can be assigned to a parcel the matching process is
-    terminated. If multiple sample are assigned to the same parcel they are
-    aggregated with the metric specified via the `metric` parameter. More
-    control over the sample matching can be obtained by setting the `exact`
-    parameter; see the parameter description for more information.
+    terminated. When the provided atlas is not volumetric (i.e., surface-based)
+    the samples are simply matched to the nearest vertex, and `tolerance` is
+    used as a standard deviation threshold. More control over the sample
+    matching can be obtained by setting the `exact` parameter; see the
+    parameter description for more information.
 
     Once all samples have been matched to parcels for all supplied donors, the
     microarray expression data are optionally normalized via the provided
-    `sample_norm` and `gene_norm` functions before being combined within
-    parcels and across donors via the supplied `agg_metric`.
+    `sample_norm` and `gene_norm` functions (which are influenced by the
+    `norm_matched` and `norm_structures` parameters) before being aggregated
+    across donors via the supplied `region_agg` and `agg_metric` parameters.
 
     Parameters
     ----------
     atlas : niimg-like object or dict
-        A parcellation image in MNI space, where each parcel is identified by a
-        unique integer ID. Alternatively, a dictionary where keys are donor IDs
-        and values are parcellation images in the native space of each donor.
+        A parcellation image in MNI space or a tuple of GIFTI images in
+        fsaverage5 space, where each parcel is identified by a unique integer
+        ID. Alternatively, a dictionary where keys are donor IDs and values are
+        parcellation images (or surfaces) in the native space of each donor.
     atlas_info : os.PathLike or pandas.DataFrame, optional
         Filepath to or pre-loaded dataframe containing information about
         `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
-        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
-        and broad structural class (i.e., "cortex", "subcortex/brainstem",
+        containing information mapping atlas IDs to hemisphere (i.e, "L", "R",
+        "B") and broad structural class (i.e., "cortex", "subcortex/brainstem",
         "cerebellum"). If provided, this will constrain matching of tissue
-        samples to regions in `atlas`. Default: None
+        samples to regions in `atlas`. If `atlas` is a tuple of GIFTI images
+        with valid label tables this will be intuited. Default: None
     ibf_threshold : [0, 1] float, optional
         Threshold for intensity-based filtering. This number specifies the
         ratio of samples, across all supplied donors, for which a probe must
@@ -123,7 +130,7 @@ def get_expression_data(atlas,
         increase spatial coverage. Using 'bidirectional' will mirror samples
         across both hemispheres, 'leftright' will mirror samples in the left
         hemisphere to the right, and 'rightleft' will mirror the right to the
-        left. Default: 'bidirectional'
+        left. Default: None
     exact : bool, optional
         Whether to use exact matching of donor tissue samples to parcels in
         `atlas`. If True, this function will ONLY match tissue samples to
@@ -136,8 +143,10 @@ def get_expression_data(atlas,
         Euclidean distance to the parcel centroid). Default: True
     tolerance : int, optional
         Distance (in mm) that a sample must be from a parcel for it to be
-        matched to that parcel. This is only considered if the sample is not
-        directly within a parcel. Default: 2
+        matched to that parcel. If `atlas` is a tuple of surface files then
+        this measure is a standard deviation threshold (i.e., samples greater
+        than `tolerance` SDs away from the mean matched distance are ignored).
+        Default: 2
     sample_norm : {'rs', 'srs', 'minmax', 'center', 'zscore', None}, optional
         Method by which to normalize microarray expression values for each
         sample. Expression values are normalized separately for each sample and
