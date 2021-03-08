@@ -298,18 +298,25 @@ for alias, orig in [('demean', 'center'),
     NORMALIZATION_METHODS[alias] = NORMALIZATION_METHODS[orig]
 
 
-def normalize_expression(expression, norm='srs', ignore_warn=False):
+def normalize_expression(expression, norm='srs', structures=None,
+                         ignore_warn=False):
     """
     Performs normalization on `expression` data
 
     Parameters
     ----------
     expression : list of (S, G) pandas.DataFrame
-        Microarray expression data, where `S` is samples (or regions) and `G`
-        is genes
+        Microarray expression data to be normalized, where `S` is samples (or
+        regions) and `G` is genes
     norm : str, optional
         Function with which to normalize expression data. See Notes for more
         information on options. Default: 'scaled_robust_sigmoid'
+    structures : list of (S,) pandas.DataFrame
+        Structural designations of `S` samples (or regions) in `expression`.
+        Index of provided data frames should be identical to `expression` and
+        must have at least column 'structure'. If provided, normalization will
+        be performed separately for each distinct structural class. Default:
+        None
     ignore_warn : bool, optional
         Whether to suppress potential warnings raised by normalization.
         Default: False
@@ -358,7 +365,7 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
 
     8. ``norm='scaled_robust_sigmoid'``
 
-    Combines 'robust_sigmoid' and 'minmax'. Alised to 'srs' and 'scaled_rsig'
+    Combines 'robust_sigmoid' and 'minmax'. Aliased to 'srs' and 'scaled_rsig'
 
     9. ``norm='mixed_sigmoid'``
 
@@ -389,28 +396,40 @@ def normalize_expression(expression, norm='srs', ignore_warn=False):
         raise ValueError('Provided value for `norm` not recognized. Must be '
                          f'one of {list(NORMALIZATION_METHODS)}. Received: '
                          f'{norm}')
+    kwargs = dict(all='ignore') if ignore_warn else {}
 
     # FIXME: I hate having to do this...
     if isinstance(expression, pd.DataFrame):
         expression = [expression]
+
+    if structures is not None:
+        if isinstance(structures, pd.DataFrame):
+            structures = [structures]
+        if any(len(s) != len(e) for s, e in zip(structures, expression)):
+            raise ValueError('Length of `structures` class designations '
+                             'differs from provided `expression`.')
+    else:
+        structures = [
+            pd.DataFrame(dict(structure='same'), index=exp.index)
+            for exp in expression
+        ]
 
     if norm == 'batch':
         corrected = _batch_correct(expression)
 
     normexp = []
     for n, exp in enumerate(expression):
-        # get non-NaN values
-        notna = np.logical_not(exp.isna().all(axis=1))
-        data = np.asarray(exp)[notna]
-
-        kwargs = dict(all='ignore') if ignore_warn else {}
-        with np.errstate(**kwargs):
-            # normalize the data (however was specified)
-            normed = normfunc(data) if norm != 'batch' else corrected[n]
-
-        # recreate dataframe and fill non-NaN values
         normalized = pd.DataFrame(np.nan, columns=exp.columns, index=exp.index)
-        normalized.loc[notna] = normed
+        notna = np.logical_not(exp.isna().all(axis=1))
+        gb = structures[n].groupby('structure')
+        for grp, samples in gb.groups.items():
+            idx = samples[np.asarray(notna.loc[samples])]
+            data = np.asarray(exp.loc[idx])
+            # normalize the data (however was specified)
+            with np.errstate(**kwargs):
+                normed = normfunc(data) if norm != 'batch' else corrected[n]
+            normalized.loc[idx] = normed
+
         normexp.append(normalized)
 
     return _unpack_tuple(normexp)
