@@ -32,6 +32,7 @@ def get_expression_data(atlas,
                         sample_norm='srs',
                         gene_norm='srs',
                         norm_matched=True,
+                        norm_structures=False,
                         region_agg='donors',
                         agg_metric='mean',
                         corrected_mni=True,
@@ -152,6 +153,10 @@ def get_expression_data(atlas,
         samples matched to regions in `atlas` instead of all available samples.
         If `atlas` is very small (i.e., only a few regions of interest), using
         `norm_matched=False` is suggested. Default: True
+    norm_structures : bool, optional
+        Whether to perform gene normalization (`gene_norm`) within structural
+        classes (i.e., 'cortex', 'subcortex/brainstem', 'cerebellum') instead
+        of across all available samples. Default: False
     region_agg : {'samples', 'donors'}, optional
         When multiple samples are identified as belonging to a region in
         `atlas` this determines how they are aggegated. If 'samples',
@@ -404,6 +409,8 @@ def get_expression_data(atlas,
             annotation[subj] = annotation[subj].loc[nz]
             labels = labels.loc[nz]
 
+        # if normalizing by structural class get annotation dataframe
+        annot = annotation[subj][['structure']] if norm_structures else None
         if sample_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj].T,
                                                             norm=sample_norm,
@@ -411,6 +418,7 @@ def get_expression_data(atlas,
         if gene_norm is not None:
             microarray[subj] = correct.normalize_expression(microarray[subj],
                                                             norm=gene_norm,
+                                                            structures=annot,
                                                             ignore_warn=True)
 
         # get counts of samples collapsed into each ROI

@@ -263,10 +263,6 @@ normalization process (controllable via the ``norm_matched`` parameter):
 
     >>> abagen.get_expression_data(atlas['image'], norm_matched=True)
 
-Since there are known differences in microarray expression between broad
-structural designations (e.g. cortex, subcortex, brainstem, cerebellum), if
-e.g., a cortical atlas is provided then it makes sense that only those samples
-matched to regions in the atlas should be used to perform normalization.
 However, when a smaller atlas is provided with only a few regions, normalizing
 over just those samples matched to the atlas can be less desirable. To make it
 so that all available samples are used instead of only those matched, set
@@ -292,3 +288,24 @@ so that all available samples are used instead of only those matched, set
     in missing regions. For this reason, we suggest using
     ``norm_matched=False`` when also using ``exact=False``; however, we do not
     impose a restriction on this.
+
+.. _usage_norm_structures:
+
+Normalizing within structural classes
+-------------------------------------
+
+There are known differences in microarray expression between broad structural
+designations (e.g. cortex, subcortex/brainstem, cerebellum). As such, it may
+occasionally be desirable to constrain normalization such that the procedure is
+performed separately for each structural designation. This process can be
+controlled via the ``norm_structures`` parameter:
+
+.. code-block:: python
+
+    >>> abagen.get_expression_data(atlas['image'], norm_structures=True)
+
+By default, this parameter is set to ``False`` and normalization uses all
+available samples. Note that changing this parameter will _dramatically_ modify
+the returned expression information, so use with caution. For obvious reasons
+this parameter will interact heavily with the ``norm_matched`` parameter
+described above.

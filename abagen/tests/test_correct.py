@@ -170,6 +170,25 @@ def test_normalize_expression_real(testfiles, method):
     #     correct.normalize_expression(micro[0], norm='batch')
 
 
+def text_normalize_expression_structures():
+    data = pd.DataFrame(dict(a=[np.nan, 1, 2, 3, 4], b=[np.nan, 1, 2, 3, 4]))
+
+    same = pd.DataFrame(dict(structure='a'), index=data.index)
+    same_expect = pd.DataFrame(dict(
+        a=[np.nan, -1.5, -0.5, 0.5, 1.5], b=[np.nan, -1.5, -0.5, 0.5, 1.5]
+    ))
+    nsame = correct.normalize_expression(data, norm='center', structures=same)
+    pd.testing.assert_frame_equal(same_expect, nsame)
+
+    diff = pd.DataFrame(dict(structure=['a', 'a', 'a', 'b', 'b']),
+                        index=data.index)
+    diff_expect = pd.DataFrame(dict(
+        a=[np.nan, -0.5, 0.5, -0.5, 0.5], b=[np.nan, -0.5, 0.5, -0.5, 0.5]
+    ))
+    ndiff = correct.normalize_expression(data, norm='center', structures=diff)
+    pd.testing.assert_frame_equal(diff_expect, ndiff)
+
+
 def test_remove_distance(donor_expression, atlas):
     expr = pd.concat(donor_expression).groupby('label').aggregate(np.mean)
     expr = expr.dropna(axis=1, how='any')
