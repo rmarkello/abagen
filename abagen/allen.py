@@ -428,6 +428,13 @@ def get_expression_data(atlas,
         # regions, remove the non-labelled samples prior to normalization.
         # otherwise, we'll remove the non-labelled samples after normalization
         nz = np.asarray(labels != 0).squeeze()
+        if nz.sum() == 0:
+            warnings.warn(f'No samples matched to atlas for donor {subj}',
+                          stacklevel=2)
+            microarray[subj].index = labels['label']
+            if not exact:
+                missing += [(pd.DataFrame(), {})]
+            continue
         if norm_matched:
             microarray[subj] = microarray[subj].loc[nz]
             annotation[subj] = annotation[subj].loc[nz]
