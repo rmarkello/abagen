@@ -96,6 +96,20 @@ def test_AtlasTree(atlas, surface, testfiles):
     labels = tree.label_samples(np.row_stack((coords, [1000, 1000, 1000])))
     assert np.all(labels['label'] == [2, 2, 2, 1, 1, 1, 0])
 
+    # check centroid matching
+    lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
+    assert np.all(lab == 2)
+    assert np.allclose(dist, np.sqrt(3))
+    centinfo = pd.DataFrame(dict(mni_x=[-1], mni_y=[-1], mni_z=[-1],
+                                 hemisphere='L', structure='cortex'))
+    lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
+    assert np.all(lab == 2)
+    assert np.allclose(dist, np.sqrt(3))
+    centinfo['structure'] = 'cerebellum'
+    lab, dist = tree.match_closest_centroids(centinfo, return_dist=True)
+    assert np.all(lab == -1)
+    assert np.all(np.isinf(dist))
+
     # check providing niimg-like atlas
     tree = matching.AtlasTree(nib.load(atlas['image']))
     assert str(tree) == 'AtlasTree[n_rois=83, n_voxel=819621]'
