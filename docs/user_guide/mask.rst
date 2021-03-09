@@ -61,7 +61,7 @@ of the relevant sample (rather than the atlas region):
     159226117    0.533079  0.773214  0.265615  ...  0.441826  0.389615  0.455249
     158158343    0.362038  0.553050  0.314730  ...  0.346605  0.261426  0.337738
     <BLANKLINE>
-    [38 rows x 15633 columns]
+    [43 rows x 15633 columns]
 
 This allows you to match up the samples with additional data provided by
 the AHBA (e.g., ontological information) as desired.

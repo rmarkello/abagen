@@ -257,8 +257,8 @@ class AtlasTree:
         """
 
         cols = ['mni_x', 'mni_y', 'mni_z']
-        tol = 0
-        labels = np.zeros(len(samples))
+        samples[cols] = np.floor(samples[cols])
+        tol, labels = 0, np.zeros(len(samples))
         idx = np.ones(len(samples), dtype=bool)
         while tol <= tolerance and np.sum(idx) > 0:
             subsamp = samples.loc[idx]
