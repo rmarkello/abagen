@@ -16,8 +16,8 @@ from abagen.utils import flatten_dict
 
 @pytest.fixture(scope='module')
 def donor_expression(testfiles, atlas):
-    return allen.get_expression_data(atlas['image'], atlas['info'],
-                                     exact=False, return_donors=True,
+    return allen.get_expression_data(atlas['image'], exact=False,
+                                     return_donors=True,
                                      donors=['12876', '15496'])
 
 
