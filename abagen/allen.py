@@ -469,7 +469,7 @@ def get_expression_data(atlas,
             annotree = matching.AtlasTree(
                 np.asarray(annotation_iloc),
                 np.asarray(annotation[subj][cols]),
-                annotation[subj].set_axis(annotation_iloc)
+                annotation[subj].set_axis(annotation_iloc, inplace=False)
             )
             centroids = np.r_[[atlas[subj].centroids[lab] for lab in empty]]
             if atlas[subj].atlas_info is not None:
