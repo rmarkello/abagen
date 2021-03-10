@@ -210,7 +210,8 @@ def drop_mismatch_samples(annotation, ontology):
     sid = np.asarray(annotation['structure_id'])
 
     # get hemisphere and structure path
-    hemisphere = np.asarray(ontology.loc[sid, 'hemisphere'])
+    hemisphere = np.asarray(ontology.loc[sid, 'hemisphere']
+                                    .replace({np.nan: 'B'}))
     structure = np.asarray(ontology.loc[sid, 'structure_id_path']
                                    .apply(_get_struct))
 
@@ -219,7 +220,7 @@ def drop_mismatch_samples(annotation, ontology):
     annot = annotation.assign(hemisphere=hemisphere, structure=structure) \
                       .query('(hemisphere == "L" & mni_x < 0) '
                              '| (hemisphere == "R" & mni_x > 0) '
-                             '| (hemisphere.isna() & mni_x == 0)',
+                             '| (hemisphere == "B" & mni_x == 0)',
                              engine='python')
 
     return annot
