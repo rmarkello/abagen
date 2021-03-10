@@ -123,7 +123,7 @@ def test__get_struct(path, expected):
 def test_drop_mismatch_samples(mm_annotation, ontology):
     # here's what we expect (i.e., indices 1 & 3 are dropped and the structure
     # for the remaining samples is correctly extracted from the paths)
-    expected = pd.DataFrame(dict(hemisphere=['L', 'R', np.nan],
+    expected = pd.DataFrame(dict(hemisphere=['L', 'R', 'B'],
                                  mni_x=[-10, 30, 0],
                                  structure_acronym=['S', 'Cl', 'CC'],
                                  structure=['subcortex/brainstem',
