@@ -258,6 +258,14 @@ def _diff_stability(expression, probes, annotation, *args, **kwargs):
 
 def _rnaseq(expression, probes, annotation, *args, **kwargs):
     """
+    Picks one probe to represent `expression` data for each gene in `probes`
+
+    If there are multiple probes with expression data for the same gene, this
+    function will calculate the similarity between each probes' microarray
+    expression and RNAseq expression data of the relevant gene, selecting the
+    probe with the greatest similarity to the RNAseq data. Regions are defined
+    by the "structure_id" column in `annotation`; similarity is calculated by
+    the Spearman correlation coefficient.
 
     Parameters
     ----------

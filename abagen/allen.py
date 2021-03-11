@@ -105,11 +105,12 @@ def get_expression_data(atlas,
         "B") and broad structural class (i.e., "cortex", "subcortex/brainstem",
         "cerebellum"). If provided, this will constrain matching of tissue
         samples to regions in `atlas`. If `atlas` is a tuple of GIFTI images
-        with valid label tables this will be intuited. Default: None
+        with valid label tables this will be intuited from the data. Default:
+        None
     ibf_threshold : [0, 1] float, optional
         Threshold for intensity-based filtering. This number specifies the
         ratio of samples, across all supplied donors, for which a probe must
-        have signal significantly greater background noise in order to be
+        have signal significantly greater than background noise in order to be
         retained. Default: 0.5
     probe_selection : str, optional
         Selection method for subsetting (or collapsing across) probes that
@@ -117,7 +118,7 @@ def get_expression_data(atlas,
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
         'diff_stability', 'rnaseq'; see Notes for more information on different
         options. Default: 'diff_stability'
-    donor_probes : str, optional
+    donor_probes : {'aggregate', 'independent', 'common'}, optional
         Whether specified `probe_selection` method should be performed with
         microarray data from all donors ('aggregate'), independently for each
         donor ('independent'), or based on the most common selected probe
