@@ -16,7 +16,7 @@ from scipy import stats as sstats
 
 from . import datasets, io, utils
 
-lgr = logging.getLogger('abagen')
+LGR = logging.getLogger('abagen')
 
 
 def reannotate_probes(probes):
@@ -45,7 +45,7 @@ def reannotate_probes(probes):
        data. NeuroImage, 189, 353-367.
     """
 
-    lgr.info('Reannotating probes with information from Arnatkevic̆iūtė '
+    LGR.info('Reannotating probes with information from Arnatkevic̆iūtė '
              'et al., 2019, NeuroImage')
 
     # load in reannotated probes
@@ -102,7 +102,7 @@ def filter_probes(pacall, annotation, probes, threshold=0.5):
 
     threshold = np.clip(threshold, 0.0, 1.0)
 
-    lgr.info(f'Filtering probes with intensity-based threshold of {threshold}')
+    LGR.info(f'Filtering probes with intensity-based threshold of {threshold}')
 
     probes = io.read_probes(probes)
     signal, n_samp = np.zeros(len(probes), dtype=int), 0
@@ -116,7 +116,7 @@ def filter_probes(pacall, annotation, probes, threshold=0.5):
     # calculate proportion of signal to noise for given probe across samples
     keep = (signal / n_samp) >= threshold
 
-    lgr.info(f'{keep.sum()} probes survive intensity-based filtering')
+    LGR.info(f'{keep.sum()} probes survive intensity-based filtering')
 
     return probes[keep]
 
@@ -707,7 +707,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
         raise ValueError(f'Provided `donor_probes` "{donor_probes}" is '
                          f'invalid; must be one of {valid_probes}')
 
-    lgr.info(f'Reducing probes indexing same gene with method: {method}')
+    LGR.info(f'Reducing probes indexing same gene with method: {method}')
     # subset microarray data for pre-selected probes + samples
     # this will also left/right mirror samples, if previously requested
     probes = io.read_probes(probes)
@@ -749,6 +749,6 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
             microarray[donor] = micro.sort_index(axis=1)
 
     n_genes = utils.first_entry(microarray).shape[-1]
-    lgr.info(f'{n_genes} genes remain after probe filtering + selection')
+    LGR.info(f'{n_genes} genes remain after probe filtering + selection')
 
     return microarray

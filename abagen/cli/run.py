@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable
 import sys
 
-lgr = logging.getLogger('abagen')
+LGR = logging.getLogger('abagen')
 
 
 def isiterable(val):
@@ -388,7 +388,7 @@ def main(args=None):
     if opts.save_counts:
         expression, counts = expression
         counts_fname = os.path.join(output_path, fname_pref + '_counts.csv')
-        lgr.info('Saving samples counts to {}'.format(counts_fname))
+        LGR.info('Saving samples counts to {}'.format(counts_fname))
         counts.to_csv(counts_fname)
 
     # determine how best to save expression output files
@@ -402,7 +402,7 @@ def main(args=None):
         for donor, exp in zip(donors, expression):
             exp_fname = os.path.join(output_path,
                                      fname_pref + '_{}.csv'.format(donor))
-            lgr.info('Saving donor {} info to {}'.format(donor, exp_fname))
+            LGR.info('Saving donor {} info to {}'.format(donor, exp_fname))
             exp.to_csv(exp_fname)
     else:
         expression.to_csv(opts.output_file)

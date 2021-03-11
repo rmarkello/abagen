@@ -16,9 +16,7 @@ from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
 import logging
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-lgr = logging.getLogger('abagen')
-lgr_levels = dict(zip(range(3), [40, 20, 10]))
+LGR = logging.getLogger('abagen')
 
 
 def get_expression_data(atlas,
@@ -321,7 +319,7 @@ def get_expression_data(atlas,
     """
 
     # set logging verbosity level
-    lgr.setLevel(lgr_levels.get(int(verbose), 1))
+    LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
 
     # load atlas and atlas_info, if provided, and coerce to dict
     atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
@@ -368,8 +366,7 @@ def get_expression_data(atlas,
     all_labels = utils.first_entry(atlas).labels
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
-        lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
-                    'GB RAM.')
+        warnings.warn(f'Output matrix may require up to {n_gb:.2f} GB RAM')
 
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
@@ -429,8 +426,7 @@ def get_expression_data(atlas,
         # otherwise, we'll remove the non-labelled samples after normalization
         nz = np.asarray(labels != 0).squeeze()
         if nz.sum() == 0:
-            warnings.warn(f'No samples matched to atlas for donor {subj}',
-                          stacklevel=2)
+            warnings.warn(f'No samples matched to atlas for donor {subj}')
             microarray[subj].index = labels['label']
             if not exact:
                 missing += [(pd.DataFrame(), {})]
@@ -455,7 +451,7 @@ def get_expression_data(atlas,
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
-        lgr.info(f'{counts.iloc[1:][subj].sum():>3} / {len(nz)} '
+        LGR.info(f'{counts.iloc[1:][subj].sum():>3} / {len(nz)} '
                  f'samples matched to regions for donor #{subj}')
 
         # if we don't want to do exact matching then cache which parcels are
@@ -491,13 +487,13 @@ def get_expression_data(atlas,
     if not exact:  # check for missing ROIs and fill in, as needed
         # labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info(f'Matching {len(empty)} region(s) with no data to the '
+        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
                  'nearest tissue sample(s)')
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([dist.get(roi) for micro, dist in missing])
             subj = list(microarray.keys())[ind]
-            lgr.debug(f'Assigning sample from donor {subj} to region #{roi}')
+            LGR.debug(f'Assigning sample from donor {subj} to region #{roi}')
             # assign expression data from that sample and add to count
             exp = missing[ind][0].loc[roi]
             microarray[subj] = microarray[subj].append(exp)
@@ -661,12 +657,12 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
         if len(missing) > 0:
             raise ValueError('Provided `atlas` does not have entry for all '
                              f'requested donors. Missing donors: {donors}.')
-        lgr.info('Donor-specific atlases provided; using native coords for '
+        LGR.info('Donor-specific atlases provided; using native coords for '
                  'tissue samples')
     else:
         atlas = images.check_atlas(atlas, atlas_info)
         atlas = {donor: atlas for donor in donors}
-        lgr.info('Group-level atlas provided; using MNI coords for '
+        LGR.info('Group-level atlas provided; using MNI coords for '
                  'tissue samples')
 
     return atlas, group_atlas

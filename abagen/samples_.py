@@ -13,7 +13,7 @@ import pandas as pd
 
 from . import io, transforms, utils
 
-lgr = logging.getLogger('abagen')
+LGR = logging.getLogger('abagen')
 
 # AHBA structure IDs corresponding to different brain parts
 ONTOLOGY = nib.volumeutils.Recoder(
@@ -429,7 +429,7 @@ def aggregate_samples(microarray, labels=None, region_agg='donors',
                          '`return_donors=True`.')
     metric = utils.check_metric(agg_metric)
 
-    lgr.info('Aggregating samples to regions with provided region_agg: {}'
+    LGR.info('Aggregating samples to regions with provided region_agg: {}'
              .format(region_agg))
 
     if region_agg == 'donors':
@@ -445,7 +445,7 @@ def aggregate_samples(microarray, labels=None, region_agg='donors',
         microarray = pd.concat(microarray).groupby('label').aggregate(metric)
         # some genes may have been poorly normalized; remove these
         drop = microarray.dropna(axis=0, how='all').isna().any(axis=0)
-        lgr.info('Dropping {} gene from concatenated expression data due to '
+        LGR.info('Dropping {} gene from concatenated expression data due to '
                  'poor normalization'.format(drop.sum()))
         microarray = microarray.drop(drop[drop].index, axis=1)
 
