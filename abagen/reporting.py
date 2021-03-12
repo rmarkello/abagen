@@ -389,7 +389,7 @@ def _sanitize_text(text):
     """
 
     text = ' '.join(text.replace('\n', ' ').split())
-    return text.replace('<br> ', '\n\n')
+    return text.replace('<br> ', '\n\n').replace('<p>', '\n')
 
 
 def _get_donor_demographics(donors):
@@ -550,12 +550,12 @@ def _add_references(report):
     refreport = ''
     for ref, cite in REFERENCES.items():
         if ref in report:
-            refreport += f'[{ref}]: {cite}<br> '
+            refreport += f'[{ref}]: {cite}<p> '
 
     if len(refreport) > 0:
-        refreport = '<br> REFERENCES<br> ' + refreport
+        refreport = '<br> REFERENCES<p>----------<br> ' + refreport
 
-    if refreport.endswith('<br> '):
-        refreport = refreport[:-5]
+    if refreport.endswith('<p> '):
+        refreport = refreport[:-4]
 
     return refreport

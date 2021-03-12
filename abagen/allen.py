@@ -329,7 +329,7 @@ def get_expression_data(atlas,
     LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
 
     # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
+    atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -529,7 +529,10 @@ def get_expression_data(atlas,
                                             return_donors=return_donors)
 
     if return_report:  # generate report
-        report = reporting.Report(atlas, group_atlas,
+        # atlas[subj] should have same number of labels as any other atlas
+        # so there should be no difference in the generated report
+        report = reporting.Report(atlas[subj], group_atlas,
+                                  atlas_info=atlas[subj].atlas_info,
                                   ibf_threshold=ibf_threshold,
                                   probe_selection=probe_selection,
                                   donor_probes=donor_probes,
@@ -542,11 +545,9 @@ def get_expression_data(atlas,
                                   corrected_mni=corrected_mni,
                                   reannotated=reannotated, donors=donors,
                                   return_donors=return_donors).body
-        if isinstance(microarray, list):
-            n_genes = microarray[0].shape[1]
-        else:
-            n_genes = microarray.shape[1]
-        report.format(n_probes=probe_info.shape[1], n_genes=n_genes)
+        report = report.format(n_probes=probe_info.shape[1],
+                               n_genes=(microarray[0].shape[1] if return_donors
+                                        else microarray.shape[1]))
 
     # pack outputs
     out = (microarray,)
