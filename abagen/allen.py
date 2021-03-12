@@ -196,6 +196,10 @@ def get_expression_data(atlas,
     return_donors : bool, optional
         Whether to return donor-level expression arrays instead of aggregating
         expression across donors with provided `agg_metric`. Default: False
+    return_report : bool, optional
+        Whether to return a string containing longform text describing the
+        processing procedures used to generate the `expression` DataFrames
+        returned by this function. Default: False
     donors : list, optional
         List of donors to use as sources of expression data. Can be either
         donor numbers or UID. If not specified will use all available donors.
