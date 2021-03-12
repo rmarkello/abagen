@@ -4,18 +4,19 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 """
 
 from functools import reduce
+import logging
 import warnings
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from . import correct, datasets, images, io, matching, probes_, samples_, utils
+from . import (correct, datasets, images, io, matching, probes_, reporting,
+               samples_, utils)
 from .datasets import WELL_KNOWN_IDS
 from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
-import logging
 LGR = logging.getLogger('abagen')
 
 
@@ -38,6 +39,7 @@ def get_expression_data(atlas,
                         reannotated=True,
                         return_counts=False,
                         return_donors=False,
+                        return_report=False,
                         donors='all',
                         data_dir=None,
                         verbose=0,
@@ -225,6 +227,10 @@ def get_expression_data(atlas,
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
         ``return_counts=True``.
+    report : str
+        Methods describing processing procedures implemented to generate
+        `expression`, suitable to be used in a manuscript Methods section. Only
+        returned if ``return_report=True``.
 
     Notes
     -----
@@ -323,7 +329,7 @@ def get_expression_data(atlas,
     LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
 
     # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
+    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -350,6 +356,10 @@ def get_expression_data(atlas,
     if lr_mirror not in mirror_opts:
         raise ValueError('Provided lr_mirror method is invalid, must be one '
                          f'of {mirror_opts}. Received value: \'{lr_mirror}\'')
+
+    if return_donors and region_agg == 'samples':
+        raise ValueError('Cannot return donor-level expresison data when '
+                         'region_agg parameter is set to \'samples\'.')
 
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
@@ -518,11 +528,36 @@ def get_expression_data(atlas,
                                             agg_metric=agg_metric,
                                             return_donors=return_donors)
 
-    # drop the "zero" label from the counts dataframe (this is background)
-    if return_counts:
-        return microarray, counts.iloc[1:]
+    if return_report:  # generate report
+        report = reporting.Report(atlas, group_atlas,
+                                  ibf_threshold=ibf_threshold,
+                                  probe_selection=probe_selection,
+                                  donor_probes=donor_probes,
+                                  lr_mirror=lr_mirror, exact=exact,
+                                  tolerance=tolerance, sample_norm=sample_norm,
+                                  gene_norm=gene_norm,
+                                  norm_matched=norm_matched,
+                                  norm_structures=norm_structures,
+                                  region_agg=region_agg, agg_metric=agg_metric,
+                                  corrected_mni=corrected_mni,
+                                  reannotated=reannotated, donors=donors,
+                                  return_donors=return_donors).body
+        if isinstance(microarray, list):
+            n_genes = microarray[0].shape[1]
+        else:
+            n_genes = microarray.shape[1]
+        report.format(n_probes=probe_info.shape[1], n_genes=n_genes)
 
-    return microarray
+    # pack outputs
+    out = (microarray,)
+    if return_counts:
+        out += (counts.drop([0], axis=0),)
+    if return_report:
+        out += (report,)
+    if len(out) == 1:
+        out = out[0]
+
+    return out
 
 
 def get_samples_in_mask(mask=None, **kwargs):
