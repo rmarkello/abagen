@@ -1,12 +1,23 @@
 # -*- coding: utf-8 -*-
 """
 Functions for generating workflow methods reports
+
+Note: all text contained within this module is released under a CC-0 license
+(https://creativecommons.org/publicdomain/zero/1.0/).
 """
+
+import numpy as np
 
 from . import __version__
 from .datasets import check_donors, fetch_donor_info
+from .images import coerce_atlas_to_dict
+from .utils import first_entry
 
 
+METRICS = {
+    np.mean: 'mean',
+    np.median: 'median'
+}
 REFERENCES = dict(
     A2019N=('Arnatkevic̆iūtė, A., Fulcher, B. D., & Fornito, A. (2019). '
             'A practical guide to linking brain-wide gene expression and '
@@ -43,18 +54,23 @@ REFERENCES = dict(
 
 class Report:
     """ Generates report of methods for :func:`abagen.get_expression_data()`
+
+    Parameters
+    ----------
+
     """
 
-    def __init__(self, atlas, group_atlas, atlas_info=None, *,
-                 ibf_threshold=0.5, probe_selection='diff_stability',
-                 donor_probes='aggregate', lr_mirror=None, exact=True,
-                 tolerance=2, sample_norm='srs', gene_norm='srs',
-                 norm_matched=True, norm_structures=False, region_agg='donors',
-                 agg_metric='mean', corrected_mni=True, reannotated=True,
-                 donors='all', return_donors=False):
-        self.atlas = atlas
-        self.group_atlas = group_atlas
-        self.atlas_info = atlas_info
+    def __init__(self, atlas, atlas_info=None, *, ibf_threshold=0.5,
+                 probe_selection='diff_stability', donor_probes='aggregate',
+                 lr_mirror=None, exact=True, tolerance=2, sample_norm='srs',
+                 gene_norm='srs', norm_matched=True, norm_structures=False,
+                 region_agg='donors', agg_metric='mean', corrected_mni=True,
+                 reannotated=True, donors='all', return_donors=False,
+                 data_dir=None):
+        self.atlas, self.group_atlas = \
+            coerce_atlas_to_dict(atlas, donors, atlas_info=atlas_info,
+                                 data_dir=data_dir)
+        self.atlas_info = first_entry(atlas).atlas_info
         self.ibf_threshold = ibf_threshold
         self.probe_selection = probe_selection
         self.donor_probes = donor_probes
@@ -66,14 +82,14 @@ class Report:
         self.norm_matched = norm_matched
         self.norm_structures = norm_structures
         self.region_agg = region_agg
-        self.agg_metric = agg_metric
+        self.agg_metric = METRICS.get(agg_metric, agg_metric)
         self.corrected_mni = corrected_mni
         self.reannotated = reannotated
         self.donors = donors
         self.return_donors = return_donors
-        self.body = self._gen_report()
+        self.body = self.gen_report()
 
-    def _gen_report(self):
+    def gen_report(self):
         """ Generates body of report
         """
 
@@ -96,8 +112,8 @@ class Report:
             """.format(n_region=len(self.atlas.labels))
         elif self.atlas.volumetric and not self.group_atlas:
             report += """
-            using a {n_region}-region volumetric atlas, indepdently aligned to
-            each donor's native MRI space.<br>
+            using a {n_region}-region volumetric atlas, independently aligned
+            to each donor's native MRI space.<br>
             """.format(n_region=len(self.atlas.labels))
         else:
             report += ".<br>"
@@ -117,7 +133,7 @@ class Report:
             report += """
             Next, probes were filtered based on their expression intensity
             relative to background noise [Q2002N], such that probes with
-            intensity less than the background in >{threshold:.2f}% of samples
+            intensity less than the background in >={threshold:.2f}% of samples
             across donors were discarded, yielding {{n_probes:,}} probes.
             """.format(threshold=self.ibf_threshold * 100)
 
@@ -138,10 +154,10 @@ class Report:
             \rho[B_{{i}}(p), B_{{j}}(p)] $$<br>
 
             where $ \rho $ is Spearman's rank correlation of the expression of
-            a single probe, p, across regions in two donor brains $B_{{i}}$ and
-            $B_{{j}}$, and N is the total number of donor brains. Here,
-            regions correspond to the structural designations provided in the
-            ontology from the AHBA.
+            a single probe, p, across regions in two donors $B_{{i}}$ and
+            $B_{{j}}$, and N is the total number of donors. Here, regions
+            correspond to the structural designations provided in the ontology
+            from the AHBA.
             """
         elif self.probe_selection == "pc_loading":
             report += """
@@ -271,7 +287,7 @@ class Report:
             """.format(space='MNI' if self.group_atlas else 'native voxel',
                        tolerance=self.tolerance)
 
-        if self.atlas_info is not None or self.atlas.atlas_info is not None:
+        if self.atlas_info is not None:
             report += """
             To reduce the potential for misassignment, sample-to-region
             matching was constrained by hemisphere and gross structural
@@ -553,7 +569,7 @@ def _add_references(report):
             refreport += f'[{ref}]: {cite}<p> '
 
     if len(refreport) > 0:
-        refreport = '<br> REFERENCES<p>----------<br> ' + refreport
+        refreport = '<br> REFERENCES<p>----------<p>' + refreport
 
     if refreport.endswith('<p> '):
         refreport = refreport[:-4]

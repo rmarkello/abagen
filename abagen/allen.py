@@ -13,7 +13,6 @@ import pandas as pd
 
 from . import (correct, datasets, images, io, matching, probes_, reporting,
                samples_, utils)
-from .datasets import WELL_KNOWN_IDS
 from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
@@ -329,7 +328,7 @@ def get_expression_data(atlas,
     LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
 
     # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
+    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -529,10 +528,7 @@ def get_expression_data(atlas,
                                             return_donors=return_donors)
 
     if return_report:  # generate report
-        # atlas[subj] should have same number of labels as any other atlas
-        # so there should be no difference in the generated report
-        report = reporting.Report(atlas[subj], group_atlas,
-                                  atlas_info=atlas[subj].atlas_info,
+        report = reporting.Report(atlas, atlas_info=atlas[subj].atlas_info,
                                   ibf_threshold=ibf_threshold,
                                   probe_selection=probe_selection,
                                   donor_probes=donor_probes,
@@ -544,8 +540,9 @@ def get_expression_data(atlas,
                                   region_agg=region_agg, agg_metric=agg_metric,
                                   corrected_mni=corrected_mni,
                                   reannotated=reannotated, donors=donors,
-                                  return_donors=return_donors).body
-        report = report.format(n_probes=probe_info.shape[1],
+                                  return_donors=return_donors,
+                                  data_dir=data_dir).body
+        report = report.format(n_probes=len(probe_info),
                                n_genes=(microarray[0].shape[1] if return_donors
                                         else microarray.shape[1]))
 
@@ -641,65 +638,3 @@ def get_samples_in_mask(mask=None, **kwargs):
     coords = coords[np.isin(well_id, exp.index)]
 
     return exp, coords
-
-
-def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
-    """
-    Coerces `atlas` to dict with keys `donors`
-
-    If already a dictionary, confirms that `atlas` has entries for all values
-    in `donors`
-
-    Parameters
-    ----------
-    atlas : niimg-like object
-        A parcellation image in MNI space, where each parcel is identified by a
-        unique integer ID
-    donors : array_like
-        Donors that should have entries in returned `atlas` dictionary
-    atlas_info : os.PathLike or pandas.DataFrame, optional
-        Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
-        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
-        and broad structural class (i.e., "cortex", "subcortex/brainstem",
-        "cerebellum"). If provided, this will constrain matching of tissue
-        samples to regions in `atlas`. Default: None
-    data_dir : str, optional
-        Directory where data should be downloaded and unpacked. Only used if
-        provided `atlas` is a dictionary of surface files. Default: $HOME/
-        abagen-data
-
-    Returns
-    -------
-    atlas : dict
-        Dict where keys are `donors` and values are `atlas`. If a dict was
-        provided it is checked to ensure
-    group_atlas : bool
-        Whether one atlas was provided for all donors (True) instead of
-        donor-specific atlases (False)
-    """
-
-    donors = datasets.fetchers.check_donors(donors)
-    group_atlas = True
-
-    # FIXME: so that we're not depending on type checks so much :grimacing:
-    if isinstance(atlas, dict):
-        atlas = {
-            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info,
-                                                           donor, data_dir)
-            for donor, atl in atlas.items()
-        }
-        group_atlas = False
-        missing = set(donors) - set(atlas)
-        if len(missing) > 0:
-            raise ValueError('Provided `atlas` does not have entry for all '
-                             f'requested donors. Missing donors: {donors}.')
-        LGR.info('Donor-specific atlases provided; using native coords for '
-                 'tissue samples')
-    else:
-        atlas = images.check_atlas(atlas, atlas_info)
-        atlas = {donor: atlas for donor in donors}
-        LGR.info('Group-level atlas provided; using MNI coords for '
-                 'tissue samples')
-
-    return atlas, group_atlas

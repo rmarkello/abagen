@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from .datasets import fetch_fsaverage5, fetch_fsnative
+from .datasets import (check_donors, fetch_fsaverage5, fetch_fsnative,
+                       WELL_KNOWN_IDS)
 from .samples_ import ONTOLOGY
-from .utils import labeltable_to_df, load_gifti
+from .utils import labeltable_to_df, load_gifti, first_entry
 from . import matching, transforms
 
+LGR = logging.getLogger('abagen')
 BACKGROUND = [
     'unknown', 'corpuscallosum',
     'Background+FreeSurfer_Defined_Medial_Wall', '???'
@@ -411,3 +414,67 @@ def check_atlas_info(atlas_info, labels):
                          .format(valid_structures, struct_diff))
 
     return atlas_info
+
+
+def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
+    """
+    Coerces `atlas` to dict with keys `donors`
+
+    If already a dictionary, confirms that `atlas` has entries for all values
+    in `donors`
+
+    Parameters
+    ----------
+    atlas : niimg-like object
+        A parcellation image in MNI space, where each parcel is identified by a
+        unique integer ID
+    donors : array_like
+        Donors that should have entries in returned `atlas` dictionary
+    atlas_info : os.PathLike or pandas.DataFrame, optional
+        Filepath to or pre-loaded dataframe containing information about
+        `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
+        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
+        and broad structural class (i.e., "cortex", "subcortex/brainstem",
+        "cerebellum"). If provided, this will constrain matching of tissue
+        samples to regions in `atlas`. Default: None
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Only used if
+        provided `atlas` is a dictionary of surface files. Default: $HOME/
+        abagen-data
+
+    Returns
+    -------
+    atlas : dict
+        Dict where keys are `donors` and values are `atlas`. If a dict was
+        provided it is checked to ensure
+    group_atlas : bool
+        Whether one atlas was provided for all donors (True) instead of
+        donor-specific atlases (False)
+    """
+
+    donors = check_donors(donors)
+    group_atlas = True
+
+    # FIXME: so that we're not depending on type checks so much :grimacing:
+    if isinstance(atlas, dict):
+        atlas = {
+            WELL_KNOWN_IDS.subj[donor]: check_atlas(atl, atlas_info,
+                                                    donor, data_dir)
+            for donor, atl in atlas.items()
+        }
+        # if it's a group atlas they should all be the same object
+        base = first_entry(atlas)
+        group_atlas = all(base is atl for atl in atlas.values())
+        missing = set(donors) - set(atlas)
+        if len(missing) > 0:
+            raise ValueError('Provided `atlas` does not have entry for all '
+                             f'requested donors. Missing donors: {donors}.')
+        LGR.info('Donor-specific atlases provided; using native coords for '
+                 'tissue samples')
+    else:
+        atlas = check_atlas(atlas, atlas_info)
+        atlas = {donor: atlas for donor in donors}
+        LGR.info('Group-level atlas provided; using MNI coords for '
+                 'tissue samples')
+
+    return atlas, group_atlas
