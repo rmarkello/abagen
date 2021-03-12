@@ -31,7 +31,9 @@ A report can be generated with:
     ...                                                 return_report=True)
 
 Alternatively, you can use the ``abagen.reporting`` module to generate a report
-directly without having to re-run the entire pipeline:
+directly without having to re-run the entire pipeline. (Note that the ``Report``
+class accepts (nearly) all the same parameters as the ``get_expression_data()``
+workflow.)
 
 .. doctest::
 
