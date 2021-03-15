@@ -100,6 +100,22 @@ Reference API
 
    abagen.AtlasTree
 
+.. _ref_reporting:
+
+:mod:`abagen.reporting` - Functions for generating reports
+----------------------------------------------------------
+.. automodule:: abagen.reporting
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: abagen.reporting
+
+.. autosummary::
+   :template: class.rst
+   :toctree: generated/
+
+   abagen.reporting.Report
+
 .. _ref_io:
 
 :mod:`abagen.io` - Loading AHBA data files

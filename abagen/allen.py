@@ -4,21 +4,19 @@ Functions for mapping AHBA microarray dataset to atlases and and parcellations
 """
 
 from functools import reduce
+import logging
 import warnings
 
 import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from . import correct, datasets, images, io, matching, probes_, samples_, utils
-from .datasets import WELL_KNOWN_IDS
+from . import (correct, datasets, images, io, matching, probes_, reporting,
+               samples_, utils)
 from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
-import logging
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-lgr = logging.getLogger('abagen')
-lgr_levels = dict(zip(range(3), [40, 20, 10]))
+LGR = logging.getLogger('abagen')
 
 
 def get_expression_data(atlas,
@@ -40,6 +38,7 @@ def get_expression_data(atlas,
                         reannotated=True,
                         return_counts=False,
                         return_donors=False,
+                        return_report=False,
                         donors='all',
                         data_dir=None,
                         verbose=0,
@@ -107,11 +106,12 @@ def get_expression_data(atlas,
         "B") and broad structural class (i.e., "cortex", "subcortex/brainstem",
         "cerebellum"). If provided, this will constrain matching of tissue
         samples to regions in `atlas`. If `atlas` is a tuple of GIFTI images
-        with valid label tables this will be intuited. Default: None
+        with valid label tables this will be intuited from the data. Default:
+        None
     ibf_threshold : [0, 1] float, optional
         Threshold for intensity-based filtering. This number specifies the
         ratio of samples, across all supplied donors, for which a probe must
-        have signal significantly greater background noise in order to be
+        have signal significantly greater than background noise in order to be
         retained. Default: 0.5
     probe_selection : str, optional
         Selection method for subsetting (or collapsing across) probes that
@@ -119,7 +119,7 @@ def get_expression_data(atlas,
         'max_variance', 'pc_loading', 'corr_variance', 'corr_intensity', or
         'diff_stability', 'rnaseq'; see Notes for more information on different
         options. Default: 'diff_stability'
-    donor_probes : str, optional
+    donor_probes : {'aggregate', 'independent', 'common'}, optional
         Whether specified `probe_selection` method should be performed with
         microarray data from all donors ('aggregate'), independently for each
         donor ('independent'), or based on the most common selected probe
@@ -196,6 +196,10 @@ def get_expression_data(atlas,
     return_donors : bool, optional
         Whether to return donor-level expression arrays instead of aggregating
         expression across donors with provided `agg_metric`. Default: False
+    return_report : bool, optional
+        Whether to return a string containing longform text describing the
+        processing procedures used to generate the `expression` DataFrames
+        returned by this function. Default: False
     donors : list, optional
         List of donors to use as sources of expression data. Can be either
         donor numbers or UID. If not specified will use all available donors.
@@ -226,6 +230,10 @@ def get_expression_data(atlas,
         Number of samples assigned to each of `R` regions in `atlas` for each
         of `D` donors (if multiple donors were specified); only returned if
         ``return_counts=True``.
+    report : str
+        Methods describing processing procedures implemented to generate
+        `expression`, suitable to be used in a manuscript Methods section. Only
+        returned if ``return_report=True``.
 
     Notes
     -----
@@ -321,10 +329,10 @@ def get_expression_data(atlas,
     """
 
     # set logging verbosity level
-    lgr.setLevel(lgr_levels.get(int(verbose), 1))
+    LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
 
     # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, group_atlas = coerce_atlas_to_dict(atlas, donors, atlas_info)
+    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -352,6 +360,10 @@ def get_expression_data(atlas,
         raise ValueError('Provided lr_mirror method is invalid, must be one '
                          f'of {mirror_opts}. Received value: \'{lr_mirror}\'')
 
+    if return_donors and region_agg == 'samples':
+        raise ValueError('Cannot return donor-level expresison data when '
+                         'region_agg parameter is set to \'samples\'.')
+
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
                                       verbose=verbose, n_proc=n_proc)
@@ -368,8 +380,7 @@ def get_expression_data(atlas,
     all_labels = utils.first_entry(atlas).labels
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
-        lgr.warning(f'Output region x gene matrix may require up to {n_gb:.2f}'
-                    'GB RAM.')
+        warnings.warn(f'Output matrix may require up to {n_gb:.2f} GB RAM')
 
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
@@ -429,8 +440,7 @@ def get_expression_data(atlas,
         # otherwise, we'll remove the non-labelled samples after normalization
         nz = np.asarray(labels != 0).squeeze()
         if nz.sum() == 0:
-            warnings.warn(f'No samples matched to atlas for donor {subj}',
-                          stacklevel=2)
+            warnings.warn(f'No samples matched to atlas for donor {subj}')
             microarray[subj].index = labels['label']
             if not exact:
                 missing += [(pd.DataFrame(), {})]
@@ -455,7 +465,7 @@ def get_expression_data(atlas,
         # get counts of samples collapsed into each ROI
         labs, num = np.unique(labels, return_counts=True)
         counts.loc[labs, subj] = num
-        lgr.info(f'{counts.iloc[1:][subj].sum():>3} / {len(nz)} '
+        LGR.info(f'{counts.iloc[1:][subj].sum():>3} / {len(nz)} '
                  f'samples matched to regions for donor #{subj}')
 
         # if we don't want to do exact matching then cache which parcels are
@@ -491,13 +501,13 @@ def get_expression_data(atlas,
     if not exact:  # check for missing ROIs and fill in, as needed
         # labels that are missing across all donors
         empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        lgr.info(f'Matching {len(empty)} region(s) with no data to the '
+        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
                  'nearest tissue sample(s)')
         for roi in empty:
             # find donor with sample closest to centroid of empty parcel
             ind = np.argmin([dist.get(roi) for micro, dist in missing])
             subj = list(microarray.keys())[ind]
-            lgr.debug(f'Assigning sample from donor {subj} to region #{roi}')
+            LGR.debug(f'Assigning sample from donor {subj} to region #{roi}')
             # assign expression data from that sample and add to count
             exp = missing[ind][0].loc[roi]
             microarray[subj] = microarray[subj].append(exp)
@@ -521,11 +531,35 @@ def get_expression_data(atlas,
                                             agg_metric=agg_metric,
                                             return_donors=return_donors)
 
-    # drop the "zero" label from the counts dataframe (this is background)
-    if return_counts:
-        return microarray, counts.iloc[1:]
+    if return_report:  # generate report
+        report = reporting.Report(atlas, atlas_info=atlas[subj].atlas_info,
+                                  ibf_threshold=ibf_threshold,
+                                  probe_selection=probe_selection,
+                                  donor_probes=donor_probes,
+                                  lr_mirror=lr_mirror, exact=exact,
+                                  tolerance=tolerance, sample_norm=sample_norm,
+                                  gene_norm=gene_norm,
+                                  norm_matched=norm_matched,
+                                  norm_structures=norm_structures,
+                                  region_agg=region_agg, agg_metric=agg_metric,
+                                  corrected_mni=corrected_mni,
+                                  reannotated=reannotated, donors=donors,
+                                  return_donors=return_donors,
+                                  data_dir=data_dir).body
+        report = report.format(n_probes=len(probe_info),
+                               n_genes=(microarray[0].shape[1] if return_donors
+                                        else microarray.shape[1]))
 
-    return microarray
+    # pack outputs
+    out = (microarray,)
+    if return_counts:
+        out += (counts.drop([0], axis=0),)
+    if return_report:
+        out += (report,)
+    if len(out) == 1:
+        out = out[0]
+
+    return out
 
 
 def get_samples_in_mask(mask=None, **kwargs):
@@ -608,65 +642,3 @@ def get_samples_in_mask(mask=None, **kwargs):
     coords = coords[np.isin(well_id, exp.index)]
 
     return exp, coords
-
-
-def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
-    """
-    Coerces `atlas` to dict with keys `donors`
-
-    If already a dictionary, confirms that `atlas` has entries for all values
-    in `donors`
-
-    Parameters
-    ----------
-    atlas : niimg-like object
-        A parcellation image in MNI space, where each parcel is identified by a
-        unique integer ID
-    donors : array_like
-        Donors that should have entries in returned `atlas` dictionary
-    atlas_info : os.PathLike or pandas.DataFrame, optional
-        Filepath to or pre-loaded dataframe containing information about
-        `atlas`. Must have at least columns 'id', 'hemisphere', and 'structure'
-        containing information mapping atlas IDs to hemisphere (i.e, "L", "R")
-        and broad structural class (i.e., "cortex", "subcortex/brainstem",
-        "cerebellum"). If provided, this will constrain matching of tissue
-        samples to regions in `atlas`. Default: None
-    data_dir : str, optional
-        Directory where data should be downloaded and unpacked. Only used if
-        provided `atlas` is a dictionary of surface files. Default: $HOME/
-        abagen-data
-
-    Returns
-    -------
-    atlas : dict
-        Dict where keys are `donors` and values are `atlas`. If a dict was
-        provided it is checked to ensure
-    group_atlas : bool
-        Whether one atlas was provided for all donors (True) instead of
-        donor-specific atlases (False)
-    """
-
-    donors = datasets.fetchers.check_donors(donors)
-    group_atlas = True
-
-    # FIXME: so that we're not depending on type checks so much :grimacing:
-    if isinstance(atlas, dict):
-        atlas = {
-            WELL_KNOWN_IDS.subj[donor]: images.check_atlas(atl, atlas_info,
-                                                           donor, data_dir)
-            for donor, atl in atlas.items()
-        }
-        group_atlas = False
-        missing = set(donors) - set(atlas)
-        if len(missing) > 0:
-            raise ValueError('Provided `atlas` does not have entry for all '
-                             f'requested donors. Missing donors: {donors}.')
-        lgr.info('Donor-specific atlases provided; using native coords for '
-                 'tissue samples')
-    else:
-        atlas = images.check_atlas(atlas, atlas_info)
-        atlas = {donor: atlas for donor in donors}
-        lgr.info('Group-level atlas provided; using MNI coords for '
-                 'tissue samples')
-
-    return atlas, group_atlas

@@ -128,12 +128,12 @@ def test_fetch_desikan_killiany():
 
 def test_fetch_donor_info():
     cols = [
-        'donor', 'age', 'sex', 'ethnicity', 'medical_conditions',
+        'donor', 'uid', 'age', 'sex', 'ethnicity', 'medical_conditions',
         'post_mortem_interval_hours'
     ]
     donor_info = fetchers.fetch_donor_info()
     assert isinstance(donor_info, pd.DataFrame)
-    assert donor_info.shape == (6, 6)
+    assert donor_info.shape == (6, 7)
     assert all(donor_info.columns == cols)
 
 
