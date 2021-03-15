@@ -67,10 +67,11 @@ class Report:
                  region_agg='donors', agg_metric='mean', corrected_mni=True,
                  reannotated=True, donors='all', return_donors=False,
                  data_dir=None):
-        self.atlas, self.group_atlas = \
+        atlas, self.group_atlas = \
             coerce_atlas_to_dict(atlas, donors, atlas_info=atlas_info,
                                  data_dir=data_dir)
-        self.atlas_info = first_entry(atlas).atlas_info
+        self.atlas = first_entry(atlas)
+        self.atlas_info = self.atlas.atlas_info
         self.ibf_threshold = ibf_threshold
         self.probe_selection = probe_selection
         self.donor_probes = donor_probes
@@ -566,7 +567,7 @@ def _add_references(report):
     refreport = ''
     for ref, cite in REFERENCES.items():
         if ref in report:
-            refreport += f'[{ref}]: {cite}<p> '
+            refreport += f'[{ref}]: {cite}<p>'
 
     if len(refreport) > 0:
         refreport = '<br> REFERENCES<p>----------<p>' + refreport
