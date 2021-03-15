@@ -197,3 +197,39 @@ def test_check_atlas_info(atlas):
     bad_struct_df.loc[1, 'structure'] = 'notastructure'
     with pytest.raises(ValueError):
         images.check_atlas_info(bad_struct_df, labels)
+
+
+def test_coerce_atlas_to_dict(testfiles, atlas):
+    img, info = atlas['image'], atlas['info']
+    donors = ['12876', '15496']
+
+    # test providing single atlas file
+    atl, same = images.coerce_atlas_to_dict(img, donors, info)
+    assert same
+    assert sorted(atl.keys()) == sorted(donors)
+    imgs = list(atl.values())
+    assert all(imgs[0] is a for a in imgs[1:])
+    assert isinstance(imgs[0].atlas_info, pd.DataFrame)
+
+    # test providing pre-loaded atlas file
+    atl, same = images.coerce_atlas_to_dict(nib.load(img), donors, info)
+    assert same
+    assert sorted(atl.keys()) == sorted(donors)
+    imgs = list(atl.values())
+    assert all(imgs[0] is a for a in imgs[1:])
+    assert isinstance(imgs[0].atlas_info, pd.DataFrame)
+
+    # test providing dictionary for atlas
+    atlas_dict = {d: img for d in donors}
+    atl, same = images.coerce_atlas_to_dict(atlas_dict, donors)
+    assert not same
+    assert sorted(atl.keys()) == sorted(donors)
+    imgs = list(atl.values())
+    assert not any(imgs[0] is a for a in imgs[1:])
+    assert imgs[0].atlas_info is None
+
+    with pytest.raises(ValueError):
+        images.coerce_atlas_to_dict(atlas_dict, donors + ['9861'])
+
+    with pytest.raises(TypeError):
+        images.coerce_atlas_to_dict('notanatlas', donors)

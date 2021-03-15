@@ -3,7 +3,6 @@
 Tests for abagen.reporting module
 """
 
-from abagen.images import check_atlas
 from abagen import reporting
 
 
@@ -38,22 +37,20 @@ def test_add_references():
 def test_reports(atlas, surface):
     # not sure how else to check this beyond a simple smoke test
     # i'm certainly not gonna recode all the logic here...
-    volatlas = check_atlas(atlas['image'], atlas['info'])
-    volreport = reporting.Report(volatlas, group_atlas=True)
+    volreport = reporting.Report(atlas['image'], atlas['info'])
     assert isinstance(volreport, reporting.Report)
     assert volreport.body != ''
     assert "83-region volumetric atlas in MNI space" in volreport.body
 
     # check that surface returns different output than volumetric atlas
-    surfatlas = check_atlas(surface['image'], surface['info'])
-    surfreport = reporting.Report(surfatlas, group_atlas=True)
+    surfreport = reporting.Report(surface['image'], surface['info'])
     assert isinstance(surfreport, reporting.Report)
     assert surfreport.body != ''
     assert "68-region surface-based atlas in MNI space" in surfreport.body
     assert surfreport.body != volreport.body
 
     # check a couple of specific parameter choices :man_shrugging:
-    report = reporting.Report(volatlas, group_atlas=True,
+    report = reporting.Report(atlas['image'], atlas['info'], group_atlas=True,
                               lr_mirror='bidirectional', exact=False,
                               sample_norm='srs', gene_norm='zscore').body
     assert 'tissue samples were mirrored' in report
