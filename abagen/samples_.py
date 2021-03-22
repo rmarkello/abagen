@@ -270,10 +270,7 @@ def _mirror_ontology(annotation, ontology):
 
 def mirror_samples(annotation, ontology, swap='bidirectional'):
     """
-    Mirrors all tissue samples across hemispheres (L->R and R->L)
-
-    Methodology follows [SA1]_ in that samples are mirrored bi-directionally
-    rather than uni-directionally (R->L) as in [SA2]_.
+    Mirrors all tissue samples across hemispheres
 
     Parameters
     ----------
