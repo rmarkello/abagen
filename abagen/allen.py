@@ -442,9 +442,10 @@ def get_expression_data(atlas,
                           columns=microarray.keys())
     for subj in microarray:
         if lr_mirror is not None:  # reset index
-            # TODO: come up with alternative sample IDs for mirrored samples
-            microarray[subj] = microarray[subj].reset_index(drop=True)
-            annotation[subj] = annotation[subj].reset_index(drop=True)
+            idx = pd.Series(range(1, len(microarray[subj]) + 1),
+                            name='sample_id')
+            microarray[subj].index = idx.copy()
+            annotation[subj].index = idx.copy()
 
         # assign samples to regions
         labels = atlas[subj].label_samples(annotation[subj], tolerance)
@@ -456,7 +457,7 @@ def get_expression_data(atlas,
         if nz.sum() == 0:
             LGR.warning(f'No samples matched to atlas for donor {subj}')
             microarray[subj].index = labels['label']
-            if not exact:
+            if missing == 'centroids':
                 missing += [(pd.DataFrame(), {})]
             continue
 
@@ -499,7 +500,8 @@ def get_expression_data(atlas,
                                                annotation[subj])]
 
         microarray[subj] = pd.merge(microarray[subj], labels, on='sample_id') \
-                             .set_index('label')
+                             .set_index('label') \
+                             .rename_axis('gene_symbol', axis=1)
 
     if missing == 'centroids':
         # labels that are missing across all donors
