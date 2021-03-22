@@ -110,6 +110,12 @@ def test_AtlasTree(atlas, surface, testfiles):
     assert np.all(lab == -1)
     assert np.all(np.isinf(dist))
 
+    # check label filling
+    lab, dist = tree.fill_label([[0, 0, 0], [3, 3, 3]], label=2,
+                                return_dist=True)
+    assert np.allclose(lab, [1, 0, 0])
+    assert np.allclose(dist, [np.sqrt(3), np.sqrt(3), 0])
+
     # check providing niimg-like atlas
     tree = matching.AtlasTree(nib.load(atlas['image']))
     assert str(tree) == 'AtlasTree[n_rois=83, n_voxel=819621]'
