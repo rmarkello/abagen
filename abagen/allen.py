@@ -132,16 +132,16 @@ def get_expression_data(atlas,
         across both hemispheres, 'leftright' will mirror samples in the left
         hemisphere to the right, and 'rightleft' will mirror the right to the
         left. Default: None
-    exact : bool, optional
-        Whether to use exact matching of donor tissue samples to parcels in
-        `atlas`. If True, this function will ONLY match tissue samples to
-        parcels within `threshold` mm of the sample; any samples that are
-        beyond `threshold` mm of a parcel will be discarded. This may result
-        in some parcels having no assigned sample / expression data. If False,
-        the default matching procedure will be performed and followed by a
-        check for parcels with no assigned samples; any such parcels will be
-        matched to the nearest sample (defined as the sample with the closest
-        Euclidean distance to the parcel centroid). Default: True
+    missing : {'centroids', 'interpolate', None}, optional
+        How to handle regions in `atlas` that are not assigned any tissue
+        samples. If 'centroids', any empty regions will be assigned the
+        expression value of the nearest tissue sample (defined as the sample
+        with the closest Euclidean distance to the parcel centroid). If
+        'interpolate', expression values will be interpolated in the empty
+        regions by assigning every node in the region the expression of the
+        nearest sample and taking a weighted (inverse distance) average. If
+        not specified empty regions will be returned with expression values of
+        NaN. Default: None
     tolerance : int, optional
         Distance (in mm) that a sample must be from a parcel for it to be
         matched to that parcel. If `atlas` is a tuple of surface files then
