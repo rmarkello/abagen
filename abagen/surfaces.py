@@ -27,7 +27,7 @@ def _get_edges(faces):
     return edges
 
 
-def get_direct_edges(vertices, faces):
+def _get_direct_edges(vertices, faces):
     """
     Gets (unique) direct edges and weights in mesh describes by inputs.
 
@@ -51,7 +51,7 @@ def get_direct_edges(vertices, faces):
     return edges, weights.squeeze()
 
 
-def get_indirect_edges(vertices, faces):
+def _get_indirect_edges(vertices, faces):
     """
     Gets indirect edges and weights in mesh described by inputs
 
@@ -178,8 +178,8 @@ def make_surf_graph(vertices, faces, mask=None):
                          'vertices than supplied `vertices`.')
 
     # get all (direct + indirect) edges from surface
-    direct_edges, direct_weights = get_direct_edges(vertices, faces)
-    indirect_edges, indirect_weights = get_indirect_edges(vertices, faces)
+    direct_edges, direct_weights = _get_direct_edges(vertices, faces)
+    indirect_edges, indirect_weights = _get_indirect_edges(vertices, faces)
     edges = np.row_stack((direct_edges, indirect_edges))
     weights = np.hstack((direct_weights, indirect_weights))
 
