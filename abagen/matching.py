@@ -398,6 +398,31 @@ class AtlasTree:
         return labels
 
     def fill_label(self, annotation, label, return_dist=False):
+        """
+        Assigns a sample in `annotation` to every node of `label` in atlas
+
+        Parameters
+        ----------
+        annotation : (S, 3) array_like
+            At a minimum, an array of XYZ coordinates must be provided. If a
+            full annotation dataframe is provided, then information from the
+            data frame (i.e., on hemisphere + structural assignments of tissue
+            samples) is used to constrain matching of samples (if
+            `self.atlas_info` is not None).
+        label : int
+            Which label in `self.atlas` should be filled
+        return_dist : bool, optional
+            Whether to also return distance to mapped samples
+
+        Returns
+        -------
+        samples : (L,) np.ndarray
+            ID of sample mapped to all `L` nodes in `label` of atlas
+        distance : (L,) np.ndarray
+            Distances of matched samples to nodes in `label`. Only returned if
+            `return_dist=True`
+        """
+
         cols = ['mni_x', 'mni_y', 'mni_z']
         try:
             samples = io.read_annotation(annotation, copy=True)
