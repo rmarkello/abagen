@@ -88,7 +88,8 @@ class AtlasTree:
             suff = f'n_voxel={self.tree.n}'
         else:
             suff = f'n_vertex={self.tree.n}'
-        return f'{self.__class__.__name__}[n_rois={len(self.labels)}, {suff}]'
+        return f'{self.__class__.__name__}' \
+               f'[n_rois={self.labels.shape[0]}, {suff}]'
 
     @property
     def tree(self):
@@ -371,8 +372,9 @@ class AtlasTree:
         missing_info = any(col not in samples.columns
                            for col in ('structure', 'hemisphere'))
         if self.atlas_info is None or missing_info:
-            distances, idx = self.tree.query(samples[cols], k=1)
-            labels = self.atlas[idx]
+            centroids = np.r_[[list(self.centroids.values())]]
+            match, dist = closest_centroid(samples[cols], centroids)
+            labels = self.atlas[match]
         else:
             labels = np.full(len(samples), -1, dtype=int)
             distances = np.full(len(samples), np.inf)
@@ -393,6 +395,43 @@ class AtlasTree:
         if return_dist:
             return labels, distances
         return labels
+
+    def fill_label(self, annotation, label, return_dist=False):
+        cols = ['mni_x', 'mni_y', 'mni_z']
+        try:
+            samples = io.read_annotation(annotation, copy=True)
+        except TypeError:
+            samples = pd.DataFrame(np.atleast_2d(annotation), columns=cols)
+
+        missing_info = any(col not in samples.columns
+                           for col in ('structure', 'hemisphere'))
+        # assign samples to nearest node (i.e., vertex / voxel)
+        dist, idx = self.tree.query(samples[cols], k=1)
+
+        # now get distance between `label` nodes and assigned sample nodes
+        idxs, = np.where(self.atlas == label)
+        if not self.volumetric and self._graph is not None:
+            dist = surfaces.get_graph_distance(self._graph, nodes=idxs)[:, idx]
+        else:
+            dist = distance_matrix(self.coords[idxs], self.coords[idx])
+
+        # check if matched samples and nodes are compatible
+        if self.atlas_info is not None:
+            labels = _check_label(self.atlas[idx], samples, self.atlas_info)
+            dist[:, labels == 0] = np.inf
+            # check if specified label is compatible w/nodes of matched samples
+            if not missing_info:
+                sh = ['structure', 'hemisphere']
+                match = self.atlas_info.loc[label, sh] != samples[sh]
+                dist[:, np.asarray(np.any(match, axis=1))] = np.inf
+
+        # get closest samples to each node of label
+        closest = dist.argmin(axis=1)
+        samples = samples.index[closest]
+
+        if return_dist:
+            return samples, dist[range(len(dist)), closest]
+        return samples
 
 
 def _check_label(label, sample_info, atlas_info):
