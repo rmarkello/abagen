@@ -9,9 +9,11 @@ from pkg_resources import resource_filename
 import pandas as pd
 
 from .utils import _make_api_query
+from ..datasets import _get_dataset_dir
 
 
-def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
+def fetch_allenref_genes(entry_type=None, cache=True, data_dir=None,
+                         verbose=True):
     """
     Loads all genes from Allen Reference database
 
@@ -25,6 +27,9 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
     cache : bool, optional
         Whether to use cached gene information (if it exists). Setting to False
         will overwrite cache. Default: True
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
     verbose : bool, optional
         Whether to print status message. Default: True
 
@@ -48,7 +53,9 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
 
     # if file doesn't exist or we want to overwrite the cache for some reason
     # download the data from the Allen API
-    fname = resource_filename('abagen', 'data/allen_reference_genes.csv')
+    fname = op.join(_get_dataset_dir('allenmouse', data_dir=data_dir,
+                                     verbose=verbose),
+                    'reference_genes.csv')
     if not op.isfile(fname) or not cache:
         if verbose:
             print('Gene information not available locally; querying '
@@ -70,7 +77,8 @@ def fetch_allenref_genes(entry_type=None, cache=True, verbose=True):
     return genes
 
 
-def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
+def fetch_allenref_structures(entry_type=None, cache=True, data_dir=None,
+                              verbose=True):
     """
     Loads all anatomical structures in the Allen Reference Atlas
 
@@ -84,6 +92,9 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
     cache : bool, optional
         Whether to use cached structure information (if it exists). Setting to
         False will overwrite cache. Default: True
+    data_dir : str, optional
+        Directory where data should be downloaded and unpacked. Default: $HOME/
+        abagen-data
     verbose : bool, optional
         Whether to print status message. Default: True
 
@@ -104,7 +115,9 @@ def fetch_allenref_structures(entry_type=None, cache=True, verbose=True):
                          'entry_type must be one of {}.'
                          .format(entry_type, entries))
 
-    fname = resource_filename('abagen', 'data/allen_reference_atlas.csv')
+    fname = op.join(_get_dataset_dir('allenmouse', data_dir=data_dir,
+                                     verbose=verbose),
+                    'reference_atlas.csv')
     if not op.isfile(fname) or not cache:
         if verbose:
             print('Structure information not available locally; querying '
