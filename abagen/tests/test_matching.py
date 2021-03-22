@@ -99,12 +99,12 @@ def test_AtlasTree(atlas, surface, testfiles):
     # check centroid matching
     lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
     assert np.all(lab == 2)
-    assert np.allclose(dist, np.sqrt(3))
+    assert np.allclose(dist, np.sqrt(3) * 2)
     centinfo = pd.DataFrame(dict(mni_x=[-1], mni_y=[-1], mni_z=[-1],
                                  hemisphere='L', structure='cortex'))
     lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
     assert np.all(lab == 2)
-    assert np.allclose(dist, np.sqrt(3))
+    assert np.allclose(dist, np.sqrt(3) * 2)
     centinfo['structure'] = 'cerebellum'
     lab, dist = tree.match_closest_centroids(centinfo, return_dist=True)
     assert np.all(lab == -1)

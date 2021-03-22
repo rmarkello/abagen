@@ -372,9 +372,10 @@ class AtlasTree:
         missing_info = any(col not in samples.columns
                            for col in ('structure', 'hemisphere'))
         if self.atlas_info is None or missing_info:
-            centroids = np.r_[[list(self.centroids.values())]]
-            match, dist = closest_centroid(samples[cols], centroids)
-            labels = self.atlas[match]
+            centroids = np.r_[list(self.centroids.values())]
+            match, distances = closest_centroid(samples[cols], centroids,
+                                                return_dist=True)
+            labels = np.asarray(list(self.centroids.keys()))[match]
         else:
             labels = np.full(len(samples), -1, dtype=int)
             distances = np.full(len(samples), np.inf)
