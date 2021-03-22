@@ -648,6 +648,64 @@ def get_samples_in_mask(mask=None, **kwargs):
     return exp, coords
 
 
+def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
+    """
+    Generates dense (i.e., interpolated) expression maps for `genes`
+
+    Uses k-nearest neighbors regression to estimate values at every voxel or
+    vertex in the supplied `mask`. Note that by default `lr_mirror` is set to
+    'bidirectional' and `norm_matched` is set to False, unless explicitly
+    specified.
+
+    Parameters
+    ----------
+    genes : (G,) list-of-str
+        List of gene acronyms for which dense maps are desired
+    mask : niimg-like object, optional
+        A mask image in MNI space or a tuple of GIFTI images in fsaverage5
+        space (where 0 is the background)
+    n_neighbors : int, optional
+        Number of neighboring tissue samples to use when interpolating data in
+        dense map. Default: 10
+    kwargs : key-value pairs
+        All key-value pairs from :func:`abagen.get_expression_data` except for:
+        `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
+        ignored.
+
+    Returns
+    -------
+    dense : (G,) dict
+        Dictionary where keys are `genes` and values are dense maps in space of
+        provided `mask`
+    """
+
+    genes = np.atleast_1d(genes)
+    mask = images.check_atlas(mask)
+    if 'atlas' in kwargs:
+        del kwargs['atlas']
+
+    # soft reset here and then get ALL the samples in the brain
+    # (we don't just want samples _inside_ the mask since we're using NN)
+    kwargs.setdefault('lr_mirror', 'bidirectional')
+    expression, coords = get_samples_in_mask(mask=None, **kwargs)
+
+    # this is a "naive" matching based only on Euclidean distance
+    # TODO: use surface distances when working with surfaces
+    # TODO: constrain by hemisphere (and structure?)
+    exptree = matching.AtlasTree(np.asarray(expression.index), coords=coords)
+    dist, idx = exptree.tree.query(mask.coords, k=n_neighbors)
+    dist = _get_weights(dist)
+
+    # get average of nearest neighbors
+    dense = np.empty(((genes.shape[0],) + mask._shape), dtype=np.float64)
+    denom = np.sum(dist, axis=1)
+    for n, j in enumerate(genes):
+        num = np.sum(np.asarray(expression[j])[idx] * dist, axis=1)
+        dense[n][mask._nz] = num / denom
+
+    return dict(zip(genes, dense))
+
+
 def _get_weights(dist):
     """ Gets inverse of `dist`, handling potential infs
 
