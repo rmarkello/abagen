@@ -28,8 +28,8 @@ def test_vanilla_surface_expression_data(testfiles, surface):
 
 @pytest.mark.parametrize('opts', [
     ({'atlas_info': True}),
-    ({'exact': False}),
-    ({'atlas_info': True, 'exact': False}),
+    ({'missing': 'centroids'}),
+    ({'atlas_info': True, 'missing': 'centroids'}),
 ])
 def test_extra_get_expression_data(testfiles, atlas, opts):
     if opts.get('atlas_info'):
@@ -84,7 +84,8 @@ def test_missing_labels(testfiles, atlas):
 
     # test get expression
     out, counts = allen.get_expression_data(img, info,
-                                            exact=False, return_counts=True,
+                                            missing='centroids',
+                                            return_counts=True,
                                             donors=['12876', '15496'])
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'

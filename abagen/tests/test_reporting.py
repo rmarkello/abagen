@@ -51,7 +51,7 @@ def test_reports(atlas, surface):
 
     # check a couple of specific parameter choices :man_shrugging:
     report = reporting.Report(atlas['image'], atlas['info'],
-                              lr_mirror='bidirectional', exact=False,
+                              lr_mirror='bidirectional', missing='centroids',
                               sample_norm='srs', gene_norm='zscore').body
     assert 'tissue samples were mirrored' in report
     assert 'sample closest to the centroid of that region' in report
