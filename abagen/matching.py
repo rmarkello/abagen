@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
 
-from . import io, transforms
+from . import io, transforms, surfaces
 
 
 class AtlasTree:
@@ -21,11 +21,14 @@ class AtlasTree:
     atlas : (N,) niimg-like object or array_like
         Volumetric (niimg-like) or array of parcellation labels. If providing
         an array you must provide `coords` as well
-    coords : (N,) array_like, optional
+    coords : (N, D) array_like, optional
         Coordinates representing points in `atlas`. If provided it is assumed
         that `atlas` is a surface representation (i.e., if `atlas` is
         volumetric simply provide a niimg-like object and the coordinates will
         be derived from the data). Default: None
+    triangles : (F, 3) array_like, optional
+        If `coords` are derived from a surface mesh, this array contains the
+        indices of the nodes comprising the mesh triangles. Default: None
     atlas_info : {os.PathLike, pandas.DataFrame, None}, optional
         Filepath or dataframe containing information about `atlas`. Must have
         at least columns ['id', 'hemisphere', 'structure'] containing
@@ -34,34 +37,50 @@ class AtlasTree:
         "cerebellum", "white matter", or "other"). Default: None
     """
 
-    def __init__(self, atlas, coords=None, atlas_info=None):
+    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None):
         from .images import check_img
 
+        graph = None
         try:  # let's first check if it's an image
             atlas = check_img(atlas)
             data, affine = np.asarray(atlas.dataobj), atlas.affine
+            self._shape = atlas.shape
             nz = data.nonzero()
             if coords is not None:
-                warnings.warn('Volumetric image supplied but `coords` is not '
-                              'None. Ignoring supplied `coords` and using '
-                              'coordinates derived from image.')
+                warnings.warn('Volumetric image supplied to `AtlasTree` '
+                              'constructor but `coords` is not None. Ignoring '
+                              'supplied `coords` and using coordinates '
+                              'derived from image.')
             atlas, coords = data[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
             self._volumetric = True
         except TypeError:
+            atlas = np.asarray(atlas)
             if coords is None:
                 raise ValueError('When providing a surface atlas you must '
                                  'also supply relevant geometry `coords`.')
             if len(atlas) != len(coords):
                 raise ValueError('Provided `atlas` and `coords` are of '
                                  'differing length.')
+            self._shape = atlas.shape
             nz = atlas.nonzero()
+            if triangles is not None:
+                graph = surfaces.make_surf_graph(coords, triangles,
+                                                 atlas == 0)[nz].T[nz].T
             atlas, coords = atlas[nz], coords[nz]
             self._volumetric = False
 
+        self._triangles = triangles
+        self._nz = nz
+        self._graph = graph
         self._tree = cKDTree(coords)
         self._atlas = np.asarray(atlas)
         self._labels = np.unique(self.atlas).astype(int)
         self._centroids = get_centroids(self.atlas, coords)
+        # if not volumetric tree then centroid should be _on_ surface
+        if not self._volumetric:
+            centroids = np.r_[list(self._centroids.values())]
+            _, idx = self.tree.query(centroids, k=1)
+            self._centroids = dict(zip(self.labels, self.coords[idx]))
         self.atlas_info = atlas_info
 
     def __repr__(self):

@@ -310,23 +310,29 @@ def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
         return atlas
 
     try:
-        atlas, coords = check_img(atlas), None
+        atlas = check_img(atlas)
+        coords = triangles = None
     except TypeError:
         atlas, info = check_surface(atlas)
         if donor is None:
+            data = fetch_fsaverage5()
             coords = transforms.fsaverage_to_mni152(
-                np.row_stack([hemi.vertices for hemi in fetch_fsaverage5()])
+                np.row_stack([hemi.vertices for hemi in data])
             )
         else:
+            data = fetch_fsnative(donor, data_dir=data_dir)
             coords = transforms.fsnative_to_xyz(
-                np.row_stack([hemi.vertices for hemi
-                              in fetch_fsnative(donor, data_dir=data_dir)]),
-                donor
+                np.row_stack([hemi.vertices for hemi in data]), donor
             )
+        triangles, offset = [], 0
+        for hemi in data:
+            triangles.append(hemi.faces + offset)
+            offset += hemi.vertices.shape[0]
+        triangles = np.row_stack(triangles)
         if atlas_info is None and info is not None:
             atlas_info = info
 
-    atlas = matching.AtlasTree(atlas, coords)
+    atlas = matching.AtlasTree(atlas, coords=coords, triangles=triangles)
 
     if atlas_info is not None:
         atlas.atlas_info = atlas_info
