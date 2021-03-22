@@ -394,9 +394,9 @@ def get_expression_data(atlas,
                                          verbose=verbose)[donor]['t1w']
         annot = samples_.update_coords(annot, corrected_mni=corrected_mni,
                                        native_space=t1w)
-        annot = samples_.drop_mismatch_samples(annot, ontol)
         if lr_mirror is not None:
             annot = samples_.mirror_samples(annot, ontol, swap=lr_mirror)
+        annot = samples_.drop_mismatch_samples(annot, ontol)
         data['annotation'] = annot
     annotation = flatten_dict(files, 'annotation')
 
