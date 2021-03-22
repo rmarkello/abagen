@@ -24,6 +24,7 @@ Reference API
 
    abagen.get_expression_data
    abagen.get_samples_in_mask
+   abagen.get_interpolated_map
 
 .. _ref_datasets:
 
@@ -46,6 +47,8 @@ Reference API
    abagen.fetch_microarray
    abagen.fetch_raw_mri
    abagen.fetch_rnaseq
+   abagen.datasets.fetch_fsaverage5
+   abagen.datasets.fetch_fsnative
 
 .. _ref_images:
 
@@ -100,6 +103,15 @@ Reference API
 
    abagen.AtlasTree
 
+.. currentmodule:: abagen
+
+.. autosummary::
+   :template: function.rst
+   :toctree: generated/
+
+   abagen.matching.get_centroids
+   abagen.matching.closest_centroid
+
 .. _ref_reporting:
 
 :mod:`abagen.reporting` - Functions for generating reports
@@ -108,13 +120,13 @@ Reference API
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: abagen.reporting
+.. currentmodule:: abagen
 
 .. autosummary::
    :template: class.rst
    :toctree: generated/
 
-   abagen.reporting.Report
+   abagen.Report
 
 .. _ref_io:
 
