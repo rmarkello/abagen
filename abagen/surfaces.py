@@ -225,7 +225,7 @@ def get_graph_distance(graph, nodes=None, labels=None):
     if labels is not None:
         dist = np.atleast_2d(dist)
         dist = np.column_stack([
-            dist[:, labels == lab].mean() for lab in np.unique(labels)
+            dist[:, labels == lab].mean(axis=1) for lab in np.unique(labels)
         ]).squeeze()
 
     return dist.astype(np.float32)
