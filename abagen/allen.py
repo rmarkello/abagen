@@ -699,7 +699,7 @@ def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
     dist = _get_weights(dist)
 
     # get average of nearest neighbors
-    dense = np.empty(((genes.shape[0],) + mask._shape), dtype=np.float64)
+    dense = np.zeros(((genes.shape[0],) + mask._shape))
     denom = np.sum(dist, axis=1)
     for n, j in enumerate(genes):
         num = np.sum(np.asarray(expression[j])[idx] * dist, axis=1)
