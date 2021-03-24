@@ -7,9 +7,9 @@ abagen: A toolbox for the Allen Brain Atlas genetics data
 This package provides a Python interface for fetching and working with the
 `Allen Human Brain Atlas`_ (AHBA) microarray expression data.
 
-.. image:: https://travis-ci.org/rmarkello/abagen.svg?branch=master
+.. image:: https://travis-ci.org/rmarkello/abagen.svg?branch=main
    :target: https://travis-ci.org/rmarkello/abagen
-.. image:: https://codecov.io/gh/rmarkello/abagen/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/rmarkello/abagen/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/rmarkello/abagen
 .. image:: https://readthedocs.org/projects/abagen/badge/?version=latest
    :target: https://abagen.readthedocs.io/en/stable
@@ -152,11 +152,11 @@ All trademarks referenced herein are property of their respective holders.
 .. _Allen Human Brain Atlas: https://human.brain-map.org/
 .. _alleninf package: https://github.com/chrisfilo/alleninf
 .. _CC BY 4.0: https://creativecommons.org/licenses/by/4.0/legalcode
-.. _code of conduct: https://github.com/rmarkello/abagen/blob/master/CODE_OF_CONDUCT.md
-.. _contributing guidelines: https://github.com/rmarkello/abagen/blob/master/CONTRIBUTING.md
+.. _code of conduct: https://github.com/rmarkello/abagen/blob/main/CODE_OF_CONDUCT.md
+.. _contributing guidelines: https://github.com/rmarkello/abagen/blob/main/CONTRIBUTING.md
 .. _contributors: https://github.com/rmarkello/abagen/graphs/contributors
 .. _user guide: https://abagen.readthedocs.io/en/stable/usage.html
 .. _GitHub issues: https://github.com/rmarkello/abagen/issues
 .. _installation instructions: https://abagen.readthedocs.io/en/stable/installation.html
-.. _LICENSE: https://github.com/rmarkello/abagen/blob/master/LICENSE
+.. _LICENSE: https://github.com/rmarkello/abagen/blob/main/LICENSE
 .. _non-commercial reuse policies: https://alleninstitute.org/legal/terms-use/
