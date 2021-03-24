@@ -31,13 +31,17 @@ def test_vanilla_surface_expression_data(testfiles, surface):
     ({'atlas_info': True, 'missing': 'centroids'}),
 ])
 def test_extra_get_expression_data(testfiles, atlas, opts):
-    if opts.get('atlas_info'):
+    if opts.get('atlas_info', False):
         opts['atlas_info'] = atlas['info']
 
     out = allen.get_expression_data(atlas['image'], donors=testfiles.keys(),
                                     **opts)
     assert out.index.name == 'label'
     assert out.columns.name == 'gene_symbol'
+    if 'missing' in opts and 'atlas_info' not in opts:
+        assert not np.any(out.isna())
+    elif 'missing' in opts and 'atlas_info' in opts:
+        assert np.any(out.isna())
 
 
 def test_individualized_get_expression_data(testfiles):
@@ -84,7 +88,7 @@ def test_missing_labels(testfiles, atlas):
 
     # test get expression
     out, counts = allen.get_expression_data(img, info,
-                                            missing='centroids',
+                                            missing='interpolate',
                                             return_counts=True,
                                             donors=testfiles.keys())
     assert out.index.name == 'label'
