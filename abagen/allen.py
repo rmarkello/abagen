@@ -339,11 +339,11 @@ def get_expression_data(atlas,
     if probe_selection not in probes_.SELECTION_METHODS:
         raise ValueError('Provided probe_selection method is invalid, must be '
                          f'one of {list(probes_.SELECTION_METHODS)}. Received '
-                         f'value: \'{probe_selection}\'')
-    if donor_probes not in ['aggregate', 'independent', 'common']:
-        raise ValueError('Provided donor_probes method is invalid, must be '
-                         f'one of [\'aggregate\', \'independent\']. Received '
-                         f'value: \'{donor_probes}\'')
+                         f'value: {probe_selection}')
+    dprobe_opts = ('aggregate', 'independent', 'common')
+    if donor_probes not in dprobe_opts:
+        raise ValueError('Provided donor_probes method is invalid, must be one'
+                         f' of {dprobe_opts}. Received value: {donor_probes}')
 
     # check lr_mirror input
     if isinstance(lr_mirror, bool):
@@ -356,7 +356,7 @@ def get_expression_data(atlas,
     mirror_opts = (None, 'bidirectional', 'leftright', 'rightleft')
     if lr_mirror not in mirror_opts:
         raise ValueError('Provided lr_mirror method is invalid, must be one '
-                         f'of {mirror_opts}. Received value: \'{lr_mirror}\'')
+                         f'of {mirror_opts}. Received value: {lr_mirror}')
 
     # check exact/missing input
     if exact is not None:
@@ -368,12 +368,12 @@ def get_expression_data(atlas,
     missing_opts = (None, 'interpolate', 'centroids')
     if missing not in missing_opts:
         raise ValueError('Provided missing method is invalid, must be one '
-                         f'of {missing_opts}. Received value: \'{missing}\'')
+                         f'of {missing_opts}. Received value: {missing}')
 
     # check that region_agg is viable with return_donors
     if return_donors and region_agg == 'samples':
         raise ValueError('Cannot return donor-level expresison data when '
-                         'region_agg parameter is set to \'samples\'.')
+                         'region_agg parameter is set to "samples".')
 
     # load atlas and atlas_info, if provided, and coerce to dict
     atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
@@ -503,21 +503,6 @@ def get_expression_data(atlas,
                              .set_index('label') \
                              .rename_axis('gene_symbol', axis=1)
 
-    if missing == 'centroids':
-        # labels that are missing across all donors
-        empty = reduce(set.intersection, [set(f.index) for f, d in centroids])
-        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
-                 'nearest tissue sample(s)')
-        for roi in empty:
-            # find donor with sample closest to centroid of empty parcel
-            ind = np.argmin([dist.get(roi) for micro, dist in centroids])
-            subj = list(microarray.keys())[ind]
-            LGR.debug(f'Assigning sample from donor {subj} to region #{roi}')
-            # assign expression data from that sample and add to count
-            exp = centroids[ind][0].loc[roi]
-            microarray[subj] = microarray[subj].append(exp)
-            counts.loc[roi, subj] += 1
-
     # if we don't want to aggregate over regions return voxel-level results
     if region_agg is None:
         # don't return samples that aren't matched to a region in the `atlas`
@@ -529,6 +514,25 @@ def get_expression_data(atlas,
         ), name='well_id')
         # return expression data (remove NaNs)
         return microarray.dropna(axis=1, how='any')
+
+    if missing == 'centroids':
+        # labels that are missing across all donors
+        empty = reduce(set.intersection, [set(f.index) for f, d in centroids])
+        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
+                 'nearest tissue sample(s)')
+        for roi in empty:
+            # take weighted average of samples closest to parcel centroid
+            # across subjects
+            exp, dist = zip(*[(micro.loc[[roi]], dist.get(roi))
+                              for micro, dist in centroids])
+            weights = _get_weights(np.asarray(dist)[:, None])
+            exp = pd.DataFrame(
+                (pd.concat(exp) * weights).sum(axis=0) / weights.sum(),
+                columns=pd.Series([roi], name='label')
+            ).T
+            # assign same value to every subject
+            for subj in microarray:
+                microarray[subj] = microarray[subj].append(exp)
 
     microarray = samples_.aggregate_samples(microarray.values(),
                                             labels=all_labels,
