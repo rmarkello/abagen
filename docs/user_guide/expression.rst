@@ -157,22 +157,31 @@ we saw, regions with no assigned samples from any donor are simply left as NaN.
 
 If you would like to force all regions to be assigned at least one sample you
 can set the ``missing`` parameter. This parameter accepts three options:
-``None`` (default), ``"centroids"``, and ``"interpolate"``.
+``None`` (default), ``"centroids"``, and ``"interpolate"``. By setting this
+parameter the workflow will go through the normal procedure as documented above
+and then, once all samples are matched, check for any empty regions and assign
+them expression values based on the specified method.
 
-By setting this parameter the workflow will go through the normal procedure as
-documented above and then, once all samples are matched, check for any empty
-regions and assign them expression values based on the specified method. When
-using the 'centroid' method the empty regions in the atlas will be assigned the
-expression values of the tissue sample falling closest to the centroid of that
-region. When using the 'interpolate' method expression values will be
-interpolated in the empty regions by assigning every node in the region the
-expression of the nearest tissue sample. The weighted (inverse distance)
-average of the densely-interpolated map will be taken and used to represent
-parcellated expression values for the region.
+When using the 'centroid' method the empty regions in the atlas will be
+assigned the expression values of the tissue sample falling closest to the
+centroid of that region. Note that this procedure is only performed when _all_
+donors are missing data in a given region. In this case, a weighted average of
+the matched samples are taken across donors, where weights are calculated as
+the inverse distance between the tissue sample matched to the parcel centroid
+for each donor.
+
+When using the 'interpolate' method, expression values will be interpolated in
+the empty regions by assigning every node in the region the expression of the
+nearest tissue sample. The weighted (inverse distance) average of the
+densely-interpolated map will be taken and used to represent parcellated
+expression values for the region. Note that, unlike in the centroid matching
+procedure described above, this interpolation is done independently for every
+donor, irrespective of whether other donors have tissue samples that fall
+within a given region.
 
 Thus, setting the ``missing`` parameter when calling
-:func:`abagen.get_expression_data` will return a dense matrix (at the expense
-of some anatomical precision):
+:func:`abagen.get_expression_data` will **always** return a dense expression
+matrix (at the expense of some anatomical precision):
 
 .. insert figure demonstration matching of samples with ``missing`` parameter
 
@@ -180,17 +189,19 @@ of some anatomical precision):
     :options: +SKIP
 
     # first, check with ``missing='centroids'``
-    >>> exp_centroids = abagen.get_expression_data(atlas['image'], atlas['info'], missing='centroids')
+    >>> exp_centroids = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                            missing='centroids')
     >>> print(exp_centroids.loc[[72, 73]])
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    72           0.675068  0.810759  0.235394  ...  0.639891  0.145371  0.637990
-    73           0.715428  0.630778  0.341249  ...  0.405554  0.534177  0.467917
+    72           0.574699  0.750184  0.246746  ...  0.656938  0.193677  0.647785
+    73           0.725151  0.652906  0.528831  ...  0.478334  0.501293  0.483642
     <BLANKLINE>
     [2 rows x 15633 columns]
 
     # then, check with ``missing='interpolate'``
-    >>> exp_interpolate = abagen.get_expression_data(atlas['image'], atlas['info'], missing='interpolate')
+    >>> exp_interpolate = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                              missing='interpolate')
     >>> print(exp_interpolate.loc[[72, 73]])
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                ...
@@ -233,7 +244,8 @@ matched to a sample, but it will increase the likelihood that this happens:
 .. doctest::
     :options: +SKIP
 
-    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'], lr_mirror='bidirectional')
+    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                         lr_mirror='bidirectional')
     >>> print(exp_mirror.loc[[72, 73]])
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                ...
