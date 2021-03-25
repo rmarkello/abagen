@@ -333,6 +333,42 @@ def mirror_samples(annotation, ontology, swap='bidirectional'):
     return annotation
 
 
+def similarity_threshold(microarray, annotation, probes, threshold=5):
+    """
+    Performs inter-areal similarity filtering of tissue samples
+
+    Parameters
+    ----------
+    microarray : str or pandas.DataFrame
+        Dataframe with `P` rows representing probes and `S` columns
+        representing distinct samples, with values indicating microarray
+        expression levels
+    annotation : str or pandas.DataFrame
+        DataFrame with information about `S` tissue samples in `microarray`
+    probes : str or pandas.DataFrame
+        Dataframe with information about `P` microarray probes in `microarray`
+    threshold : (0, np.inf) float, optional
+        Threshold for filtering samples. Specifies the standard deviation
+        cutoff used to remove samples. Default: 5
+
+    Returns
+    -------
+    samples : pandas.DataFrame
+        Dataframe containing information on samples that should be retained
+        according to inter-areal similarity filtering
+    """
+
+    annotation = io.read_annotation(annotation)
+    probes = io.read_probes(probes)
+    microarray = io.read_microarray(microarray, copy=False)
+
+    corrs = np.corrcoef(microarray.loc[probes.index, annotation.index].T)
+    sim = np.sum(corrs, axis=1)
+    thresh = np.mean(sim) - (threshold * np.std(sim, ddof=1))
+
+    return annotation.loc[sim >= thresh]
+
+
 def groupby_index(microarray, labels=None, metric='mean'):
     """
     Averages expression data in `microarray` over samples with same label

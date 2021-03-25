@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from abagen import samples_
-from abagen.utils import flatten_dict
+from abagen.utils import first_entry, flatten_dict
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #  generate fake data (based largely on real data) so we know what to expect  #
@@ -309,3 +309,14 @@ def test__mirror_ontology_real(testfiles):
     for a, o, l in zip(annotation, ontology, orig):
         annot = samples_._mirror_ontology(a, o)
         assert len(annot) == l
+
+
+def test_similarity_threshold_real(testfiles):
+    annotation = first_entry(testfiles, 'annotation')
+    probes = first_entry(testfiles, 'probes')
+    microarray = first_entry(testfiles, 'microarray')
+
+    out1 = samples_.similarity_threshold(microarray, annotation, probes)
+    out2 = samples_.similarity_threshold(microarray, annotation, probes,
+                                         threshold=np.inf)
+    assert out1.shape[0] < out2.shape[0]
