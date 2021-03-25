@@ -26,6 +26,7 @@ def get_expression_data(atlas,
                         ibf_threshold=0.5,
                         probe_selection='diff_stability',
                         donor_probes='aggregate',
+                        sim_threshold=None,
                         lr_mirror=None,
                         exact=None, missing=None,
                         tolerance=2,
@@ -126,6 +127,12 @@ def get_expression_data(atlas,
         donor ('independent'), or based on the most common selected probe
         across donors ('common'). Not all combinations of `probe_selection`
         and `donor_probes` methods are viable. Default: 'aggregate'
+    sim_threshold : (0, inf) float, optional
+        Threshold for inter-areal similarity filtering. Samples are correlated
+        across probes and those samples with an total correlation less than
+        `sim_threshold` standard deviations below the mean across samples are
+        excluded from futher analysis. If not specified no filtering is
+        performed. Default: None
     lr_mirror : {None, 'bidirectional', 'leftright', 'rightleft'}, optional
         Whether to mirror microarray expression samples across hemispheres to
         increase spatial coverage. Using 'bidirectional' will mirror samples
@@ -396,6 +403,15 @@ def get_expression_data(atlas,
     if n_gb > 1:
         LGR.warning(f'Output matrix may require up to {n_gb:.2f} GB RAM')
 
+    # get dataframe of probe information (reannotated or otherwise)
+    # the Probes.csv files are the same for every donor so just grab the first
+    probe_info = io.read_probes(first_entry(files, 'probes'))
+    if reannotated:
+        probe_info = probes_.reannotate_probes(probe_info)
+
+    # drop probes with no/invalid Entrez ID
+    probe_info = probe_info.dropna(subset=['entrez_id'])
+
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
     # provided ontology), and mirroring samples across hemispheres, if desired
@@ -411,17 +427,12 @@ def get_expression_data(atlas,
         if lr_mirror is not None:
             annot = samples_.mirror_samples(annot, ontol, swap=lr_mirror)
         annot = samples_.drop_mismatch_samples(annot, ontol)
+        if sim_threshold is not None:
+            annot = samples_.similarity_threshold(data['microarray'],
+                                                  annot, probe_info,
+                                                  threshold=sim_threshold)
         data['annotation'] = annot
     annotation = flatten_dict(files, 'annotation')
-
-    # get dataframe of probe information (reannotated or otherwise)
-    # the Probes.csv files are the same for every donor so just grab the first
-    probe_info = io.read_probes(first_entry(files, 'probes'))
-    if reannotated:
-        probe_info = probes_.reannotate_probes(probe_info)
-
-    # drop probes with no/invalid Entrez ID
-    probe_info = probe_info.dropna(subset=['entrez_id'])
 
     # intensity-based filtering of probes
     probe_info = probes_.filter_probes(flatten_dict(files, 'pacall'),
