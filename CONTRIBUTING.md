@@ -129,7 +129,7 @@ Changes here won't effect anyone else's work, so it's a safe space to make edits
 
 If you will be making changes on your local machine, remember to [clone your fork][link_clonerepo] of `abagen`.
 
-Make sure to [keep your fork up to date][link_updateupstreamwiki] with the master repository, otherwise you can end up with lots of dreaded [merge conflicts][link_mergeconflict]! :grimacing:
+Make sure to [keep your fork up to date][link_updateupstreamwiki] with the main repository, otherwise you can end up with lots of dreaded [merge conflicts][link_mergeconflict]! :grimacing:
 
 ### 3. Install `abagen` in "developer" mode
 
@@ -208,7 +208,7 @@ The pull request you created from your fork will be automatically updated&mdash;
 Sometimes team members will "suggest" changes to the code using GitHub's built-in suggestion feature.
 In that case you can [automatically incorporate the suggested changes][link_suggestedchanges] directly from Github!
 
-After successful merging of the pull request, remember to [keep your fork up to date][link_syncfork] with the master `abagen` repository.
+After successful merging of the pull request, remember to [keep your fork up to date][link_syncfork] with the main `abagen` repository.
 
 #### Continuous integration tests
 
@@ -274,7 +274,7 @@ You can see a list of our current contributors in the [contributors tab][link_ab
 
 ---
 
-_These Contributing Guidelines have been adapted from the contributing guidelines of [The Turing Way](https://github.com/alan-turing-institute/the-turing-way/blob/master/CONTRIBUTING.md#contributing-through-github) and [tedana](https://github.com/ME-ICA/tedana/blob/master/CONTRIBUTING.md). (License: CC-BY)_
+_These Contributing Guidelines have been adapted from the contributing guidelines of [The Turing Way](https://github.com/alan-turing-institute/the-turing-way/blob/master/CONTRIBUTING.md#contributing-through-github) and [tedana](https://github.com/ME-ICA/tedana/blob/main/CONTRIBUTING.md). (License: CC-BY)_
 
 [link_abagen]: https://github.com/rmarkello/abagen
 [link_abagen_contributors]: https://github.com/rmarkello/abagen/graphs/contributors

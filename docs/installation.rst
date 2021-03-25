@@ -31,6 +31,12 @@ Alternatively, you can install the most up-to-date version of from GitHub:
    cd abagen
    pip install .
 
+.. important::
+
+   If you are going to install the version directly from GitHub make sure that
+   you are using the most `up-to-date documentation
+   <https://abagen.readthedocs.io/en/latest/>`_!
+
 .. _io_installation:
 
 IO installation
@@ -63,3 +69,9 @@ You can also install these extra packages from the GitHub source:
    git clone https://github.com/rmarkello/abagen.git
    cd abagen
    pip install .[io]
+
+.. important::
+
+    If you are going to install the version directly from GitHub make sure that
+    you are using the most `up-to-date documentation
+    <https://abagen.readthedocs.io/en/latest/>`_!
