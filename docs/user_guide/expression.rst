@@ -46,25 +46,29 @@ about what's happening as it goes. However, briefly the function:
     4. Reannotates microarray probe-to-gene mappings with information from
        Arnatkevic̆iūtė et al., 2019, NeuroImage. This occurs by default; refer
        to parameter ``reannotated`` for more info.
-    5. Performs intensity-based filtering of probes to remove those that do not
+    5. Performs a similarity-based filtering of tissue samples, removing those
+       samples whose expression across probes is poorly correlated with other
+       samples. This does not occur by default; refer to parameter
+      ``sim_threshold`` for more info.
+    6. Performs intensity-based filtering of probes to remove those that do not
        exceed background noise. This occurs by default with a threshold of
        0.5 (i.e., probes must exceed background noise in 50% of all tissue
        samples); refer to parameter ``ibf_threshold`` for more info.
-    6. Selects a representative probe amongst those probes indexing the same
+    7. Selects a representative probe amongst those probes indexing the same
        gene. This occurs by default by selecting the probe with the highest
        differential stability amongst donors; refer to parameter
        ``probe_selection`` for more info (or see :ref:`usage_probes`).
-    7. Matches tissue samples to regions in the user-specified ``atlas``. Refer
+    8. Matches tissue samples to regions in the user-specified ``atlas``. Refer
        to parameters ``atlas``, ``atlas_info``, ``missing``, and ``tolerance``
        for more info (or see :ref:`usage_expression_missing`).
-    8. Normalizes expression values for each sample across genes for each
+    9. Normalizes expression values for each sample across genes for each
        donor. This occurs by default using a scaled robust sigmoid
        normalization function; refere to parameter ``sample_norm`` for more
        info.
-    9. Normalizes expression values for each gene across samples for each
-       donor. This occurs by default using a scaled robust sigmoid
-       normalization function; refer to parameter ``gene_norm`` for more info.
-    10. Aggregates samples within regions in the user-specified ``atlas`` based
+    10. Normalizes expression values for each gene across samples for each
+        donor. This occurs by default using a scaled robust sigmoid
+        normalization function; refer to parameter ``gene_norm`` for more info.
+    11. Aggregates samples within regions in the user-specified ``atlas`` based
         on matches made in Step 7. By default, samples are averaged separately
         for each donor and then averaged across donors. Refer to parameters
         ``region_agg``, ``agg_metric``, and ``return_donors`` for more info.
