@@ -235,7 +235,8 @@ def read_probes(fname, copy=False):
     """
 
     try:
-        data = pd.read_csv(fname, index_col=0)
+        data = pd.read_csv(fname, index_col=0,
+                           dtype={'entrez_id': pd.Int64Dtype()})
     except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Probes.csv '
