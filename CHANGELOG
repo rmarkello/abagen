@@ -1,3 +1,31 @@
+0.1 (March 25, 2021)
+====================
+
+First minor release! :tada: This update brings some major changes to the
+codebase, including a massive internal refactoring to allow handling of surface
+parcellations, new methods for interpolating missing data, and more!
+
+**Important**: as this is our first official minor release, note that the
+changes in this release are _not backwards compatible_ with previous versions.
+
+  * [ENH] Adds interareal similarity thresholding (#184), @rmarkello
+  * [REF] Allow negative tolerance for surfaces (#183), @rmarkello
+  * [REF] Updates reports for `missing` param (#182), @rmarkello
+  * [DOC] Updates master refs to main (#181), @rmarkello
+  * [ENH] Adds interpolation options for missing data (#180), @rmarkello
+  * [REF] Updates mouse data cache location (#179), @rmarkello
+  * [FIX] Bugfix for lr_mirror parameter (#178), @rmarkello
+  * [ENH] Adds reporting of processing methods (#177), @rmarkello
+  * [FIX] Nan hemisphere designation (#176), @rmarkello
+  * [FIX] Addresses bug when `tolerance=0` (#175), @rmarkello
+  * [TEST] Add py3.8 to azure tests (#174), @rmarkello
+  * [REF] Constrains centroid matching by atlas_info (#173), @rmarkello
+  * [REF] Updates CLI to match main workflow (#172), @rmarkello
+  * [REF] Modifies `lr_mirror` to accept single hemisphere mirroring (#171), @rmarkello
+  * [ENH] Add `norm_structures` parameter (#170), @rmarkello
+  * [ENH] Adds ability to handle surface parcellations (#169), @rmarkello
+  * [TEST] Parametrize `test_resid_dist` (#164), @4lovi4
+
 0.0.8 (January 29, 2021)
 ========================
 
