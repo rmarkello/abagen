@@ -16,7 +16,7 @@ from . import (correct, datasets, images, io, matching, probes_, reporting,
 from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
 LGR = logging.getLogger('abagen')
 
 
@@ -540,6 +540,7 @@ def get_expression_data(atlas,
                                             agg_metric=agg_metric,
                                             return_donors=return_donors)
 
+    counts = counts.drop([0], axis=0)
     if return_report:  # generate report
         report = reporting.Report(atlas, atlas_info=atlas[subj].atlas_info,
                                   ibf_threshold=ibf_threshold,
@@ -554,15 +555,16 @@ def get_expression_data(atlas,
                                   corrected_mni=corrected_mni,
                                   reannotated=reannotated, donors=donors,
                                   return_donors=return_donors,
-                                  data_dir=data_dir).body
-        report = report.format(n_probes=len(probe_info),
-                               n_genes=(microarray[0].shape[1] if return_donors
-                                        else microarray.shape[1]))
+                                  data_dir=data_dir, counts=counts,
+                                  n_probes=len(probe_info),
+                                  n_genes=(microarray[0].shape[1]
+                                           if return_donors
+                                           else microarray.shape[1])).body
 
     # pack outputs
     out = (microarray,)
     if return_counts:
-        out += (counts.drop([0], axis=0),)
+        out += (counts,)
     if return_report:
         out += (report,)
     if len(out) == 1:

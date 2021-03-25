@@ -55,9 +55,7 @@ REFERENCES = dict(
 class Report:
     """ Generates report of methods for :func:`abagen.get_expression_data()`
 
-    Parameters
-    ----------
-
+    Refer to the doc-string of the workflow for an overview of paramter options
     """
 
     def __init__(self, atlas, atlas_info=None, *, ibf_threshold=0.5,
@@ -66,7 +64,7 @@ class Report:
                  gene_norm='srs', norm_matched=True, norm_structures=False,
                  region_agg='donors', agg_metric='mean', corrected_mni=True,
                  reannotated=True, donors='all', return_donors=False,
-                 data_dir=None):
+                 data_dir=None, counts=None, n_probes=None, n_genes=None):
         atlas, self.group_atlas = \
             coerce_atlas_to_dict(atlas, donors, atlas_info=atlas_info,
                                  data_dir=data_dir)
@@ -88,10 +86,13 @@ class Report:
         self.reannotated = reannotated
         self.donors = donors
         self.return_donors = return_donors
+        self.counts = counts
+        self.n_probes = n_probes
+        self.n_genes = n_genes
         self.body = self.gen_report()
 
     def gen_report(self):
-        """ Generates body of report
+        """ Generates main text of report
         """
 
         report = ''
@@ -135,8 +136,13 @@ class Report:
             Next, probes were filtered based on their expression intensity
             relative to background noise [Q2002N], such that probes with
             intensity less than the background in >={threshold:.2f}% of samples
-            across donors were discarded, yielding {{n_probes:,}} probes.
+            across donors were discarded
             """.format(threshold=self.ibf_threshold * 100)
+            if self.n_probes is not None:
+                report += """
+                , yielding {n_probes:,} probes
+                """.format(n_probes=self.n_probes)
+            report += "."
 
         if self.probe_selection == 'average':
             report += """
@@ -299,30 +305,40 @@ class Report:
 
         if self.missing == 'centroids':
             report += """
-            If a brain region was not assigned any sample based on the above
-            procedure, the sample closest to the centroid of that region was
-            selected in order to ensure that all brain regions were assigned a
-            value.
+            If a brain region was not assigned a sample from any donor based on
+            the above procedure, the tissue sample closest to the centroid of
+            that parcel was identified independently for each donor. The
+            average of these samples was taken across donors, weighted by the
+            distance between the parcel centroid and the sample, to obtain an
+            estimate of the parcellated expression values for the missing
+            region.
             """
+            if self.counts is not None:
+                n_missing = np.sum(self.counts.sum(axis=1) == 0)
+                if n_missing > 0:
+                    report += """
+                    This procedure was performed for {n_missing} regions that
+                    were not assigned tissue samples.
+                    """.format(n_missing=n_missing)
         elif self.missing == 'interpolate':
             report += """
-            If a brain region was not assigned any sample based on the above
-            procedure, every {node} in the region was mapped to the nearest
-            matched sampled in order to generate a dense, interpolated
-            expression map. We then took the average of these expression values
-            across all {nodes} in the region, weighted by the distance between
-            each {node} and the sample mapped to it, in order to obtain an
-            estimate of the parcellated expression values for that region.
-            """.format(node='voxel' if self.volumetric else 'vertex',
-                       nodes='voxels' if self.volumetric else 'vertices')
+            If a brain region was not assigned a tissue sample based on the
+            above procedure, every {node} in the region was mapped to the
+            nearest tissue sample from the donor in order to generate a dense,
+            interpolated expression map. The average of these expression values
+            was taken across all {nodes} in the region, weighted by the
+            distance between each {node} and the sample mapped to it, in order
+            to obtain an estimate of the parcellated expression values for the
+            missing region.
+            """.format(node='voxel' if self.atlas.volumetric else 'vertex',
+                       nodes='voxels' if self.atlas.volumetric else 'vertices')
 
         if self.norm_matched:
             report += """
             All tissue samples not assigned to a brain region in the provided
-            atlas were discarded.<br>
+            atlas were discarded.
             """
-        else:
-            report += "<br>"
+        report += "<br>"
 
         if self.sample_norm is not None:
             report += """
@@ -374,39 +390,38 @@ class Report:
             report += """
             Samples assigned to the same brain region were averaged separately
             for each donor{donors}, yielding a regional expression matrix
-            {n_donors}with {n_region} rows, corresponding to brain regions,
-            and {{n_genes:,}} columns, corresponding to the retained genes.
+            {n_donors}
             """.format(donors=' and then across donors' if
                               not self.return_donors else '',
                        n_donors=' for each donor ' if
-                                self.return_donors else '',
-                       n_region=len(self.atlas.labels))
+                                self.return_donors else '')
         elif self.region_agg == 'samples' and self.agg_metric == 'mean':
             report += """
             Samples assigned to the same brain region were averaged across all
-            donors, yielding a regional expression matrix with {n_region}
-            rows, corresponding to brain regions, and {{n_genes:,}} columns,
-            corresponding to the retained genes.
-            """.format(n_region=len(self.atlas.labels))
+            donors, yielding a regional expression matrix
+            """
         elif self.region_agg == 'donors' and self.agg_metric == 'median':
             report += """
             The median value of samples assigned to the same brain region was
             computed separately for each donor{donors}, yielding a regional
-            expression matrix{n_donors}with {n_region} rows, corresponding to
-            brain regions, and {{n_genes:,}} columns, corresponding to the
-            retained genes.
+            expression matrix{n_donors}
             """.format(donors=' and then across donors' if
                               not self.return_donors else '',
-                       n_donors=' for each donor ' if
-                                self.return_donors else '',
-                       n_region=len(self.atlas.labels))
+                       n_donors=' for each donor' if
+                                self.return_donors else '')
         elif self.region_agg == 'samples' and self.agg_metric == 'median':
             report += """
             The median value of samples assigned to the same brain region was
-            computed across donors, yielding a regional expression matrix with
-            {n_region} rows, corresponding to brain regions, and {{n_genes:,}}
-            columns, corresponding to the retained genes.
-            """.format(n_region=len(self.atlas.labels))
+            computed across donors, yielding a single regional expression
+            matrix
+            """
+        if self.n_genes is not None:
+            report += """
+            with {n_region} rows, corresponding to brain regions, and
+            {n_genes:,} columns, corresponding to the retained genes
+            """.format(n_region=len(self.atlas.labels),
+                       n_genes=self.n_genes)
+        report += "\b."
 
         report += str(_add_references(report))
         return _sanitize_text(report)
@@ -417,7 +432,8 @@ def _sanitize_text(text):
     """
 
     text = ' '.join(text.replace('\n', ' ').split())
-    return text.replace('<br> ', '\n\n').replace('<p>', '\n')
+    return text.replace('<br> ', '\n\n') \
+               .replace('<p>', '\n')
 
 
 def _get_donor_demographics(donors):

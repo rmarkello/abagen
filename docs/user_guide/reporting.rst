@@ -55,10 +55,10 @@ example:
     probes not matched to a valid Entrez ID were discarded. Next, probes were
     filtered based on their expression intensity relative to background noise
     [Q2002N], such that probes with intensity less than the background in
-    >=50.00% of samples across donors were discarded, yielding 31,569 probes.
-    When multiple probes indexed the expression of the same gene, we selected
-    and used the probe with the most consistent pattern of regional variation
-    across donors (i.e., differential stability; [H2015N]), calculated with:*
+    >=50.00% of samples across donors were discarded. When multiple probes
+    indexed the expression of the same gene, we selected and used the probe
+    with the most consistent pattern of regional variation across donors (i.e.,
+    differential stability; [H2015N]), calculated with:*
 
     :math:`\Delta_{S}(p) = \frac{1}{\binom{N}{2}} \, \sum_{i=1}^{N-1} \sum_{j=i+1}^{N} \rho[B_{i}(p), B_{j}(p)]`
 
@@ -93,9 +93,7 @@ example:
 
     *Gene expression values were then normalized across tissue samples using an
     identical procedure. Samples assigned to the same brain region were
-    averaged separately for each donor and then across donors, yielding a
-    regional expression matrix with 83 rows, corresponding to brain regions,
-    and 15,633 columns, corresponding to the retained genes.*
+    averaged separately for each donor and then across donors.*
 
     *REFERENCES* |br|
     -\-\-\-\-\-\-\-\-\- |br|
