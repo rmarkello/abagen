@@ -147,6 +147,12 @@ def test_AtlasTree(atlas, surface, testfiles):
     labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
     assert np.all(labels['label'] == [1, 2])
 
+    # check negative surface tolerance
+    labels = tree.label_samples([-72, -25, -13], tolerance=-4)
+    assert np.all(labels['label'] == 14)
+    labels = tree.label_samples([-72, -25, -13], tolerance=-3)
+    assert np.all(labels['label'] == 0)
+
     # no coordinates
     with pytest.raises(ValueError):
         matching.AtlasTree(np.random.choice(10, size=(100,)))
