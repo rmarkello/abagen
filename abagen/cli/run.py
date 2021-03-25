@@ -106,7 +106,7 @@ If at any step a sample can be assigned to a parcel the matching process is
 terminated. When the provided atlas is not volumetric (i.e., is surface-based)
 the samples are simply matched to the nearest vertex, and `--tolerance` is used
 as a standard deviation threshold. More control over the sample matching can be
-obtained by setting the `--inexact` parameter.
+obtained by setting the `--missing` parameter.
 
 Once all samples have been matched to parcels for all supplied donors, the
 microarray expression data are optionally normalized via the provided
@@ -204,22 +204,22 @@ across donors via the supplied `--region_agg` and `--agg_metric` parameters.
                              'mirror samples in the left hemisphere to the '
                              'right, and "rightleft" will mirror the right to '
                              'the left. Default: None')
-    w_data.add_argument('--inexact', dest='exact', action='store_false',
-                        default=True,
-                        help='Whether to use inexact matching of donor tissue '
-                             'samples to parcels in `atlas`. By default, the '
-                             'workflow will match tissue samples to parcels '
-                             'within `tolerance` mm of the sample; any '
-                             'samples that are beyond `tolerance` mm of a '
-                             'parcel will be discarded, which may result in '
-                             'some parcels having no assigned sample / '
-                             'expression data. If --inexact, the matching '
-                             'procedure will be performed and followed by a '
-                             'check for parcels with no assigned samples; any '
-                             'such parcels will be matched to the nearest '
-                             'sample (defined as the sample with the closest '
-                             'Euclidean distance to the parcel centroid). '
-                             'Default: False')
+    w_data.add_argument('--missing', dest='missing', metavar='METHOD',
+                        type=_resolve_none, default=None, choices=(
+                            None, 'centroids', 'interpolate'),
+                        help='How to handle regions in `atlas` that are not '
+                             'assigned any tissue samples. If "centroids", '
+                             'any empty regions will be assigned the '
+                             'expression value of the nearest tissue sample '
+                             '(defined as the sample with the closest '
+                             'Euclidean distance to the parcel centroid). If '
+                             '"interpolate", expression values will be '
+                             'interpolated in the empty regions by assigning '
+                             'every node in the region the expression of the '
+                             'nearest sample and taking a weighted (inverse '
+                             'distance) average. If not specified empty '
+                             'regions will be returned with expression values '
+                             'of NaN. Default: None')
     w_data.add_argument('--tol', '--tolerance', dest='tolerance',
                         action='store', type=float, default=2,
                         help='Distance (in mm) that a sample can be from a '
@@ -359,7 +359,7 @@ def main(args=None):
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
                                      lr_mirror=opts.lr_mirror,
-                                     exact=opts.exact,
+                                     missing=opts.missing,
                                      tolerance=opts.tolerance,
                                      sample_norm=opts.sample_norm,
                                      gene_norm=opts.gene_norm,

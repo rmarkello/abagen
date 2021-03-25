@@ -6,6 +6,7 @@ Tests for abagen.matching module
 import nibabel as nib
 import numpy as np
 import pandas as pd
+import pytest
 
 from abagen import images, matching
 
@@ -96,19 +97,30 @@ def test_AtlasTree(atlas, surface, testfiles):
     labels = tree.label_samples(np.row_stack((coords, [1000, 1000, 1000])))
     assert np.all(labels['label'] == [2, 2, 2, 1, 1, 1, 0])
 
+    with pytest.raises(ValueError):
+        tree.coords = coords[:-1]
+
     # check centroid matching
     lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
     assert np.all(lab == 2)
-    assert np.allclose(dist, np.sqrt(3))
+    assert np.allclose(dist, np.sqrt(3) * 2)
     centinfo = pd.DataFrame(dict(mni_x=[-1], mni_y=[-1], mni_z=[-1],
                                  hemisphere='L', structure='cortex'))
     lab, dist = tree.match_closest_centroids([[-1, -1, -1]], return_dist=True)
     assert np.all(lab == 2)
-    assert np.allclose(dist, np.sqrt(3))
+    assert np.allclose(dist, np.sqrt(3) * 2)
     centinfo['structure'] = 'cerebellum'
     lab, dist = tree.match_closest_centroids(centinfo, return_dist=True)
     assert np.all(lab == -1)
     assert np.all(np.isinf(dist))
+
+    # check label filling
+    lab1 = tree.fill_label([[0, 0, 0], [3, 3, 3]], label=2)
+    lab2, dist = tree.fill_label([[0, 0, 0], [3, 3, 3]], label=2,
+                                 return_dist=True)
+    assert np.allclose(lab1, lab2)
+    assert np.allclose(lab2, [1, 0, 0])
+    assert np.allclose(dist, [np.sqrt(3), np.sqrt(3), 0])
 
     # check providing niimg-like atlas
     tree = matching.AtlasTree(nib.load(atlas['image']))
@@ -122,6 +134,10 @@ def test_AtlasTree(atlas, surface, testfiles):
     labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
     assert np.all(labels['label'] == [1, 2])
 
+    # coordinates supplied with volumetric image
+    with pytest.warns(UserWarning):
+        matching.AtlasTree(nib.load(atlas['image']), coords=coords)
+
     # check surface AtlasTree
     tree = images.check_atlas(surface['image'])
     assert str(tree) == 'AtlasTree[n_rois=68, n_vertex=18426]'
@@ -130,3 +146,12 @@ def test_AtlasTree(atlas, surface, testfiles):
     assert len(tree.centroids) == 68
     labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
     assert np.all(labels['label'] == [1, 2])
+
+    # no coordinates
+    with pytest.raises(ValueError):
+        matching.AtlasTree(np.random.choice(10, size=(100,)))
+
+    # different length coordinates
+    with pytest.raises(ValueError):
+        matching.AtlasTree(np.random.choice(10, size=(100,)),
+                           coords=np.random.rand(99, 3))

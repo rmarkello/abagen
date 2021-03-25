@@ -16,6 +16,7 @@ from . import (correct, datasets, images, io, matching, probes_, reporting,
 from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
 LGR = logging.getLogger('abagen')
 
 
@@ -26,7 +27,7 @@ def get_expression_data(atlas,
                         probe_selection='diff_stability',
                         donor_probes='aggregate',
                         lr_mirror=None,
-                        exact=True,
+                        exact=None, missing=None,
                         tolerance=2,
                         sample_norm='srs',
                         gene_norm='srs',
@@ -131,16 +132,16 @@ def get_expression_data(atlas,
         across both hemispheres, 'leftright' will mirror samples in the left
         hemisphere to the right, and 'rightleft' will mirror the right to the
         left. Default: None
-    exact : bool, optional
-        Whether to use exact matching of donor tissue samples to parcels in
-        `atlas`. If True, this function will ONLY match tissue samples to
-        parcels within `threshold` mm of the sample; any samples that are
-        beyond `threshold` mm of a parcel will be discarded. This may result
-        in some parcels having no assigned sample / expression data. If False,
-        the default matching procedure will be performed and followed by a
-        check for parcels with no assigned samples; any such parcels will be
-        matched to the nearest sample (defined as the sample with the closest
-        Euclidean distance to the parcel centroid). Default: True
+    missing : {'centroids', 'interpolate', None}, optional
+        How to handle regions in `atlas` that are not assigned any tissue
+        samples. If 'centroids', any empty regions will be assigned the
+        expression value of the nearest tissue sample (defined as the sample
+        with the closest Euclidean distance to the parcel centroid). If
+        'interpolate', expression values will be interpolated in the empty
+        regions by assigning every node in the region the expression of the
+        nearest sample and taking a weighted (inverse distance) average. If
+        not specified empty regions will be returned with expression values of
+        NaN. Default: None
     tolerance : int, optional
         Distance (in mm) that a sample must be from a parcel for it to be
         matched to that parcel. If `atlas` is a tuple of surface files then
@@ -329,10 +330,7 @@ def get_expression_data(atlas,
     """
 
     # set logging verbosity level
-    LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 2))
-
-    # load atlas and atlas_info, if provided, and coerce to dict
-    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
+    LGR.setLevel(dict(zip(range(3), [40, 20, 10])).get(int(verbose), 10))
 
     # get combination functions
     agg_metric = utils.check_metric(agg_metric)
@@ -341,28 +339,44 @@ def get_expression_data(atlas,
     if probe_selection not in probes_.SELECTION_METHODS:
         raise ValueError('Provided probe_selection method is invalid, must be '
                          f'one of {list(probes_.SELECTION_METHODS)}. Received '
-                         f'value: \'{probe_selection}\'')
-    if donor_probes not in ['aggregate', 'independent', 'common']:
-        raise ValueError('Provided donor_probes method is invalid, must be '
-                         f'one of [\'aggregate\', \'independent\']. Received '
-                         f'value: \'{donor_probes}\'')
+                         f'value: {probe_selection}')
+    dprobe_opts = ('aggregate', 'independent', 'common')
+    if donor_probes not in dprobe_opts:
+        raise ValueError('Provided donor_probes method is invalid, must be one'
+                         f' of {dprobe_opts}. Received value: {donor_probes}')
 
+    # check lr_mirror input
     if isinstance(lr_mirror, bool):
         warnings.warn('Setting lr_mirror to a boolean value will be '
                       'deprecated in an upcoming release. Use either '
                       '`lr_mirror=None` or `lr_mirror="bidirectional"` '
                       'instead. See documentation for more details.',
-                      DeprecationWarning, stacklevel=2)
+                      FutureWarning)
         lr_mirror = 'bidirectional' if lr_mirror else None
-
     mirror_opts = (None, 'bidirectional', 'leftright', 'rightleft')
     if lr_mirror not in mirror_opts:
         raise ValueError('Provided lr_mirror method is invalid, must be one '
-                         f'of {mirror_opts}. Received value: \'{lr_mirror}\'')
+                         f'of {mirror_opts}. Received value: {lr_mirror}')
 
+    # check exact/missing input
+    if exact is not None:
+        warnings.warn('The exact parameter will be deprecated in an upcoming '
+                      'release. Use the `missing` parameter instead. See '
+                      'documentation for more details.',
+                      FutureWarning)
+        missing = None if exact else 'centroids'
+    missing_opts = (None, 'interpolate', 'centroids')
+    if missing not in missing_opts:
+        raise ValueError('Provided missing method is invalid, must be one '
+                         f'of {missing_opts}. Received value: {missing}')
+
+    # check that region_agg is viable with return_donors
     if return_donors and region_agg == 'samples':
         raise ValueError('Cannot return donor-level expresison data when '
-                         'region_agg parameter is set to \'samples\'.')
+                         'region_agg parameter is set to "samples".')
+
+    # load atlas and atlas_info, if provided, and coerce to dict
+    atlas, group_atlas = images.coerce_atlas_to_dict(atlas, donors, atlas_info)
 
     # fetch files (downloading if necessary) and unpack to variables
     files = datasets.fetch_microarray(data_dir=data_dir, donors=donors,
@@ -380,7 +394,7 @@ def get_expression_data(atlas,
     all_labels = utils.first_entry(atlas).labels
     n_gb = (8 * len(all_labels) * 30000) / (1024 ** 3)
     if n_gb > 1:
-        warnings.warn(f'Output matrix may require up to {n_gb:.2f} GB RAM')
+        LGR.warning(f'Output matrix may require up to {n_gb:.2f} GB RAM')
 
     # update the annotation "files". this handles updating the MNI coordinates,
     # dropping mistmatched samples (where MNI coordinates don't match the
@@ -421,16 +435,17 @@ def get_expression_data(atlas,
                                          annotation, probe_info,
                                          method=probe_selection,
                                          donor_probes=donor_probes)
-    missing = []
+    centroids = []
     counts = pd.DataFrame(np.zeros((len(all_labels) + 1, len(microarray)),
                                    dtype=int),
                           index=np.append([0], all_labels),
                           columns=microarray.keys())
     for subj in microarray:
         if lr_mirror is not None:  # reset index
-            # TODO: come up with alternative sample IDs for mirrored samples
-            microarray[subj] = microarray[subj].reset_index(drop=True)
-            annotation[subj] = annotation[subj].reset_index(drop=True)
+            idx = pd.Series(range(1, len(microarray[subj]) + 1),
+                            name='sample_id')
+            microarray[subj].index = idx.copy()
+            annotation[subj].index = idx.copy()
 
         # assign samples to regions
         labels = atlas[subj].label_samples(annotation[subj], tolerance)
@@ -440,11 +455,12 @@ def get_expression_data(atlas,
         # otherwise, we'll remove the non-labelled samples after normalization
         nz = np.asarray(labels != 0).squeeze()
         if nz.sum() == 0:
-            warnings.warn(f'No samples matched to atlas for donor {subj}')
+            LGR.warning(f'No samples matched to atlas for donor {subj}')
             microarray[subj].index = labels['label']
-            if not exact:
+            if missing == 'centroids':
                 missing += [(pd.DataFrame(), {})]
             continue
+
         if norm_matched:
             microarray[subj] = microarray[subj].loc[nz]
             annotation[subj] = annotation[subj].loc[nz]
@@ -471,47 +487,21 @@ def get_expression_data(atlas,
         # if we don't want to do exact matching then cache which parcels are
         # missing data and the expression data for the closest sample to that
         # parcel; we'll use this once we've iterated through all donors
-        if not exact:
-            empty = np.setdiff1d(all_labels, labs)
-            cols = ['mni_x', 'mni_y', 'mni_z']
-            annotation_iloc = pd.Series(np.arange(len(annotation[subj])) + 1,
-                                        name='id')
-            annotree = matching.AtlasTree(
-                np.asarray(annotation_iloc),
-                np.asarray(annotation[subj][cols]),
-                annotation[subj].set_axis(annotation_iloc, inplace=False)
-            )
-            centroids = np.r_[[atlas[subj].centroids[lab] for lab in empty]]
-            if atlas[subj].atlas_info is not None:
-                centinfo = atlas[subj].atlas_info.loc[empty]
-                centinfo[cols] = centroids
-                centroids = centinfo
-            idx, dist = annotree.match_closest_centroids(centroids,
-                                                         return_dist=True)
-            if not hasattr(idx, '__len__'):  # TODO: better way to check this?
-                idx, dist = np.array([idx]), np.array([dist])
-            drop = idx == -1
-            idx = microarray[subj].loc[annotation[subj].iloc[idx - 1].index]
-            idx.index = pd.Series(empty, name='label')
-            idx[drop] = np.nan
-            missing += [(idx, dict(zip(empty, dist)))]
+        if missing is not None:
+            if missing == 'interpolate':
+                exp, lab = _interpolate_missing(atlas[subj], labels,
+                                                microarray[subj],
+                                                annotation[subj])
+                microarray[subj] = microarray[subj].append(exp)
+                labels = labels.append(lab)
+            elif missing == 'centroids':
+                centroids += [_match_centroids(atlas[subj], labels,
+                                               microarray[subj],
+                                               annotation[subj])]
 
-        microarray[subj].index = labels['label']
-
-    if not exact:  # check for missing ROIs and fill in, as needed
-        # labels that are missing across all donors
-        empty = reduce(set.intersection, [set(f.index) for f, d in missing])
-        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
-                 'nearest tissue sample(s)')
-        for roi in empty:
-            # find donor with sample closest to centroid of empty parcel
-            ind = np.argmin([dist.get(roi) for micro, dist in missing])
-            subj = list(microarray.keys())[ind]
-            LGR.debug(f'Assigning sample from donor {subj} to region #{roi}')
-            # assign expression data from that sample and add to count
-            exp = missing[ind][0].loc[roi]
-            microarray[subj] = microarray[subj].append(exp)
-            counts.loc[roi, subj] += 1
+        microarray[subj] = pd.merge(microarray[subj], labels, on='sample_id') \
+                             .set_index('label') \
+                             .rename_axis('gene_symbol', axis=1)
 
     # if we don't want to aggregate over regions return voxel-level results
     if region_agg is None:
@@ -525,6 +515,25 @@ def get_expression_data(atlas,
         # return expression data (remove NaNs)
         return microarray.dropna(axis=1, how='any')
 
+    if missing == 'centroids':
+        # labels that are missing across all donors
+        empty = reduce(set.intersection, [set(f.index) for f, d in centroids])
+        LGR.info(f'Matching {len(empty)} region(s) with no data to the '
+                 'nearest tissue sample(s)')
+        for roi in empty:
+            # take weighted average of samples closest to parcel centroid
+            # across subjects
+            exp, dist = zip(*[(micro.loc[[roi]], dist.get(roi))
+                              for micro, dist in centroids])
+            weights = _get_weights(np.asarray(dist)[:, None])
+            exp = pd.DataFrame(
+                (pd.concat(exp) * weights).sum(axis=0) / weights.sum(),
+                columns=pd.Series([roi], name='label')
+            ).T
+            # assign same value to every subject
+            for subj in microarray:
+                microarray[subj] = microarray[subj].append(exp)
+
     microarray = samples_.aggregate_samples(microarray.values(),
                                             labels=all_labels,
                                             region_agg=region_agg,
@@ -536,7 +545,7 @@ def get_expression_data(atlas,
                                   ibf_threshold=ibf_threshold,
                                   probe_selection=probe_selection,
                                   donor_probes=donor_probes,
-                                  lr_mirror=lr_mirror, exact=exact,
+                                  lr_mirror=lr_mirror, missing=missing,
                                   tolerance=tolerance, sample_norm=sample_norm,
                                   gene_norm=gene_norm,
                                   norm_matched=norm_matched,
@@ -572,9 +581,10 @@ def get_samples_in_mask(mask=None, **kwargs):
 
     Parameters
     ----------
-    mask : niimg-like object, optional
-        A mask image in MNI space (where 0 is the background). Alternatively, a
-        dictionary where keys are donor IDs and values are mask images in the
+    mask : niimg-like object or dict, optional
+        A mask image in MNI space or a tuple of GIFTI images in fsaverage5
+        space (where 0 is the background). Alternatively, a dictionary where
+        keys are donor IDs and values are mask images (or surfaces) in the
         native space of each donor. If not supplied, all available samples will
         be returned. Default: None
     kwargs : key-value pairs
@@ -642,3 +652,149 @@ def get_samples_in_mask(mask=None, **kwargs):
     coords = coords[np.isin(well_id, exp.index)]
 
     return exp, coords
+
+
+def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
+    """
+    Generates dense (i.e., interpolated) expression maps for `genes`
+
+    Uses k-nearest neighbors regression to estimate values at every voxel or
+    vertex in the supplied `mask`. Note that by default `lr_mirror` is set to
+    'bidirectional' and `norm_matched` is set to False, unless explicitly
+    specified.
+
+    Parameters
+    ----------
+    genes : (G,) list-of-str
+        List of gene acronyms for which dense maps are desired
+    mask : niimg-like object, optional
+        A mask image in MNI space or a tuple of GIFTI images in fsaverage5
+        space (where 0 is the background)
+    n_neighbors : int, optional
+        Number of neighboring tissue samples to use when interpolating data in
+        dense map. Default: 10
+    kwargs : key-value pairs
+        All key-value pairs from :func:`abagen.get_expression_data` except for:
+        `atlas`, `atlas_info`, `region_agg`, and `agg_metric`, which will be
+        ignored.
+
+    Returns
+    -------
+    dense : (G,) dict
+        Dictionary where keys are `genes` and values are dense maps in space of
+        provided `mask`
+    """
+
+    genes = np.atleast_1d(genes)
+    mask = images.check_atlas(mask)
+    if 'atlas' in kwargs:
+        del kwargs['atlas']
+
+    # soft reset here and then get ALL the samples in the brain
+    # (we don't just want samples _inside_ the mask since we're using NN)
+    kwargs.setdefault('lr_mirror', 'bidirectional')
+    expression, coords = get_samples_in_mask(mask=None, **kwargs)
+
+    # this is a "naive" matching based only on Euclidean distance
+    # TODO: use surface distances when working with surfaces
+    # TODO: constrain by hemisphere (and structure?)
+    exptree = matching.AtlasTree(np.asarray(expression.index), coords=coords)
+    dist, idx = exptree.tree.query(mask.coords, k=n_neighbors)
+    dist = _get_weights(dist)
+
+    # get average of nearest neighbors
+    dense = np.zeros(((genes.shape[0],) + mask._shape))
+    denom = np.sum(dist, axis=1)
+    for n, j in enumerate(genes):
+        num = np.sum(np.asarray(expression[j])[idx] * dist, axis=1)
+        dense[n][mask._nz] = num / denom
+
+    return dict(zip(genes, dense))
+
+
+def _get_weights(dist):
+    """ Gets inverse of `dist`, handling potential infs
+
+    Parameters
+    ----------
+    dist : array_like
+        Distances to be converted to weights
+
+    Returns
+    -------
+    weights : np.ndarray
+        Inverse of `dist`
+    """
+
+    with np.errstate(divide='ignore'):
+        dist = 1. / dist
+    isinf = np.isinf(dist)
+    infrow = np.any(isinf, axis=1)
+    dist[infrow] = isinf[infrow]
+
+    return dist
+
+
+def _interpolate_missing(atlas, labels, microarray, annotation):
+    """ Interpolate missing data in `atlas` with weighted nearest-neighbors
+    """
+
+    data, labs = [], []
+    for label in np.setdiff1d(atlas.labels, labels):
+        # it's more cost efficient to do this check here
+        if atlas.atlas_info is not None:
+            cols = ['structure', 'hemisphere']
+            match = atlas.atlas_info.loc[label, cols] == annotation[cols]
+            if not np.any(np.all(match, axis=1)):
+                continue
+
+        # get sample indices for every node of `lab` in `atlas`
+        idx, dist = atlas.fill_label(annotation, label, return_dist=True)
+        if np.all(np.isinf(dist)):
+            continue
+
+        # get expression of selected tissue samples and weights
+        dist = _get_weights(dist[:, None])
+
+        # get weighted average of sample expression and store
+        exp = (microarray.loc[idx] * dist).sum(axis=0) / dist.sum()
+        sampid = pd.Series([f'interp_{label}'], name='sample_id')
+        data.append(pd.DataFrame(exp, columns=sampid).T)
+        labs.append(pd.DataFrame(label, columns=['label'], index=sampid))
+
+    return pd.concat(data), pd.concat(labs)
+
+
+def _match_centroids(atlas, labels, microarray, annotation):
+    """ Matches missing data in `atlas` based on centroids
+    """
+
+    cols = ['mni_x', 'mni_y', 'mni_z']
+    tree = matching.AtlasTree(
+        np.asarray(annotation.index),
+        coords=np.asarray(annotation[cols]),
+        atlas_info=annotation.rename_axis('id')
+    )
+    empty = np.setdiff1d(atlas.labels, labels)
+
+    # get coordinates of centroids for each missing parcel
+    centroids = np.r_[[atlas.centroids[lab] for lab in empty]]
+    if atlas.atlas_info is not None:
+        centroid_info = atlas.atlas_info.loc[empty]
+        centroid_info[cols] = centroids
+        centroids = centroid_info
+
+    # get idx of tissue sample closest to each centroid
+    idx, dist = tree.match_closest_centroids(centroids, return_dist=True)
+
+    # get expression of selected tissue samples
+    mask = idx != -1
+    exp = microarray.loc[idx[mask]]
+    exp.index = pd.Series(empty[mask], name='label')
+    # if some labels weren't matched (due to e.g., hemispheric/structural
+    # constraints) then append empty rows to the dataframe
+    exp = exp.append(pd.DataFrame(index=empty[~mask])) \
+             .sort_index() \
+             .rename_axis('gene_symbol', axis=1)
+
+    return (exp, dict(zip(empty, dist)))

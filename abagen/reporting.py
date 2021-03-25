@@ -2,8 +2,8 @@
 """
 Functions for generating workflow methods reports
 
-Note: all text contained within this module is released under a CC-0 license
-(https://creativecommons.org/publicdomain/zero/1.0/).
+Note: all text contained within this module is released under a `CC-0 license
+<https://creativecommons.org/publicdomain/zero/1.0/>`_.
 """
 
 import numpy as np
@@ -62,7 +62,7 @@ class Report:
 
     def __init__(self, atlas, atlas_info=None, *, ibf_threshold=0.5,
                  probe_selection='diff_stability', donor_probes='aggregate',
-                 lr_mirror=None, exact=True, tolerance=2, sample_norm='srs',
+                 lr_mirror=None, missing=None, tolerance=2, sample_norm='srs',
                  gene_norm='srs', norm_matched=True, norm_structures=False,
                  region_agg='donors', agg_metric='mean', corrected_mni=True,
                  reannotated=True, donors='all', return_donors=False,
@@ -76,7 +76,7 @@ class Report:
         self.probe_selection = probe_selection
         self.donor_probes = donor_probes
         self.lr_mirror = lr_mirror
-        self.exact = exact
+        self.missing = missing
         self.tolerance = tolerance
         self.sample_norm = sample_norm
         self.gene_norm = gene_norm
@@ -297,13 +297,24 @@ class Report:
             atlas parcel in the left cortex; [A2019N]).
             """
 
-        if not self.exact:
+        if self.missing == 'centroids':
             report += """
             If a brain region was not assigned any sample based on the above
             procedure, the sample closest to the centroid of that region was
             selected in order to ensure that all brain regions were assigned a
             value.
             """
+        elif self.missing == 'interpolate':
+            report += """
+            If a brain region was not assigned any sample based on the above
+            procedure, every {node} in the region was mapped to the nearest
+            matched sampled in order to generate a dense, interpolated
+            expression map. We then took the average of these expression values
+            across all {nodes} in the region, weighted by the distance between
+            each {node} and the sample mapped to it, in order to obtain an
+            estimate of the parcellated expression values for that region.
+            """.format(node='voxel' if self.volumetric else 'vertex',
+                       nodes='voxels' if self.volumetric else 'vertices')
 
         if self.norm_matched:
             report += """

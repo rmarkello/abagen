@@ -55,8 +55,8 @@ about what's happening as it goes. However, briefly the function:
        differential stability amongst donors; refer to parameter
        ``probe_selection`` for more info (or see :ref:`usage_probes`).
     7. Matches tissue samples to regions in the user-specified ``atlas``. Refer
-       to parameters ``atlas``, ``atlas_info``, ``exact``, and ``tolerance``
-       for more info (or see :ref:`usage_expression_exact`).
+       to parameters ``atlas``, ``atlas_info``, ``missing``, and ``tolerance``
+       for more info (or see :ref:`usage_expression_missing`).
     8. Normalizes expression values for each sample across genes for each
        donor. This occurs by default using a scaled robust sigmoid
        normalization function; refere to parameter ``sample_norm`` for more
@@ -113,20 +113,31 @@ Getting dense expression data
 
 Unfortunately, due to how tissue samples were collected from the donor brains
 it is possible that some regions in an atlas may not be represented by any
-expression data. In the above example, one of the rows (not displayed) is
-missing data. That region, corresponding to the right temporal pole in the
-Desikan-Killiany atlas, was not matched to any tissue samples; this is likely
-due to the fact that only two of the six donors have tissue samples taken from
-the right hemisphere.
+expression data. In the above example, two of the rows are missing data:
+
+.. doctest::
+
+    >>> print(expression.loc[[72, 73]])
+    gene_symbol  A1BG  A1BG-AS1  A2M  ...  ZYX  ZZEF1  ZZZ3
+    label                             ...
+    72            NaN       NaN  NaN  ...  NaN    NaN   NaN
+    73            NaN       NaN  NaN  ...  NaN    NaN   NaN
+    <BLANKLINE>
+    [2 rows x 15633 columns]
+
+These regions, corresponding to the right temporal pole (label 72) and
+transverse temporal gyrus (label 73) in the Desikan-Killiany atlas, were not
+matched to any tissue samples; this is likely due to the fact that only two of
+the six donors have tissue samples taken from the right hemisphere.
 
 If you require a *dense* matrix---that is, you need expression values for
 **every** region in your ``atlas``---there are a few parameters that you can
 consider tuning to try and achieve this.
 
-.. _usage_expression_exact:
+.. _usage_expression_missing:
 
-Inexact matching with the ``exact`` parameter
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Filling in data with the ``missing`` parameter
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default, the :func:`abagen.get_expression_data` function will attempt to be
 as precise as possible in matching microarray samples with brain regions. It
@@ -145,39 +156,65 @@ assigned to that region and the matching procedure is terminated. However, as
 we saw, regions with no assigned samples from any donor are simply left as NaN.
 
 If you would like to force all regions to be assigned at least one sample you
-can set ``exact=False``. By doing this, the function will go through the
-normal procedure documented above and then, once all samples are matched,
-check for any remaining "empty" regions and assign them the expression values
-of the sample falling closest to the center of mass of that region. In this
-way every brain region is matched to *at least* one sample.
+can set the ``missing`` parameter. This parameter accepts three options:
+``None`` (default), ``"centroids"``, and ``"interpolate"``. By setting this
+parameter the workflow will go through the normal procedure as documented above
+and then, once all samples are matched, check for any empty regions and assign
+them expression values based on the specified method.
 
-Thus, passing ``exact=False`` when calling :func:`abagen.get_expression_data`
-will return a dense matrix (at the expense of some anatomical precision):
+When using the 'centroid' method the empty regions in the atlas will be
+assigned the expression values of the tissue sample falling closest to the
+centroid of that region. Note that this procedure is only performed when _all_
+donors are missing data in a given region. In this case, a weighted average of
+the matched samples are taken across donors, where weights are calculated as
+the inverse distance between the tissue sample matched to the parcel centroid
+for each donor.
 
-.. insert figure demonstration matching of samples with ``exact`` parameter
+When using the 'interpolate' method, expression values will be interpolated in
+the empty regions by assigning every node in the region the expression of the
+nearest tissue sample. The weighted (inverse distance) average of the
+densely-interpolated map will be taken and used to represent parcellated
+expression values for the region. Note that, unlike in the centroid matching
+procedure described above, this interpolation is done independently for every
+donor, irrespective of whether other donors have tissue samples that fall
+within a given region.
+
+Thus, setting the ``missing`` parameter when calling
+:func:`abagen.get_expression_data` will **always** return a dense expression
+matrix (at the expense of some anatomical precision):
+
+.. insert figure demonstration matching of samples with ``missing`` parameter
 
 .. doctest::
     :options: +SKIP
 
-    >>> exp_exact = abagen.get_expression_data(atlas['image'], atlas['info'], exact=False)
-    >>> print(exp_exact)
+    # first, check with ``missing='centroids'``
+    >>> exp_centroids = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                            missing='centroids')
+    >>> print(exp_centroids.loc[[72, 73]])
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
     label                                      ...
-    1            0.498266  0.664570  0.395276  ...  0.675843  0.555539  0.487572
-    2            0.649068  0.578997  0.496142  ...  0.483165  0.382653  0.504041
-    3            0.530613  0.623289  0.516300  ...  0.732930  0.359707  0.450664
-    ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.388748  0.277961  0.474202  ...  0.279683  0.480953  0.405504
-    82           0.825836  0.602271  0.334143  ...  0.195722  0.447894  0.746475
-    83           0.384593  0.203654  0.746060  ...  0.379274  0.706803  0.509437
+    72           0.574699  0.750184  0.246746  ...  0.656938  0.193677  0.647785
+    73           0.725151  0.652906  0.528831  ...  0.478334  0.501293  0.483642
     <BLANKLINE>
-    [83 rows x 15633 columns]
+    [2 rows x 15633 columns]
 
-.. note::
+    # then, check with ``missing='interpolate'``
+    >>> exp_interpolate = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                              missing='interpolate')
+    >>> print(exp_interpolate.loc[[72, 73]])
+    gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
+    label                                ...
+    72           0.532308  0.710846  0.299322  ...  0.675837  0.301105  0.586290
+    73           0.736345  0.663072  0.497092  ...  0.507378  0.467046  0.531494
+    <BLANKLINE>
+    [2 rows x 15633 columns]
+
+.. warning::
 
     Refer to the documentation for :ref:`normalization <usage_norm_matched>`
     for additional information on how other settings interact with the
-    ``exact`` parameter.
+    ``missing`` parameter.
 
 .. _usage_expression_lrmirror:
 
@@ -197,33 +234,29 @@ are mirrored across the left/right hemisphere axis. By supplying the
 'bidirectional' options, all samples in the left hemisphere are duplicated and
 mirrored onto the right hemisphre, and vice-versa for right to left. The other
 options ('leftright' and 'rightleft) will mirror only one hemisphere (i.e.,
-'leftright' will mirror samples in the left onto the right hemisphere.
+'leftright' will mirror samples in the left onto the right hemisphere).
 
-Unlike the ``exact=False`` parameter this will *not guarantee* that all regions
-are matched to a sample, but it will dramatically increase the likelihood that
-this will happen:
+Unlike the ``missing`` parameter this will *not guarantee* that all regions are
+matched to a sample, but it will increase the likelihood that this happens:
 
 .. insert figure demonstrating duplication of samples across hemispheres
 
 .. doctest::
     :options: +SKIP
 
-    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'], lr_mirror='bidirectional')
-    >>> print(exp_mirror)
+    >>> exp_mirror = abagen.get_expression_data(atlas['image'], atlas['info'],
+    ...                                         lr_mirror='bidirectional')
+    >>> print(exp_mirror.loc[[72, 73]])
     gene_symbol      A1BG  A1BG-AS1       A2M  ...       ZYX     ZZEF1      ZZZ3
-    label                                      ...
-    1            0.507449  0.660975  0.427809  ...  0.680459  0.539879  0.472281
-    2            0.604153  0.585912  0.515221  ...  0.492051  0.384899  0.495231
-    3            0.529061  0.616119  0.515541  ...  0.724205  0.350374  0.442347
-    ...               ...       ...       ...  ...       ...       ...       ...
-    81           0.462442  0.326585  0.418575  ...  0.261741  0.589400  0.477557
-    82           0.750736  0.373946  0.443017  ...  0.262684  0.427315  0.730212
-    83           0.382588  0.193999  0.727578  ...  0.387210  0.693490  0.485938
+    label                                ...
+    72           0.832617  0.648154  0.425707  ...  0.580406  0.439378  0.799856
+    73           0.682180  0.569551  0.627497  ...  0.430146  0.302926  0.425995
     <BLANKLINE>
-    [83 rows x 15633 columns]
+    [2 rows x 15633 columns]
 
 Note that since this effectively duplicates the number of tissue samples the
-function runtime will increase somewhat. Also notice how the ``lr_mirror``
-parameter changes the expression values for all the regions more dramatically
-than the ``exact=True`` parameter. It is worth considering which (if either!)
-of these options best suits your intended analysis.
+function runtime will increase somewhat. Also, importantly, setting the
+``lr_mirror`` parameter will change the expression values of **all** of the
+regions in the generated matrix–not just the regions that are missing data. It
+is worth considering which (if either!) of these options best suits your
+intended analysis.

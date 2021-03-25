@@ -277,17 +277,17 @@ so that all available samples are used instead of only those matched, set
     Given the preponderence of parameters in :func:`abagen.get_expression_data`
     it is perhaps unsurprising that they will interact with one another.
     However, it is worth pointing out that ``norm_matched`` will interact with
-    the ``exact`` parameter in a relatively surprising manner (hence why we
+    the ``missing`` parameter in a relatively surprising manner (hence why we
     feel the need to make this note). This is due to the order in which
     sample-to-region matching, normalization, and "missing" regions are
     handled: when ``norm_matched`` is set to ``True`` all samples not matched
-    to regions are removed prior to normalization. As such, if ``exact=False``,
-    the program is only able to fill in missing regions with samples that had
-    already been assigned to other regions. If, instead, ``norm_matched=False``
-    and ``exact=False`` the program can use the full range of samples to fill
-    in missing regions. For this reason, we suggest using
-    ``norm_matched=False`` when also using ``exact=False``; however, we do not
-    impose a restriction on this.
+    to regions are removed prior to normalization. As such, if the ``missing``
+    parameter is set, the program is only able to fill in missing regions with
+    samples that had already been assigned to other regions. If, instead,
+    ``norm_matched=False`` and the ``missing`` parameter is set, the program
+    can use the full range of samples to fill in missing regions. For this
+    reason, we suggest using ``norm_matched=False`` when also setting the
+    ``missing`` parameter; however, we do not impose a restriction on this.
 
 .. _usage_norm_structures:
 

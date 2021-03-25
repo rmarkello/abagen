@@ -94,7 +94,8 @@ def read_microarray(fname, copy=False, parquet=True):
         else:
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
-        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+        data.columns = pd.Series(range(1, len(data.columns) + 1),
+                                 name='sample_id')
     except (AttributeError, ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Microarray'
@@ -194,7 +195,8 @@ def read_pacall(fname, copy=False, parquet=True):
         else:
             data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'probe_id'
-        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+        data.columns = pd.Series(range(1, len(data.columns) + 1),
+                                 name='sample_id')
     except (AttributeError, ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to PACall.csv '
@@ -294,7 +296,7 @@ def read_annotation(fname, copy=False):
 
     try:
         data = pd.read_csv(fname)
-        data.index.name = 'sample_id'
+        data.index = pd.Series(range(1, len(data.index) + 1), name='sample_id')
     except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to Annotation'
@@ -336,7 +338,8 @@ def read_tpm(fname, copy=False):
     try:
         data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'gene_symbol'
-        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+        data.columns = pd.Series(range(1, len(data.columns) + 1),
+                                 name='sample_id')
     except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to RNAseqTPM'
@@ -377,7 +380,8 @@ def read_counts(fname, copy=False):
     try:
         data = pd.read_csv(fname, header=None, index_col=0)
         data.index.name = 'gene_symbol'
-        data.columns = pd.Series(range(len(data.columns)), name='sample_id')
+        data.columns = pd.Series(range(1, len(data.columns) + 1),
+                                 name='sample_id')
     except (ValueError, TypeError):
         if not isinstance(fname, pd.DataFrame):
             raise TypeError('Provided fname must be filepath to RNAseqCounts'

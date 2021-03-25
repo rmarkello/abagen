@@ -53,7 +53,7 @@ def test_run_get_parser(capsys, atlas, datadir):
         '--atlas-info', atlas['info'],
         '--donors', '12876', '15496',
         '--data-dir', datadir,
-        '--inexact',
+        '--missing', 'centroids',
         '--tol', '5',
         '--ibf-threshold', '0.6',
         '--region-agg', 'donors',

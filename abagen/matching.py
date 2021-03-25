@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
 
-from . import io, transforms
+from . import io, transforms, surfaces
 
 
 class AtlasTree:
@@ -21,11 +21,14 @@ class AtlasTree:
     atlas : (N,) niimg-like object or array_like
         Volumetric (niimg-like) or array of parcellation labels. If providing
         an array you must provide `coords` as well
-    coords : (N,) array_like, optional
+    coords : (N, D) array_like, optional
         Coordinates representing points in `atlas`. If provided it is assumed
         that `atlas` is a surface representation (i.e., if `atlas` is
         volumetric simply provide a niimg-like object and the coordinates will
         be derived from the data). Default: None
+    triangles : (F, 3) array_like, optional
+        If `coords` are derived from a surface mesh, this array contains the
+        indices of the nodes comprising the mesh triangles. Default: None
     atlas_info : {os.PathLike, pandas.DataFrame, None}, optional
         Filepath or dataframe containing information about `atlas`. Must have
         at least columns ['id', 'hemisphere', 'structure'] containing
@@ -34,34 +37,50 @@ class AtlasTree:
         "cerebellum", "white matter", or "other"). Default: None
     """
 
-    def __init__(self, atlas, coords=None, atlas_info=None):
+    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None):
         from .images import check_img
 
+        graph = None
         try:  # let's first check if it's an image
             atlas = check_img(atlas)
             data, affine = np.asarray(atlas.dataobj), atlas.affine
+            self._shape = atlas.shape
             nz = data.nonzero()
             if coords is not None:
-                warnings.warn('Volumetric image supplied but `coords` is not '
-                              'None. Ignoring supplied `coords` and using '
-                              'coordinates derived from image.')
+                warnings.warn('Volumetric image supplied to `AtlasTree` '
+                              'constructor but `coords` is not None. Ignoring '
+                              'supplied `coords` and using coordinates '
+                              'derived from image.')
             atlas, coords = data[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
             self._volumetric = True
         except TypeError:
+            atlas = np.asarray(atlas)
             if coords is None:
                 raise ValueError('When providing a surface atlas you must '
                                  'also supply relevant geometry `coords`.')
             if len(atlas) != len(coords):
                 raise ValueError('Provided `atlas` and `coords` are of '
                                  'differing length.')
+            self._shape = atlas.shape
             nz = atlas.nonzero()
+            if triangles is not None:
+                graph = surfaces.make_surf_graph(coords, triangles,
+                                                 atlas == 0)[nz].T[nz].T
             atlas, coords = atlas[nz], coords[nz]
             self._volumetric = False
 
+        self._triangles = triangles
+        self._nz = nz
+        self._graph = graph
         self._tree = cKDTree(coords)
         self._atlas = np.asarray(atlas)
         self._labels = np.unique(self.atlas).astype(int)
         self._centroids = get_centroids(self.atlas, coords)
+        # if not volumetric tree then centroid should be _on_ surface
+        if not self._volumetric:
+            centroids = np.r_[list(self._centroids.values())]
+            _, idx = self.tree.query(centroids, k=1)
+            self._centroids = dict(zip(self.labels, self.coords[idx]))
         self.atlas_info = atlas_info
 
     def __repr__(self):
@@ -69,7 +88,8 @@ class AtlasTree:
             suff = f'n_voxel={self.tree.n}'
         else:
             suff = f'n_vertex={self.tree.n}'
-        return f'{self.__class__.__name__}[n_rois={len(self.labels)}, {suff}]'
+        return f'{self.__class__.__name__}' \
+               f'[n_rois={self.labels.shape[0]}, {suff}]'
 
     @property
     def tree(self):
@@ -352,8 +372,10 @@ class AtlasTree:
         missing_info = any(col not in samples.columns
                            for col in ('structure', 'hemisphere'))
         if self.atlas_info is None or missing_info:
-            distances, idx = self.tree.query(samples[cols], k=1)
-            labels = self.atlas[idx]
+            centroids = np.r_[list(self.centroids.values())]
+            match, distances = closest_centroid(samples[cols], centroids,
+                                                return_dist=True)
+            labels = np.asarray(list(self.centroids.keys()))[match]
         else:
             labels = np.full(len(samples), -1, dtype=int)
             distances = np.full(len(samples), np.inf)
@@ -374,6 +396,68 @@ class AtlasTree:
         if return_dist:
             return labels, distances
         return labels
+
+    def fill_label(self, annotation, label, return_dist=False):
+        """
+        Assigns a sample in `annotation` to every node of `label` in atlas
+
+        Parameters
+        ----------
+        annotation : (S, 3) array_like
+            At a minimum, an array of XYZ coordinates must be provided. If a
+            full annotation dataframe is provided, then information from the
+            data frame (i.e., on hemisphere + structural assignments of tissue
+            samples) is used to constrain matching of samples (if
+            `self.atlas_info` is not None).
+        label : int
+            Which label in `self.atlas` should be filled
+        return_dist : bool, optional
+            Whether to also return distance to mapped samples
+
+        Returns
+        -------
+        samples : (L,) np.ndarray
+            ID of sample mapped to all `L` nodes in `label` of atlas
+        distance : (L,) np.ndarray
+            Distances of matched samples to nodes in `label`. Only returned if
+            `return_dist=True`
+        """
+
+        cols = ['mni_x', 'mni_y', 'mni_z']
+        try:
+            samples = io.read_annotation(annotation, copy=True)
+        except TypeError:
+            samples = pd.DataFrame(np.atleast_2d(annotation), columns=cols)
+
+        missing_info = any(col not in samples.columns
+                           for col in ('structure', 'hemisphere'))
+        # assign samples to nearest node (i.e., vertex / voxel)
+        dist, idx = self.tree.query(samples[cols], k=1)
+
+        # now get distance between `label` nodes and assigned sample nodes
+        idxs, = np.where(self.atlas == label)
+        if not self.volumetric and self._graph is not None:
+            dist = surfaces.get_graph_distance(self._graph, nodes=idxs)[:, idx]
+        else:
+            dist = distance_matrix(self.coords[idxs], self.coords[idx])
+
+        # check if matched samples and nodes are compatible
+        if self.atlas_info is not None:
+            labels = _check_label(self.atlas[idx], samples, self.atlas_info)
+            dist[:, labels == 0] = np.inf
+            # check if specified label is compatible w/nodes of matched samples
+            if not missing_info:
+                sh = ['structure', 'hemisphere']
+                match = self.atlas_info.loc[label, sh] != samples[sh]
+                dist[:, np.asarray(np.any(match, axis=1))] = np.inf
+
+        # get closest samples to each node of label
+        closest = dist.argmin(axis=1)
+        samples = samples.index[closest]
+
+        if return_dist:
+            return samples, dist[range(len(dist)), closest]
+        return samples
 
 
 def _check_label(label, sample_info, atlas_info):
