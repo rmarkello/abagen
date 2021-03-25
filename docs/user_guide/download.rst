@@ -110,15 +110,15 @@ And you can do the same for, e.g., the probe file with:
 
     >>> probes = abagen.io.read_probes(data['probes'])
     >>> print(probes)
-                          probe_name  gene_id  ... entrez_id chromosome
-    probe_id                                   ...
-    1058685              A_23_P20713      729  ...     733.0          9
-    1058684   CUST_15185_PI416261804      731  ...     735.0          5
-    1058683             A_32_P203917      731  ...     735.0          5
-    ...                          ...      ...  ...       ...        ...
-    1071209             A_32_P885445  1012197  ...       NaN        NaN
-    1071210               A_32_P9207  1012198  ...       NaN        NaN
-    1071211              A_32_P94122  1012199  ...       NaN        NaN
+                          probe_name  gene_id   gene_symbol                                  gene_name  entrez_id chromosome
+    probe_id
+    1058685              A_23_P20713      729           C8G  complement component 8, gamma polypeptide        733          9
+    1058684   CUST_15185_PI416261804      731            C9                     complement component 9        735          5
+    1058683             A_32_P203917      731            C9                     complement component 9        735          5
+    ...                          ...      ...           ...                                        ...        ...        ...
+    1071209             A_32_P885445  1012197  A_32_P885445    AGILENT probe A_32_P885445 (non-RefSeq)       <NA>        NaN
+    1071210               A_32_P9207  1012198    A_32_P9207      AGILENT probe A_32_P9207 (non-RefSeq)       <NA>        NaN
+    1071211              A_32_P94122  1012199   A_32_P94122     AGILENT probe A_32_P94122 (non-RefSeq)       <NA>        NaN
     <BLANKLINE>
     [58692 rows x 6 columns]
 
