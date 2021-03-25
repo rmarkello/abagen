@@ -129,7 +129,7 @@ def get_expression_data(atlas,
         and `donor_probes` methods are viable. Default: 'aggregate'
     sim_threshold : (0, inf) float, optional
         Threshold for inter-areal similarity filtering. Samples are correlated
-        across probes and those samples with an total correlation less than
+        across probes and those samples with a total correlation less than
         `sim_threshold` standard deviations below the mean across samples are
         excluded from futher analysis. If not specified no filtering is
         performed. Default: None

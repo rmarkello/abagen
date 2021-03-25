@@ -204,6 +204,15 @@ across donors via the supplied `--region_agg` and `--agg_metric` parameters.
                              'mirror samples in the left hemisphere to the '
                              'right, and "rightleft" will mirror the right to '
                              'the left. Default: None')
+    w_data.add_argument('--sim_threshold', '--sim-threshold',
+                        type=_resolve_none, default=None, metavar='THRESHOLD',
+                        help='Threshold for inter-areal similarity filtering. '
+                             'Samples are correlated across probes and those '
+                             'samples with a total correlation less than the '
+                             'the provided threshold s.d. below the mean '
+                             'across samples are excluded from futher'
+                             'analysis. If not specified no filtering is '
+                             'performed. Default: None')
     w_data.add_argument('--missing', dest='missing', metavar='METHOD',
                         type=_resolve_none, default=None, choices=(
                             None, 'centroids', 'interpolate'),
@@ -358,6 +367,7 @@ def main(args=None):
                                      atlas_info=opts.atlas_info,
                                      ibf_threshold=opts.ibf_threshold,
                                      probe_selection=opts.probe_selection,
+                                     sim_threshold=opts.sim_threshold,
                                      lr_mirror=opts.lr_mirror,
                                      missing=opts.missing,
                                      tolerance=opts.tolerance,
