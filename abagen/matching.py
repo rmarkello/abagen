@@ -207,7 +207,7 @@ class AtlasTree:
                 samples['structure'] = 'cortex'
 
         if self.volumetric:
-            labels = self._match_volume(samples, tolerance)
+            labels = self._match_volume(samples, abs(tolerance))
         else:
             cortex = samples['structure'] == 'cortex'
             labels = np.zeros(len(samples))
