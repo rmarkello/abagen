@@ -54,5 +54,5 @@ def test_reports(atlas, surface):
                               lr_mirror='bidirectional', missing='centroids',
                               sample_norm='srs', gene_norm='zscore').body
     assert 'tissue samples were mirrored' in report
-    assert 'sample closest to the centroid of that region' in report
+    assert 'tissue sample closest to the centroid of' in report
     assert 'variation in gene expression was then addressed' in report
