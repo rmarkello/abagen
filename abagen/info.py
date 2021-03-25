@@ -52,6 +52,7 @@ for processing and preparing the AHBA microarray expression data for analysis.
 
 Installation requirements
 -------------------------
+
 Currently, ``abagen`` works with Python 3.6+ and requires a few dependencies:
 
     - nibabel
@@ -83,8 +84,7 @@ At it's core, using ``abagen`` is as simple as:
     >>> import abagen
     >>> expression = abagen.get_expression_data('myatlas.nii.gz')  # doctest: +SKIP
 
-where ``'myatlas.nii.gz'`` points to a Nifti file that defines a brain
-parcellation in MNI space.
+where ``'myatlas.nii.gz'`` points to a brain parcellation file.
 
 This function can also be called from the command line with:
 
@@ -134,9 +134,7 @@ Reannotated gene information located at ``abagen/data/reannotated.csv.gz`` and
 individualized donor parcellations for the Desikan-Killiany atlas located at
 ``abagen/data/native_dk`` are taken from Arnatkevičiūte et al., 2018 and are
 separately licensed under the `CC BY 4.0`_; these data can also be found on
-`figshare <https://figshare.com/s/441295fe494375aa0c13>`__. Individualized
-parcellations have been renumbered to match the MNI-space atlas originally
-shipped with ``abagen``.
+`figshare <https://figshare.com/s/441295fe494375aa0c13>`__.
 
 Corrected MNI coordinates used to match AHBA tissues samples to MNI space
 located at ``abagen/data/corrected_mni_coordinates.csv`` are taken from the
