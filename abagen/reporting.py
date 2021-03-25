@@ -293,6 +293,14 @@ class Report:
             parcel.
             """.format(space='MNI' if self.group_atlas else 'native voxel',
                        tolerance=self.tolerance)
+        elif self.tolerance < 0 and not self.atlas.volumetric:
+            report += """
+            Samples were assigned to brain regions by minimizing the Euclidean
+            distance between the {space} coordinates of each sample and the
+            nearest surface vertex. Samples where the Euclidean distance to the
+            nearest vertex was more than {tolerance}mm were excluded.
+            """.format(space='MNI' if self.group_atlas else 'native voxel',
+                       tolerance=abs(self.tolerance))
 
         if self.atlas_info is not None:
             report += """
