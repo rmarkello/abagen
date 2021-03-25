@@ -87,6 +87,7 @@ looking at the :ref:`api_ref`. Notably, all IO functions return
 For example, you can load the annotation file for the first donor with:
 
 .. doctest::
+    :options: +NORMALIZE_WHITESPACE
 
     >>> data = files['9861']
     >>> annotation = abagen.io.read_annotation(data['annotation'])
@@ -107,6 +108,7 @@ For example, you can load the annotation file for the first donor with:
 And you can do the same for, e.g., the probe file with:
 
 .. doctest::
+   :options: +NORMALIZE_WHITESPACE
 
     >>> probes = abagen.io.read_probes(data['probes'])
     >>> print(probes)
