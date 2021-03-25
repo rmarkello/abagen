@@ -247,10 +247,15 @@ class AtlasTree:
         if self.atlas_info is not None:
             labels = _check_label(labels, samples, self.atlas_info)
 
-        if len(labels) > 1:
-            with np.errstate(invalid='ignore'):
-                mask = dist > dist.mean() + (dist.std(ddof=1) * tolerance)
-            labels[mask] = 0
+        if tolerance < 0:
+            mask = dist > -tolerance
+        else:
+            if len(labels) > 1:
+                with np.errstate(invalid='ignore'):
+                    mask = dist > dist.mean() + (dist.std(ddof=1) * tolerance)
+            else:
+                mask = np.zeros(len(labels), dtype=bool)
+        labels[mask] = 0
 
         return labels
 
