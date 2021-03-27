@@ -437,7 +437,8 @@ def _average(expression, probes, *args, **kwargs):
     """
 
     def _avg(df):
-        return df.join(probes['gene_symbol'], on='probe_id') \
+        return df.rename(probes['gene_symbol'].to_dict()) \
+                 .rename_axis('gene_symbol') \
                  .groupby('gene_symbol') \
                  .mean().T
 
