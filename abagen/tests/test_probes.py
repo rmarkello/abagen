@@ -244,6 +244,8 @@ def test_collapse_probes(testfiles, method):
     assert len(out) == 2  # number of donors
     assert np.all([len(exp) == n_samp for exp, n_samp in zip(out, [363, 470])])
     assert np.all([len(exp.columns) == 29131 for exp in out])
+    assert out[0].index.name == 'sample_id'
+    assert out[0].columns.name == 'gene_symbol'
 
 
 @pytest.mark.parametrize('donor_probes', [
