@@ -47,7 +47,7 @@ example:
     *Regional microarry expression data were obtained from 6 post-mortem brains
     (1 female, ages 24.0--57.0, 42.50 +/- 13.38) provided by the Allen Human
     Brain Atlas (AHBA, https://human.brain-map.org; [H2012N]). Data were
-    processed with the abagen toolbox (version 1.0;
+    processed with the abagen toolbox (version X.Y;
     https://github.com/rmarkello/abagen) using a 83-region volumetric atlas
     in MNI space.*
 
