@@ -49,7 +49,7 @@ about what's happening as it goes. However, briefly the function:
     5. Performs a similarity-based filtering of tissue samples, removing those
        samples whose expression across probes is poorly correlated with other
        samples. This does not occur by default; refer to parameter
-      ``sim_threshold`` for more info.
+       ``sim_threshold`` for more info.
     6. Performs intensity-based filtering of probes to remove those that do not
        exceed background noise. This occurs by default with a threshold of
        0.5 (i.e., probes must exceed background noise in 50% of all tissue

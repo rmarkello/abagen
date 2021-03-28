@@ -6,7 +6,7 @@ codebase, including a massive internal refactoring to allow handling of surface
 parcellations, new methods for interpolating missing data, and more!
 
 **Important**: as this is our first official minor release, note that the
-changes in this release are _not backwards compatible_ with previous versions.
+changes in this release are *not backwards compatible* with previous versions.
 
   * [ENH] Adds interareal similarity thresholding (#184), @rmarkello
   * [REF] Allow negative tolerance for surfaces (#183), @rmarkello
