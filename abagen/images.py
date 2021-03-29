@@ -2,6 +2,7 @@
 
 import logging
 import os
+import warnings
 
 import nibabel as nib
 import numpy as np
@@ -273,7 +274,8 @@ def check_surface(atlas):
     return adata, atlas_info
 
 
-def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
+def check_atlas(atlas, atlas_info=None, geometry=None, space=None, donor=None,
+                data_dir=None):
     """
     Checks that `atlas` is a valid atlas
 
@@ -288,6 +290,11 @@ def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
         information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
+    geometry : (2,) tuple-of-GIFTI, optional
+        Surfaces files defining geometry of `atlas`, if `atlas` is a tuple of
+        GIFTI images. Default: None
+    space : {'fsaverage', 'fsnative', 'fslr'}, optional
+        If `geometry` is supplied, what space files are in. Default: None
     donor : str, optional
         If specified, indicates which donor the specified `atlas` belongs to.
         Only relevant when `atlas` is surface-based, to ensure the correct
@@ -314,21 +321,17 @@ def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
         coords = triangles = None
     except TypeError:
         atlas, info = check_surface(atlas)
-        if donor is None:
-            data = fetch_fsaverage5()
-            coords = transforms.fsaverage_to_mni152(
-                np.row_stack([hemi.vertices for hemi in data])
-            )
-        else:
-            data = fetch_fsnative(donor, data_dir=data_dir)
-            coords = transforms.fsnative_to_xyz(
-                np.row_stack([hemi.vertices for hemi in data]), donor
-            )
-        triangles, offset = [], 0
-        for hemi in data:
-            triangles.append(hemi.faces + offset)
-            offset += hemi.vertices.shape[0]
-        triangles = np.row_stack(triangles)
+        # backwards compatibility for `donor` keyword
+        if geometry is None and donor is None:
+            geometry = fetch_fsaverage5(load=False)
+            space = 'fsnative'
+        elif geometry is None and donor is not None:
+            geometry = fetch_fsnative(donor, load=False, data_dir=data_dir)
+            space = 'fsnative'
+        elif geometry is not None and space is None:
+            raise ValueError('If providing geometry files space parameter '
+                             'must be specified')
+        coords, triangles = check_geometry(geometry, space)
         if atlas_info is None and info is not None:
             atlas_info = info
 
@@ -338,6 +341,51 @@ def check_atlas(atlas, atlas_info=None, donor=None, data_dir=None):
         atlas.atlas_info = atlas_info
 
     return atlas
+
+
+def check_geometry(surface, space):
+    """
+    Loads geometry `surface` files and transforms coordinates in `space`
+
+    Parameters
+    ----------
+    surface : (2,) tuple-of-GIFTI
+        Surface geometry files in GIFTI format (lh, rh)
+    space : {'fsaverage', 'fsnative', 'fslr'}
+        What space `surface` files are in
+
+    Returns
+    -------
+    coords : (N, 3) np.ndarray
+        Coordinates from `surface` files
+    triangles : (T, 3) np.ndarray
+        Triangles from `surface` files
+    """
+
+    if len(surface) != 2:
+        raise TypeError('Must provide a tuple of geomtry files')
+    for img in surface:
+        if (not isinstance(img, nib.GiftiImage)
+                and not (img.endswith('.gii') or img.endswith('.gii.gz'))):
+            raise TypeError('Provided geometry files must be in GIFTI format')
+
+    space_opts = ('fsaverage', 'fsnative', 'fslr')
+    if space not in space_opts:
+        raise ValueError(f'Provided space must be one of {space_opts}. '
+                         f'Received: {space}')
+
+    coords, triangles = map(list, zip(*[
+        load_gifti(img).agg_data() for img in surface
+    ]))
+    triangles[-1] += coords[0].shape[0]
+    coords, triangles = np.row_stack(coords), np.row_stack(triangles)
+
+    if space == 'fsaverage':
+        coords = transforms.fsaverage_to_mni152(coords)
+    elif space == 'fsnative':
+        coords = transforms.fsnative_to_xyz(coords)
+
+    return coords, triangles
 
 
 def check_atlas_info(atlas_info, labels):
