@@ -171,6 +171,12 @@ def test_fetch_fsaverage5():
             assert hasattr(hemi, attr)
             assert getattr(hemi, attr).shape == (exp, 3)
 
+    fs5 = fetchers.fetch_fsaverage5(load=False)
+    for hemi in ('lh', 'rh'):
+        assert hasattr(fs5, hemi)
+        hemi = getattr(fs5, hemi)
+        assert Path(hemi).is_file()
+
 
 def test_fetch_fsnative():
     fsn = fetchers.fetch_fsnative(donors=['12876'])
@@ -184,3 +190,9 @@ def test_fetch_fsnative():
         hemi = getattr(fsn, hemi)
         for attr in ('vertices', 'faces'):
             assert hasattr(hemi, attr)
+
+    fsn = fetchers.fetch_fsnative(donors=['12876'], load=False)
+    for hemi in ('lh', 'rh'):
+        assert hasattr(fsn, hemi)
+        hemi = getattr(fsn, hemi)
+        assert Path(hemi).is_file()
