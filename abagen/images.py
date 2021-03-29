@@ -323,15 +323,16 @@ def check_atlas(atlas, atlas_info=None, geometry=None, space=None, donor=None,
         atlas, info = check_surface(atlas)
         # backwards compatibility for `donor` keyword
         if geometry is None and donor is None:
-            geometry = fetch_fsaverage5(load=False)
-            space = 'fsnative'
+            geometry = fetch_fsaverage5()
+            space = 'fsaverage5'
         elif geometry is None and donor is not None:
-            geometry = fetch_fsnative(donor, load=False, data_dir=data_dir)
+            geometry = fetch_fsnative(donor, data_dir=data_dir)
             space = 'fsnative'
         elif geometry is not None and space is None:
             raise ValueError('If providing geometry files space parameter '
                              'must be specified')
-        coords, triangles = check_geometry(geometry, space)
+        coords, triangles = check_geometry(geometry, space, donor=donor,
+                                           data_dir=data_dir)
         if atlas_info is None and info is not None:
             atlas_info = info
 
@@ -343,7 +344,7 @@ def check_atlas(atlas, atlas_info=None, geometry=None, space=None, donor=None,
     return atlas
 
 
-def check_geometry(surface, space):
+def check_geometry(surface, space, donor=None, data_dir=None):
     """
     Loads geometry `surface` files and transforms coordinates in `space`
 
@@ -352,7 +353,14 @@ def check_geometry(surface, space):
     surface : (2,) tuple-of-GIFTI
         Surface geometry files in GIFTI format (lh, rh)
     space : {'fsaverage', 'fsnative', 'fslr'}
-        What space `surface` files are in
+        What space `surface` files are in; used to apply appropriate transform
+        to MNI152 space. If 'fsnative' then `donor` must be supplied as well
+    donor : str, optional
+        If specified, indicates which donor the specified `surface` belongs to
+    data_dir : str, optional
+        Directory where donor-specific FreeSurfer data exists (or should be
+        downloaded and unpacked). Only used if provided `donor` is not None.
+        Default: $HOME/abagen-data
 
     Returns
     -------
@@ -363,27 +371,32 @@ def check_geometry(surface, space):
     """
 
     if len(surface) != 2:
-        raise TypeError('Must provide a tuple of geomtry files')
-    for img in surface:
-        if (not isinstance(img, nib.GiftiImage)
-                and not (img.endswith('.gii') or img.endswith('.gii.gz'))):
-            raise TypeError('Provided geometry files must be in GIFTI format')
+        raise TypeError('Must provide a tuple of geometry files')
 
+    # fsaverage5, fsaverage6, etc
+    if 'fsaverage' in space and space != 'fsaverage':
+        space = 'fsaverage'
     space_opts = ('fsaverage', 'fsnative', 'fslr')
     if space not in space_opts:
-        raise ValueError(f'Provided space must be one of {space_opts}. '
-                         f'Received: {space}')
+        raise ValueError(f'Provided space must be one of {space_opts}.')
+    if space == 'fsnative' and donor is None:
+        raise ValueError('Specified space is "fsnative" but no donor ID '
+                         'supplied')
 
-    coords, triangles = map(list, zip(*[
-        load_gifti(img).agg_data() for img in surface
-    ]))
+    try:
+        coords, triangles = map(list, zip(*[
+            load_gifti(img).agg_data() for img in surface
+        ]))
+    except TypeError:
+        coords, triangles = map(list, zip(*[i for i in surface]))
+
     triangles[-1] += coords[0].shape[0]
     coords, triangles = np.row_stack(coords), np.row_stack(triangles)
 
     if space == 'fsaverage':
         coords = transforms.fsaverage_to_mni152(coords)
     elif space == 'fsnative':
-        coords = transforms.fsnative_to_xyz(coords)
+        coords = transforms.fsnative_to_xyz(coords, donor, data_dir=data_dir)
 
     return coords, triangles
 
@@ -509,11 +522,11 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
     donors = check_donors(donors)
     group_atlas = True
 
-    # FIXME: so that we're not depending on type checks so much :grimacing:
-    if isinstance(atlas, dict):
+    try:
         atlas = {
             WELL_KNOWN_IDS.subj[donor]: check_atlas(atl, atlas_info,
-                                                    donor, data_dir)
+                                                    donor=donor,
+                                                    data_dir=data_dir)
             for donor, atl in atlas.items()
         }
         # if it's a group atlas they should all be the same object
@@ -525,7 +538,7 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
                              f'requested donors. Missing donors: {donors}.')
         LGR.info('Donor-specific atlases provided; using native coords for '
                  'tissue samples')
-    else:
+    except AttributeError:
         atlas = check_atlas(atlas, atlas_info)
         atlas = {donor: atlas for donor in donors}
         LGR.info('Group-level atlas provided; using MNI coords for '
