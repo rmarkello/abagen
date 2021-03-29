@@ -159,6 +159,7 @@ class AtlasTree:
             self._triangles = None
             return
 
+        tris = np.asarray(tris)
         atlas = np.zeros(self._shape)
         atlas[self._nz] = self.atlas
         if np.any(tris.max(axis=0) >= self._full_coords.shape[0]):
