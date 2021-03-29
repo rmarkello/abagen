@@ -40,18 +40,18 @@ class AtlasTree:
     def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None):
         from .images import check_img
 
-        graph = None
+        self._coords = self._graph = None
         try:  # let's first check if it's an image
             atlas = check_img(atlas)
-            data, affine = np.asarray(atlas.dataobj), atlas.affine
+            atlas, affine = np.asarray(atlas.dataobj), atlas.affine
             self._shape = atlas.shape
-            nz = data.nonzero()
+            nz = atlas.nonzero()
             if coords is not None:
                 warnings.warn('Volumetric image supplied to `AtlasTree` '
                               'constructor but `coords` is not None. Ignoring '
                               'supplied `coords` and using coordinates '
                               'derived from image.')
-            atlas, coords = data[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
+            atlas, coords = atlas[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
             self._volumetric = True
         except TypeError:
             atlas = np.asarray(atlas)
@@ -62,6 +62,7 @@ class AtlasTree:
                 raise ValueError('Provided `atlas` and `coords` are of '
                                  'differing length.')
             self._shape = atlas.shape
+            self._coords = coords
             nz = atlas.nonzero()
             if triangles is not None:
                 graph = surfaces.make_surf_graph(coords, triangles,
@@ -131,13 +132,32 @@ class AtlasTree:
     def coords(self, pts):
         """ Sets underlying cKDTree to represent provided `pts`
         """
-        if len(pts) != len(self.atlas):
+        pts = np.asarray(pts)
+        if pts.shape[0] != self.atlas.shape[0]:
             raise ValueError('Provided coordinates do not match length of '
                              'current atlas. Expected {}. Received {}'
                              .format(len(self.atlas), len(pts)))
         if not np.allclose(pts, self.coords):
             self._tree = cKDTree(pts)
             self._centroids = get_centroids(self.atlas, pts)
+
+    @property
+    def triangles(self):
+        """ Returns triangles of underlying graph (if applicable)
+        """
+        return self._triangles
+
+    @triangles.setter
+    def triangles(self, tris):
+        atlas = np.zeros(self._shape)
+        atlas[self._nz] = self.atlas
+        if tris.max(axis=0) >= len(self.coords):
+            raise ValueError('Cannot provide triangles with indices greater '
+                             'than tree coordinate array')
+        self._triangles = tris
+        self._graph = surfaces.make_surf_graph(
+            self._coords, self._triangles, atlas == 0
+        )[self._nz].T[self._nz].T
 
     @property
     def atlas_info(self):
