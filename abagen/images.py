@@ -2,7 +2,6 @@
 
 import logging
 import os
-import warnings
 
 import nibabel as nib
 import numpy as np
@@ -257,7 +256,8 @@ def check_surface(atlas):
                 raise ValueError('Provided GIFTIs do not seem to be valid '
                                  'label.gii files')
         adata.append(data)
-        labs.append(hemi.labeltable.get_labels_as_dict())
+        ldict = hemi.labeltable.get_labels_as_dict()
+        labs.append({k: ldict.get(k) for k in np.unique(data)})
 
     # we need each hemisphere to have unique values so they don't get averaged
     # check to see if the two hemispheres have more than 1 overlapping value
@@ -287,7 +287,7 @@ def check_atlas(atlas, atlas_info=None, geometry=None, space=None, donor=None,
     atlas_info : {os.PathLike, pandas.DataFrame, None}, optional
         Filepath or dataframe containing information about `atlas`. Must have
         at least columns ['id', 'hemisphere', 'structure'] containing
-        information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
+        information mapping `atlas` IDs to hemisphere (i.e., "L", "R", "B") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
     geometry : (2,) tuple-of-GIFTI, optional
