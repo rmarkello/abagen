@@ -180,6 +180,10 @@ by default, be based on the geometry of the FreeSurfer surfaces provided with
 based on different geometry please refer to :ref:`usage_parcellations_special`,
 below.
 
+Finally, when in doubt we recommend simply using a standard-space, group-level
+atlas; however, we are actively investigating whether native-space atlases
+provide any measurable benefits to the ``abagen`` workflows.
+
 .. note::
 
     The donor-native volumetric versions of the DK parcellation shipped with
@@ -211,45 +215,25 @@ internally coerced to `AtlasTree` instances, which is then used to assign
 microarray tissue samples to parcels in the atlas.
 
 Take, for example, a surface atlas in fsaverage6 resolution (by default,
-surface atlases are assumed to be fsaverage5 resolution). In this case, you can
-load the surface atlas and relevant geometry files, create an `AtlasTree`
-object, and use that as your atlas moving forward in the same way you would
-with a pair of GIFTI files:
+surface atlases are assumed to be fsaverage5 resolution). In this case, you
+simply need to supply the relevant geometry files for the atlas and specify
+the space of the atlas:
 
 .. code::
 
-    >>> from abagen import matching, transforms
-    >>> atlas = ('/.../myatlas-fsaverage6-lh.gii', '/.../myatlas-fsaverage6-rh.gii')
-    >>> surf = ('/.../mysurf-fsaverage6-lh.gii', '/.../mysurf-fsaverage6-lh.gii')
-    >>> parcellation, atlas_info = images.check_surface(atlas)
-    >>> coords = np.row_stack([nib.load(fn).agg_data('NIFTI_INTENT_POINTSET') for fn in surf])
-    >>> mni152 = transforms.fsaverage_to_mni152(coords)
-    >>> atlas = matching.AtlasTree(parcellation, coords=mni152, atlas_info=atlas_info)
+    >>> from abagen import images
+    >>> atlas = ('/.../fsaverage6-lh.label.gii', '/.../fsaverage6-rh.label.gii')
+    >>> surf = ('/.../fsaverage6-lh.surf.gii', '/.../fsaverage6-lh.surf.gii')
+    >>> atlas = images.check_atlas(atlas, geometry=surf, space='fsaverage6')
 
-(Note that you need to coerce the fsaverage coordinates---which are in MNI305
-space---to MNI152 space before using them in the :obj:`~.AtlasTree`
-constructor!)
-
-The same procedure can be used for an atlas using fslr32k geometry:
+The same procedure can be used for an atlas using fsLR geometry:
 
 .. code::
 
-    >>> from abagen import matching, transforms
-    >>> atlas = ('/.../myatlas-fslr32k-lh.gii', '/.../myatlas-fslr32k-rh.gii')
-    >>> surf = ('/.../mysurf-fslr32k-lh.gii', '/.../mysurf-fslr32k-lh.gii')
-    >>> parcellation, atlas_info = images.check_surface(atlas)
-    >>> coords = np.row_stack([nib.load(fn).agg_data('NIFTI_INTENT_POINTSET') for fn in surf])
-    >>> atlas = matching.AtlasTree(parcellation, coords=coords, atlas_info=atlas_info)
-
-(Note that because fslr32k is already in MNI space you do not need to transform
-the coordinates before using them in the :obj:`~.matching.AtlasTree`
-constructor.)
-
-.. note::
-
-    When in doubt it is likely best to use a standard-space, group-level atlas;
-    however, we are actively investigating whether native-space atlases provide
-    any measurable benefits to the ``abagen`` workflow.
+    >>> from abagen import images
+    >>> atlas = ('/.../fslr32k-lh.label.gii', '/.../fslr32k-rh.label.gii')
+    >>> surf = ('/.../fslr32k-lh.surf.gii', '/.../fslr32k-lh.surf.gii')
+    >>> atlas = images.check_atlas(atlas, geometry=surf, space='fslr')
 
 .. _MNI space: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1088516/
 .. _fsaverage space: https://surfer.nmr.mgh.harvard.edu/
