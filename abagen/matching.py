@@ -156,7 +156,9 @@ class AtlasTree:
         """ Sets triangles of underlying graph (if applicable)
         """
         if self.volumetric or tris is None:
+            self._triangles = None
             return
+
         atlas = np.zeros(self._shape)
         atlas[self._nz] = self.atlas
         if np.any(tris.max(axis=0) >= self._full_coords.shape[0]):
