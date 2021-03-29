@@ -465,15 +465,21 @@ Brain = namedtuple('Brain', ('lh', 'rh'))
 Surface = namedtuple('Surface', ('vertices', 'faces'))
 
 
-def fetch_fsaverage5():
+def fetch_fsaverage5(load=True):
     """
-    Fetches and load fsaverage5 surface
+    Fetches and optionally loads fsaverage5 surface
+
+    Parameters
+    ----------
+    load : bool, optional
+        Whether to pre-load files. Default: True
 
     Returns
     -------
     brain : namedtuple ('lh', 'rh')
-        Where each entry in the tuple is a hemisphere, represented as a
-        namedtuple with fields ('vertices', 'faces')
+        If `load` is True, a namedtuple where each entry in the tuple is a
+        hemisphere, represented as a namedtuple with fields ('vertices',
+        'faces'). If `load` is False, a namedtuple where entries are filepaths.
     """
 
     hemispheres = []
@@ -481,14 +487,18 @@ def fetch_fsaverage5():
         fn = RESOURCE(
             os.path.join('data', f'fsaverage5-pial-{hemi}.surf.gii.gz')
         )
-        hemispheres.append(Surface(*load_gifti(fn).agg_data()))
+        if load:
+            hemispheres.append(Surface(*load_gifti(fn).agg_data()))
+        else:
+            hemispheres.append(fn)
 
     return Brain(*hemispheres)
 
 
-def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
+def fetch_fsnative(donors, surf='pial', load=True, data_dir=None, resume=True,
+                   verbose=1):
     """
-    Fetches and load fsnative surface of `donor`
+    Fetches and optionally loads fsnative surface of `donor`
 
     Parameters
     ----------
@@ -497,6 +507,8 @@ def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
         specify 'all' to download all available donors.
     surf : {'orig', 'white', 'pial', 'inflated', 'sphere'}, optional
         Which surface to load. Default: 'pial'
+    load : bool, optional
+        Whether to pre-load files. Default: True
     data_dir : str, optional
         Directory where data should be downloaded and unpacked. Default: $HOME/
         abagen-data
@@ -508,9 +520,11 @@ def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
     Returns
     -------
     brain : namedtuple ('lh', 'rh')
-        Where each entry in the tuple is a hemisphere, represented as a
-        namedtuple with fields ('vertices', 'faces'). If multiple donors are
-        requested a dictionary is returned where keys are donor IDs.
+        If `load` is True, a namedtuple where each entry in the tuple is a
+        hemisphere, represented as a namedtuple with fields ('vertices',
+        'faces'). If `load` is False, a namedtuple where entries are filepaths.
+        If multiple donors are requested a dictionary is returned where keys
+        are donor IDs.
     """
 
     donors = check_donors(donors)
@@ -524,6 +538,9 @@ def fetch_fsnative(donors, surf='pial', data_dir=None, resume=True, verbose=1):
     hemispheres = []
     for hemi in ('lh', 'rh'):
         fn = os.path.join(fpath, 'surf', f'{hemi}.{surf}')
-        hemispheres.append(Surface(*nib.freesurfer.read_geometry(fn)))
+        if load:
+            hemispheres.append(Surface(*nib.freesurfer.read_geometry(fn)))
+        else:
+            hemispheres.append(fn)
 
     return Brain(*hemispheres)

@@ -142,10 +142,15 @@ def test_AtlasTree(atlas, surface, testfiles):
     tree = images.check_atlas(surface['image'])
     assert str(tree) == 'AtlasTree[n_rois=68, n_vertex=18426]'
     assert not tree.volumetric
+    assert tree.triangles is not None
+    assert tree.graph is not None
     assert isinstance(tree.atlas_info, pd.DataFrame)
     assert len(tree.centroids) == 68
     labels = tree.label_samples([tree.centroids[1], tree.centroids[2]])
     assert np.all(labels['label'] == [1, 2])
+
+    with pytest.raises(ValueError):
+        tree.triangles = [[512423, 512312, 4213215]]
 
     # check negative surface tolerance
     labels = tree.label_samples([-72, -25, -13], tolerance=-4)

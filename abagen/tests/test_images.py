@@ -32,6 +32,14 @@ def annotation(tmp_path_factory):
     return fname
 
 
+@pytest.fixture(scope='module')
+def fsgeometry():
+    return (
+        resource_filename('abagen', 'data/fsaverage5-pial-lh.surf.gii.gz'),
+        resource_filename('abagen', 'data/fsaverage5-pial-rh.surf.gii.gz'),
+    )
+
+
 def test_leftify_atlas(atlas):
     out = images.leftify_atlas(atlas['image'])
     assert len(np.unique(out.dataobj)) == 44
@@ -113,7 +121,7 @@ def test_check_surface(surface):
         images.check_surface(('lh.nii.gz', 'rh.nii.gz'))
 
 
-def test_check_atlas(atlas, surface):
+def test_check_atlas(atlas, surface, fsgeometry):
     # check loading volumetric atlas
     tree = images.check_atlas(atlas['image'])
     assert isinstance(tree, AtlasTree)
@@ -135,6 +143,16 @@ def test_check_atlas(atlas, surface):
     assert not tree.volumetric
     assert len(tree.coords) == 18426
 
+    tree = images.check_atlas(surface['image'], geometry=fsgeometry,
+                              space='fsaverage')
+    assert isinstance(tree, AtlasTree)
+    assert isinstance(tree.atlas_info, pd.DataFrame)
+    assert not tree.volumetric
+    assert len(tree.coords) == 18426
+
+    with pytest.raises(ValueError):
+        images.check_atlas(surface['image'], geometry=fsgeometry)
+
     # check loading donor-specific surface file
     fp = 'data/native_dk/12876/atlas-desikankilliany-{}.label.gii.gz'
     surf = [
@@ -145,6 +163,19 @@ def test_check_atlas(atlas, surface):
     assert isinstance(tree.atlas_info, pd.DataFrame)
     assert not tree.volumetric
     assert len(tree.coords) == 386566
+
+
+def test_check_geometry(fsgeometry):
+    coords, triangles = images.check_geometry(fsgeometry, 'fsaverage')
+    assert len(coords) == 20484
+    assert len(triangles) == 40960
+
+    with pytest.raises(ValueError):
+        images.check_geometry(fsgeometry, 'notaspace')
+    with pytest.raises(ValueError):
+        images.check_geometry(fsgeometry, 'fsnative', donor=None)
+    with pytest.raises(TypeError):
+        images.check_geometry(fsgeometry[0], 'fsaverage')
 
 
 def test_check_atlas_info(atlas):
