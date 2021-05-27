@@ -514,15 +514,14 @@ def get_expression_data(atlas,
                              .set_index('label') \
                              .rename_axis('gene_symbol', axis=1)
 
-    # if we don't want to aggregate over regions return voxel-level results
+    # if we don't want to aggregate over regions return sample-level results
     if region_agg is None:
         # don't return samples that aren't matched to a region in the `atlas`
         mask = {d: m.index != 0 for d, m in microarray.items()}
         microarray = pd.concat([m[mask[d]] for d, m in microarray.items()])
         # set index to well_id for all remaining tissue samples
-        microarray.index = pd.Series(np.asarray(
-            pd.concat([a[mask[d]] for d, a in annotation.items()])['well_id']
-        ), name='well_id')
+        well_ids = pd.concat([a[mask[d]] for d, a in annotation.items()])
+        microarray = microarray.set_index(well_ids['well_id'], append=True)
         # return expression data (remove NaNs)
         return microarray.dropna(axis=1, how='any')
 
@@ -629,13 +628,13 @@ def get_samples_in_mask(mask=None, **kwargs):
         annot, ontol = data['annotation'], data['ontology']
         if kwargs.get('corrected_mni', True):
             annot = samples_.update_mni_coords(annot)
-        annot = samples_.drop_mismatch_samples(annot, ontol)
         if kwargs.get('lr_mirror', False):
             annot = samples_.mirror_samples(annot, ontol)
         data['annotation'] = annot
     cols = ['well_id', 'mni_x', 'mni_y', 'mni_z']
     coords = np.asarray(pd.concat(flatten_dict(files, 'annotation'))[cols])
     well_id, coords = np.asarray(coords[:, 0], 'int'), coords[:, 1:]
+    coords = pd.DataFrame(coords, columns=['x', 'y', 'z'], index=well_id)
 
     # in case people mix things up and use atlas instead of mask, use that
     if kwargs.get('atlas') is not None and mask is None:
@@ -661,10 +660,10 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
-    exp = get_expression_data(**kwargs)
-    coords = coords[np.isin(well_id, exp.index)]
+    exp = get_expression_data(**kwargs).reorder_levels(('well_id', 'label'))
+    keep = np.isin(coords.index, exp.index.get_level_values('well_id'))
 
-    return exp, coords
+    return exp, coords.loc[keep]
 
 
 def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
