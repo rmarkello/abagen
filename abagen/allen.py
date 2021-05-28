@@ -660,8 +660,8 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
-    exp = get_expression_data(**kwargs).reorder_levels(('well_id', 'label'))
-    keep = np.isin(coords.index, exp.index.get_level_values('well_id'))
+    exp = get_expression_data(**kwargs).droplevel('label')
+    keep = np.isin(coords.index, exp.index)
 
     return exp, coords.loc[keep]
 
@@ -710,7 +710,8 @@ def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
     # this is a "naive" matching based only on Euclidean distance
     # TODO: use surface distances when working with surfaces
     # TODO: constrain by hemisphere (and structure?)
-    exptree = matching.AtlasTree(np.asarray(expression.index), coords=coords)
+    exptree = matching.AtlasTree(np.asarray(expression.index),
+                                 coords=np.asarray(coords))
     dist, idx = exptree.tree.query(mask.coords, k=n_neighbors)
     dist = _get_weights(dist)
 
