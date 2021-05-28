@@ -423,7 +423,7 @@ def get_expression_data(atlas,
                                          data_dir=data_dir,
                                          verbose=verbose)[donor]['t1w']
         annot = samples_.update_coords(annot, corrected_mni=corrected_mni,
-                                       native_space=t1w)
+                                       native_space=t1w, atlas=atlas[donor])
         if lr_mirror is not None:
             annot = samples_.mirror_samples(annot, ontol, swap=lr_mirror)
         annot = samples_.drop_mismatch_samples(annot, ontol)
@@ -516,14 +516,14 @@ def get_expression_data(atlas,
 
     # if we don't want to aggregate over regions return sample-level results
     if region_agg is None:
-        # don't return samples that aren't matched to a region in the `atlas`
-        mask = {d: m.index != 0 for d, m in microarray.items()}
-        microarray = pd.concat([m[mask[d]] for d, m in microarray.items()])
-        # set index to well_id for all remaining tissue samples
-        well_ids = pd.concat([a[mask[d]] for d, a in annotation.items()])
-        microarray = microarray.set_index(well_ids['well_id'], append=True)
-        # return expression data (remove NaNs)
-        return microarray.dropna(axis=1, how='any')
+        microarray = [
+            micro.set_index(annotation[donor]['well_id'], append=True)
+                 .dropna(axis=1, how='any')
+            for donor, micro in microarray.items()
+        ]
+        if not return_donors:
+            microarray = pd.concat(microarray)
+        return microarray
 
     if missing == 'centroids':
         # labels that are missing across all donors
@@ -660,7 +660,8 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
-    exp = get_expression_data(**kwargs).droplevel('label')
+    exp = get_expression_data(**kwargs).drop(index=[0], level='label') \
+                                       .droplevel('label')
     keep = np.isin(coords.index, exp.index)
 
     return exp, coords.loc[keep]

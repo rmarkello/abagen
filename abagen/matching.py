@@ -5,6 +5,7 @@ Structures and functions used for matching samples to atlas
 
 import warnings
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
@@ -49,7 +50,7 @@ class AtlasTree:
                               'constructor but `coords` is not None. Ignoring '
                               'supplied `coords` and using coordinates '
                               'derived from image.')
-            self._volumetric = True
+            self._volumetric = nib.affines.voxel_sizes(affine)
             self._shape = atlas.shape
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
@@ -62,7 +63,7 @@ class AtlasTree:
             if len(atlas) != len(coords):
                 raise ValueError('Provided `atlas` and `coords` are of '
                                  'differing length.')
-            self._volumetric = False
+            self._volumetric = None
             self._shape = atlas.shape
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], coords[nz]
@@ -73,7 +74,7 @@ class AtlasTree:
         self._labels = np.unique(self.atlas).astype(int)
         self._centroids = get_centroids(self.atlas, coords)
         # if not volumetric tree then centroid should be _on_ surface
-        if not self._volumetric:
+        if self._volumetric is None:
             centroids = np.r_[list(self._centroids.values())]
             _, idx = self.tree.query(centroids, k=1)
             self._centroids = dict(zip(self.labels, self.coords[idx]))
@@ -104,7 +105,7 @@ class AtlasTree:
     def volumetric(self):
         """ Return whether `self.atlas` is derived from a volumetric image
         """
-        return self._volumetric
+        return self._volumetric is not None
 
     @property
     def labels(self):
@@ -313,7 +314,6 @@ class AtlasTree:
         """
 
         cols = ['mni_x', 'mni_y', 'mni_z']
-        samples[cols] = np.floor(samples[cols])
         tol, labels = 0, np.zeros(len(samples))
         idx = np.ones(len(samples), dtype=bool)
         while tol <= tolerance and np.sum(idx) > 0:
