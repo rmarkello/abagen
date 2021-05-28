@@ -353,7 +353,6 @@ def main(args=None):
     """
 
     from ..allen import get_expression_data
-    from ..datasets import WELL_KNOWN_IDS as donors
 
     opts = get_parser().parse_args(args)
 
@@ -403,13 +402,8 @@ def main(args=None):
 
     # determine how best to save expression output files
     if opts.save_donors:
-        if opts.donors == 'all':
-            donors = list(donors.value_set('subj'))
-        else:
-            donors = [donors[f] for f in opts.donors]
-
         # save each donor dataframe as a separate file
-        for donor, exp in zip(donors, expression):
+        for donor, exp in expression.items():
             exp_fname = os.path.join(output_path,
                                      fname_pref + '_{}.csv'.format(donor))
             LGR.info('Saving donor {} info to {}'.format(donor, exp_fname))
