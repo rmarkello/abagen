@@ -516,13 +516,13 @@ def get_expression_data(atlas,
 
     # if we don't want to aggregate over regions return sample-level results
     if region_agg is None:
-        microarray = [
-            micro.set_index(annotation[donor]['well_id'], append=True)
-                 .dropna(axis=1, how='any')
+        microarray = {
+            donor: micro.set_index(annotation[donor]['well_id'], append=True)
+                        .dropna(axis=1, how='any')
             for donor, micro in microarray.items()
-        ]
+        }
         if not return_donors:
-            microarray = pd.concat(microarray)
+            microarray = pd.concat(microarray.values())
         return microarray
 
     if missing == 'centroids':
@@ -544,7 +544,7 @@ def get_expression_data(atlas,
             for subj in microarray:
                 microarray[subj] = microarray[subj].append(exp)
 
-    microarray = samples_.aggregate_samples(microarray.values(),
+    microarray = samples_.aggregate_samples(microarray,
                                             labels=all_labels,
                                             region_agg=region_agg,
                                             agg_metric=agg_metric,
@@ -567,7 +567,7 @@ def get_expression_data(atlas,
                                   return_donors=return_donors,
                                   data_dir=data_dir, counts=counts,
                                   n_probes=len(probe_info),
-                                  n_genes=(microarray[0].shape[1]
+                                  n_genes=(first_entry(microarray).shape[1]
                                            if return_donors
                                            else microarray.shape[1])).body
 
@@ -660,11 +660,20 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
-    exp = get_expression_data(**kwargs).drop(index=[0], level='label') \
-                                       .droplevel('label')
-    keep = np.isin(coords.index, exp.index)
+    exp = get_expression_data(**kwargs)
+    if kwargs.get('return_donors'):
+        exp = {
+            donor: micro.drop(index=[0], level='label').droplevel('label')
+            for donor, micro in exp.items()
+        }
+        coords = {
+            donor: coords.loc[np.isin(coords.index, micro.index)]
+            for donor, micro in exp.items()
+        }
+    else:
+        coords = coords.loc[np.isin(coords.index, exp.index)]
 
-    return exp, coords.loc[keep]
+    return exp, coords
 
 
 def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
