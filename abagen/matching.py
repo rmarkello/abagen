@@ -36,9 +36,14 @@ class AtlasTree:
         information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
+    group_atlas : bool, optional
+        Whether the provided `atlas` is a group atlas (in MNI space) or a
+        donor-level atlas (in native space). This will have an impact on how
+        provided sample coordinates are handled. Default: True
     """
 
-    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None):
+    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None,
+                 group_atlas=True):
         from .images import check_img
 
         self._full_coords = self._graph = None
@@ -80,6 +85,7 @@ class AtlasTree:
             self._centroids = dict(zip(self.labels, self.coords[idx]))
         self.atlas_info = atlas_info
         self.triangles = triangles
+        self.group_atlas = group_atlas
 
     def __repr__(self):
         if self.volumetric:
@@ -239,6 +245,10 @@ class AtlasTree:
                 samples['structure'] = 'cortex'
 
         if self.volumetric:
+            if self.group_atlas:
+                cols = ['mni_x', 'mni_y', 'mni_z']
+                vox_size = 1 / self._volumetric
+                samples[cols] = np.floor(samples[cols] * vox_size) / vox_size
             labels = self._match_volume(samples, abs(tolerance))
         else:
             cortex = samples['structure'] == 'cortex'

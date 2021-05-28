@@ -422,7 +422,7 @@ def get_expression_data(atlas,
                                          data_dir=data_dir,
                                          verbose=verbose)[donor]['t1w']
         annot = samples_.update_coords(annot, corrected_mni=corrected_mni,
-                                       native_space=t1w, atlas=atlas[donor])
+                                       native_space=t1w)
         if lr_mirror is not None:
             annot = samples_.mirror_samples(annot, ontol, swap=lr_mirror)
         annot = samples_.drop_mismatch_samples(annot, ontol)

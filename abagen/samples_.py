@@ -107,8 +107,7 @@ def update_mni_coords(annotation):
     return annotation
 
 
-def update_coords(annotation, corrected_mni=True, native_space=None,
-                  atlas=None):
+def update_coords(annotation, corrected_mni=True, native_space=None):
     """
     Updates coordinates in `annotation`
 
@@ -131,19 +130,10 @@ def update_coords(annotation, corrected_mni=True, native_space=None,
         Annotation data with updated coordinates
     """
 
-    from .images import check_atlas
-
     annotation = io.read_annotation(annotation, copy=True)
 
     if corrected_mni:
         annotation = update_mni_coords(annotation)
-
-    if atlas is not None:
-        atlas = check_atlas(atlas)
-        if atlas.volumetric:
-            cols = ['mni_x', 'mni_y', 'mni_z']
-            vox_size = 1 / atlas._volumetric
-            annotation[cols] = np.floor(annotation[cols] * vox_size) / vox_size
 
     if native_space is not None:
         try:
