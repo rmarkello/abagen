@@ -544,4 +544,8 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
         LGR.info('Group-level atlas provided; using MNI coords for '
                  'tissue samples')
 
+    # update group atlas status based on what was decided / derived
+    for atl in atlas.values():
+        atl.group_atlas = group_atlas
+
     return atlas, group_atlas
