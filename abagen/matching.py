@@ -5,6 +5,7 @@ Structures and functions used for matching samples to atlas
 
 import warnings
 
+import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
@@ -35,9 +36,14 @@ class AtlasTree:
         information mapping `atlas` IDs to hemisphere (i.e., "L" or "R") and
         broad structural class (i.e.., "cortex", "subcortex/brainstem",
         "cerebellum", "white matter", or "other"). Default: None
+    group_atlas : bool, optional
+        Whether the provided `atlas` is a group atlas (in MNI space) or a
+        donor-level atlas (in native space). This will have an impact on how
+        provided sample coordinates are handled. Default: True
     """
 
-    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None):
+    def __init__(self, atlas, coords=None, *, triangles=None, atlas_info=None,
+                 group_atlas=True):
         from .images import check_img
 
         self._full_coords = self._graph = None
@@ -49,7 +55,7 @@ class AtlasTree:
                               'constructor but `coords` is not None. Ignoring '
                               'supplied `coords` and using coordinates '
                               'derived from image.')
-            self._volumetric = True
+            self._volumetric = nib.affines.voxel_sizes(affine)
             self._shape = atlas.shape
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
@@ -62,7 +68,7 @@ class AtlasTree:
             if len(atlas) != len(coords):
                 raise ValueError('Provided `atlas` and `coords` are of '
                                  'differing length.')
-            self._volumetric = False
+            self._volumetric = None
             self._shape = atlas.shape
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], coords[nz]
@@ -73,12 +79,13 @@ class AtlasTree:
         self._labels = np.unique(self.atlas).astype(int)
         self._centroids = get_centroids(self.atlas, coords)
         # if not volumetric tree then centroid should be _on_ surface
-        if not self._volumetric:
+        if self._volumetric is None:
             centroids = np.r_[list(self._centroids.values())]
             _, idx = self.tree.query(centroids, k=1)
             self._centroids = dict(zip(self.labels, self.coords[idx]))
         self.atlas_info = atlas_info
         self.triangles = triangles
+        self.group_atlas = group_atlas
 
     def __repr__(self):
         if self.volumetric:
@@ -104,7 +111,7 @@ class AtlasTree:
     def volumetric(self):
         """ Return whether `self.atlas` is derived from a volumetric image
         """
-        return self._volumetric
+        return self._volumetric is not None
 
     @property
     def labels(self):
@@ -238,6 +245,10 @@ class AtlasTree:
                 samples['structure'] = 'cortex'
 
         if self.volumetric:
+            if self.group_atlas:
+                cols = ['mni_x', 'mni_y', 'mni_z']
+                vox_size = 1 / self._volumetric
+                samples[cols] = np.floor(samples[cols] * vox_size) / vox_size
             labels = self._match_volume(samples, abs(tolerance))
         else:
             cortex = samples['structure'] == 'cortex'
@@ -313,7 +324,6 @@ class AtlasTree:
         """
 
         cols = ['mni_x', 'mni_y', 'mni_z']
-        samples[cols] = np.floor(samples[cols])
         tol, labels = 0, np.zeros(len(samples))
         idx = np.ones(len(samples), dtype=bool)
         while tol <= tolerance and np.sum(idx) > 0:

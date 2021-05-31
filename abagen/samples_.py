@@ -465,6 +465,10 @@ def aggregate_samples(microarray, labels=None, region_agg='donors',
     LGR.info('Aggregating samples to regions with provided region_agg: {}'
              .format(region_agg))
 
+    donors = None
+    if isinstance(microarray, dict):
+        donors, microarray = list(microarray.keys()), list(microarray.values())
+
     if region_agg == 'donors':
         microarray = [
             groupby_index(e, labels=labels, metric=metric) for e in microarray
@@ -481,5 +485,8 @@ def aggregate_samples(microarray, labels=None, region_agg='donors',
         LGR.info('Dropping {} gene from concatenated expression data due to '
                  'poor normalization'.format(drop.sum()))
         microarray = microarray.drop(drop[drop].index, axis=1)
+
+    if donors is not None and return_donors:
+        microarray = dict(zip(donors, microarray))
 
     return microarray

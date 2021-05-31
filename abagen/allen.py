@@ -13,7 +13,6 @@ import pandas as pd
 
 from . import (correct, datasets, images, io, matching, probes_, reporting,
                samples_, utils)
-from .transforms import xyz_to_ijk
 from .utils import first_entry, flatten_dict
 
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
@@ -516,14 +515,14 @@ def get_expression_data(atlas,
 
     # if we don't want to aggregate over regions return sample-level results
     if region_agg is None:
-        # don't return samples that aren't matched to a region in the `atlas`
-        mask = {d: m.index != 0 for d, m in microarray.items()}
-        microarray = pd.concat([m[mask[d]] for d, m in microarray.items()])
-        # set index to well_id for all remaining tissue samples
-        well_ids = pd.concat([a[mask[d]] for d, a in annotation.items()])
-        microarray = microarray.set_index(well_ids['well_id'], append=True)
-        # return expression data (remove NaNs)
-        return microarray.dropna(axis=1, how='any')
+        microarray = {
+            donor: micro.set_index(annotation[donor]['well_id'], append=True)
+                        .dropna(axis=1, how='any')
+            for donor, micro in microarray.items()
+        }
+        if not return_donors:
+            microarray = pd.concat(microarray.values())
+        return microarray
 
     if missing == 'centroids':
         # labels that are missing across all donors
@@ -544,7 +543,7 @@ def get_expression_data(atlas,
             for subj in microarray:
                 microarray[subj] = microarray[subj].append(exp)
 
-    microarray = samples_.aggregate_samples(microarray.values(),
+    microarray = samples_.aggregate_samples(microarray,
                                             labels=all_labels,
                                             region_agg=region_agg,
                                             agg_metric=agg_metric,
@@ -567,7 +566,7 @@ def get_expression_data(atlas,
                                   return_donors=return_donors,
                                   data_dir=data_dir, counts=counts,
                                   n_probes=len(probe_info),
-                                  n_genes=(microarray[0].shape[1]
+                                  n_genes=(first_entry(microarray).shape[1]
                                            if return_donors
                                            else microarray.shape[1])).body
 
@@ -625,12 +624,10 @@ def get_samples_in_mask(mask=None, **kwargs):
 
     # get updated coordinates
     for donor, data in files.items():
-        annot, ontol = data['annotation'], data['ontology']
+        annot = data['annotation']
         if kwargs.get('corrected_mni', True):
             annot = samples_.update_mni_coords(annot)
-        if kwargs.get('lr_mirror', False):
-            annot = samples_.mirror_samples(annot, ontol)
-        data['annotation'] = annot
+        files[donor]['annotation'] = annot
     cols = ['well_id', 'mni_x', 'mni_y', 'mni_z']
     coords = np.asarray(pd.concat(flatten_dict(files, 'annotation'))[cols])
     well_id, coords = np.asarray(coords[:, 0], 'int'), coords[:, 1:]
@@ -640,16 +637,10 @@ def get_samples_in_mask(mask=None, **kwargs):
     if kwargs.get('atlas') is not None and mask is None:
         mask = kwargs['atlas']
     elif mask is None:
-        # create affine for "full" mask
+        # generate atlas image where each voxel with sample has value of 1
         affine = np.eye(4)
-        affine[:-1, -1] = np.floor(coords).min(axis=0)
-
-        # downsample coordinates to specified resolution and convert to ijk
-        ijk = np.unique(xyz_to_ijk(coords, affine), axis=0)
-
-        # generate atlas image where each voxel has
-        img = np.zeros(ijk.max(axis=0) + 2, dtype='int')
-        img[tuple(map(tuple, ijk.T))] = 1
+        affine[:-1, -1] = -1 * np.floor(np.max(np.abs(coords), axis=0))
+        img = np.ones(np.asarray(-2 * affine[:-1, -1], dtype=int))
         mask = nib.Nifti1Image(img, affine=affine)
 
     # reset these parameters
@@ -660,10 +651,23 @@ def get_samples_in_mask(mask=None, **kwargs):
     kwargs.setdefault('norm_matched', False)
 
     # get expression data + drop sample coordinates that weren't in atlas
-    exp = get_expression_data(**kwargs).droplevel('label')
-    keep = np.isin(coords.index, exp.index)
+    exp = get_expression_data(**kwargs)
+    if kwargs.get('return_donors'):
+        exp = {
+            donor: micro.drop(index=[0], level='label', errors='ignore')
+                        .droplevel('label')
+            for donor, micro in exp.items()
+        }
+        coords = {
+            donor: coords.loc[micro.index]
+            for donor, micro in exp.items()
+        }
+    else:
+        exp = exp.drop(index=[0], level='label', errors='ignore') \
+                 .droplevel('label')
+        coords = coords.loc[exp.index]
 
-    return exp, coords.loc[keep]
+    return exp, coords
 
 
 def get_interpolated_map(genes, mask, n_neighbors=10, **kwargs):
