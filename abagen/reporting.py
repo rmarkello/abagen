@@ -6,6 +6,8 @@ Note: all text contained within this module is released under a `CC-0 license
 <https://creativecommons.org/publicdomain/zero/1.0/>`_.
 """
 
+import logging
+
 import numpy as np
 
 from . import __version__
@@ -13,7 +15,7 @@ from .datasets import check_donors, fetch_donor_info
 from .images import coerce_atlas_to_dict
 from .utils import first_entry
 
-
+LGR = logging.getLogger('abagen')
 METRICS = {
     np.mean: 'mean',
     np.median: 'median'
@@ -65,6 +67,10 @@ class Report:
                  region_agg='donors', agg_metric='mean', corrected_mni=True,
                  reannotated=True, donors='all', return_donors=False,
                  data_dir=None, counts=None, n_probes=None, n_genes=None):
+
+        efflevel = LGR.getEffectiveLevel()
+        LGR.setLevel(100)
+
         atlas, self.group_atlas = \
             coerce_atlas_to_dict(atlas, donors, atlas_info=atlas_info,
                                  data_dir=data_dir)
@@ -90,6 +96,8 @@ class Report:
         self.n_probes = n_probes
         self.n_genes = n_genes
         self.body = self.gen_report()
+
+        LGR.setLevel(efflevel)
 
     def gen_report(self):
         """ Generates main text of report
