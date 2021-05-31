@@ -536,12 +536,15 @@ def coerce_atlas_to_dict(atlas, donors, atlas_info=None, data_dir=None):
         if len(missing) > 0:
             raise ValueError('Provided `atlas` does not have entry for all '
                              f'requested donors. Missing donors: {donors}.')
-        LGR.info('Donor-specific atlases provided; using native coords for '
-                 'tissue samples')
     except AttributeError:
         atlas = check_atlas(atlas, atlas_info)
         atlas = {donor: atlas for donor in donors}
+
+    if group_atlas:
         LGR.info('Group-level atlas provided; using MNI coords for '
+                 'tissue samples')
+    else:
+        LGR.info('Donor-specific atlases provided; using native coords for '
                  'tissue samples')
 
     # update group atlas status based on what was decided / derived
