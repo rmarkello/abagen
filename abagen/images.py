@@ -20,6 +20,32 @@ BACKGROUND = [
 ]
 
 
+def _reorient_image(image, orientation='RAS'):
+    """
+    Re-orients `image` to `orientation`
+
+    Parameters
+    ----------
+    image : niimg_like
+        Image to be re-oriented
+    orientation : str or tuple-of-str
+        Orientation, drawing from options ('L', 'R')('I', 'S')('P', 'S').
+        Default: 'RAS'
+
+    Returns
+    -------
+    reoriented : niimg_like
+        Re-oriented image
+    """
+
+    orig_ornt = nib.io_orientation(image.affine)
+    targ_ornt = nib.orientations.axcodes2ornt(orientation)
+    transform = nib.orientations.ornt_transform(orig_ornt, targ_ornt)
+    image = image.as_reoriented(transform)
+
+    return image
+
+
 def leftify_atlas(atlas):
     """
     Zeroes out all ROIs in the right hemisphere of volumetric `atlas`
@@ -40,14 +66,20 @@ def leftify_atlas(atlas):
 
     atlas = check_img(atlas)
 
+    # get original orientation then orient to RAS+
+    orient = nib.orientations.ornt2axcodes(nib.io_orientation(atlas.affine))
+    atlas = _reorient_image(atlas, 'RAS')
+
     # get ijk corresponding to zero-point
-    i, j, k = np.squeeze(transforms.xyz_to_ijk([0, 0, 0], atlas.affine))
+    i = np.squeeze(transforms.xyz_to_ijk([0, 0, 0], atlas.affine))[0]
 
     # zero out all positive voxels; img is RAS+ so positive = right hemisphere
     data = np.array(atlas.dataobj, copy=True)
     data[int(i):] = 0
 
-    return atlas.__class__(data, atlas.affine, header=atlas.header)
+    out = atlas.__class__(data, atlas.affine, header=atlas.header)
+
+    return _reorient_image(out, orient)
 
 
 def annot_to_gifti(atlas):

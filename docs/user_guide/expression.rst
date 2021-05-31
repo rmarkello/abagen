@@ -130,8 +130,8 @@ expression data. In the above example, two of the rows are missing data:
     [2 rows x 15633 columns]
 
 These regions, corresponding to the right frontal pole (label 72) and right
-temporal pole (label 73) in the Desikan-Killiany atlas, were not matched to 
-any tissue samples; this is likely due to the fact that only two of the six 
+temporal pole (label 73) in the Desikan-Killiany atlas, were not matched to
+any tissue samples; this is likely due to the fact that only two of the six
 donors have tissue samples taken from the right hemisphere.
 
 If you require a *dense* matrix---that is, you need expression values for
