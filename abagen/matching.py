@@ -5,7 +5,6 @@ Structures and functions used for matching samples to atlas
 
 import warnings
 
-import nibabel as nib
 import numpy as np
 import pandas as pd
 from scipy.spatial import cKDTree, distance_matrix
@@ -55,8 +54,11 @@ class AtlasTree:
                               'constructor but `coords` is not None. Ignoring '
                               'supplied `coords` and using coordinates '
                               'derived from image.')
-            self._volumetric = nib.affines.voxel_sizes(affine)
             self._shape = atlas.shape
+            self._volumetric = tuple()
+            vox = affine[:-1, :-1][np.where(affine[:-1, :-1])]  # TODO: oblique
+            for vs, off, ndim in zip(vox, affine[:-1, -1], self._shape):
+                self._volumetric += (np.arange(off, off + (vs * ndim), vs),)
             nz = atlas.nonzero()
             atlas, coords = atlas[nz], transforms.ijk_to_xyz(np.c_[nz], affine)
         except TypeError:
@@ -246,9 +248,10 @@ class AtlasTree:
 
         if self.volumetric:
             if self.group_atlas:
-                cols = ['mni_x', 'mni_y', 'mni_z']
-                vox_size = 1 / self._volumetric
-                samples[cols] = np.floor(samples[cols] * vox_size) / vox_size
+                # floor sample MNI coordinates to the grid of the atlas
+                for n, col in enumerate(['mni_x', 'mni_y', 'mni_z']):
+                    idx = np.sort(self._volumetric[n])
+                    samples[col] = idx[np.searchsorted(idx, samples[col]) - 1]
             labels = self._match_volume(samples, abs(tolerance))
         else:
             cortex = samples['structure'] == 'cortex'
