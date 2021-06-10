@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from abagen import images, matching
+from abagen import images, matching, transforms
 
 
 def test_check_label():
@@ -63,7 +63,7 @@ def test_closest_centroids():
     assert np.allclose(out, 0)
 
 
-def test_AtlasTree(atlas, surface, testfiles):
+def test_AtlasTree(atlas, surface):
     # basic test data
     data = np.array([1, 1, 1, 2, 2, 2])
     coords = np.array([
@@ -166,3 +166,18 @@ def test_AtlasTree(atlas, surface, testfiles):
     with pytest.raises(ValueError):
         matching.AtlasTree(np.random.choice(10, size=(100,)),
                            coords=np.random.rand(99, 3))
+
+
+def test_nonint_voxels(atlas):
+    coord = [[-56.8, -50.6, 8.8]]
+    affine = np.zeros((4, 4))
+    affine[:-1, :-1] = np.eye(3) * 1.5
+    affine[:, -1] = nib.load(atlas['image']).affine[:, -1]
+    dataobj = np.zeros((100, 100, 100))
+    i, j, k = transforms.xyz_to_ijk(coord, affine).squeeze()
+    dataobj[i, j, k] = 1
+    newatl = nib.Nifti1Image(dataobj, affine)
+
+    tree = matching.AtlasTree(newatl, group_atlas=True)
+    assert tree.volumetric
+    assert tree.label_samples(coord, tolerance=0).loc[0, 'label'] == 1
