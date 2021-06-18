@@ -1,3 +1,15 @@
+0.1.3 (June 18, 2021)
+=====================
+
+More bug fixes for (identified thanks to @richardajdear and @Silflame!) as well
+as some minor QOL updates for getting sample-level information from workflows.
+
+  * [REF] Handle atlases w/decimal vox sizes (#197), @rmarkello
+  * [REF] Re-orient img in `leftify_atlas()` (#193), @rmarkello
+  * [FIX] Fixes logger error w/reports (#192), @rmarkello
+  * [FIX] Error with donor-specific atlases and tolerance=0 (#191), @rmarkello
+  * [REF] Fix coordinates of get_samples_in_mask (#189), @rmarkello
+
 0.1.1 (March 29, 2021)
 ======================
 
