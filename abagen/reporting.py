@@ -40,6 +40,9 @@ REFERENCES = dict(
             'Dolbeare, T., Guillozet-Bongaarts, A. L., ... & Lein, E. '
             '(2015). Canonical genetic signatures of the adult human '
             'brain. Nature Neuroscience, 18(12), 1832.'),
+    M2021B=('Markello, R.D., Arnatkevic̆iūtė, A., Poline, J-B., Fulcher, B. '
+            'D., Fornito, A., & Misic, B. (2021). Standardizing workflows in '
+            'imaging transcriptomics with the abagen toolbox. Biorxiv.'),
     P2017G=('Parkes, L., Fulcher, B. D., Yücel, M., & Fornito, A. '
             '(2017). Transcriptional signatures of connectomic '
             'subregions of the human striatum. Genes, Brain and '
@@ -109,7 +112,8 @@ class Report:
         post-mortem brains ({n_female} female, ages {min}--{max}, {mean:.2f}
         +/- {std:.2f}) provided by the Allen Human Brain Atlas (AHBA,
         https://human.brain-map.org; [H2012N]). Data were processed with the
-        abagen toolbox (version {vers}; https://github.com/rmarkello/abagen)
+        abagen toolbox (version {vers}; https://github.com/rmarkello/abagen;
+        [M2021B])
         """.format(**_get_donor_demographics(self.donors), vers=__version__)
 
         if self.atlas.volumetric and self.group_atlas:
