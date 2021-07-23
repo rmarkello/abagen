@@ -38,9 +38,12 @@ parcels or networks), and (2) combined across donors. While this may
 potentially seem trivial, there are a number of analytic choices in these steps
 that can dramatically influence the resulting data and any downstream analyses.
 Arnatkevičiūte et al., 2019 provided a thorough treatment of this in a `recent
-manuscript <https://www.sciencedirect.com/science/article/pii/
+publication <https://www.sciencedirect.com/science/article/pii/
 S1053811919300114>`__, demonstrating how the techniques and code used to
-prepare the raw AHBA data have varied widely across published reports.
+prepare the raw AHBA data have varied widely across published reports. We
+extended this work in a `recent preprint <https://doi.org/10.1101/
+2021.07.08.451635>`__ (Markello et al., 2021) to quantify how different
+processing choices can impact statistical analyses of the AHBA.
 
 The current Python package, ``abagen``, aims to provide reproducible workflows
 for processing and preparing the AHBA microarray expression data for analysis.
