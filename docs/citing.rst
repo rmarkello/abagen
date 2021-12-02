@@ -15,8 +15,8 @@ following manuscripts when referencing your use of the toolbox:
 
 1. Markello, RD, Arnatkevic̆iūtė, A, Poline, J-B, Fulcher, BD, Fornito, A, &
    Misic, B. (2021). Standardizing workflows in imaging transcriptomics with
-   the abagen toolbox. Biorxiv. doi:`10.1101/2021.07.08.451635 <https://doi.org/
-   10.1101/2021.07.08.451635>`__
+   the abagen toolbox. Elife, 10, e72129. doi:`10.7554/eLife.72129
+   <https://doi.org/10.7554/eLife.72129>`__
 2. Arnatkevic̆iūtė, A, Fulcher, BD, & Fornito, A. (2019). A practical guide to
    linking brain-wide gene expression and neuroimaging data. NeuroImage, 189,
    353-367. doi:`10.1016/j.neuroimage.2019.01.011 <https://doi.org/10.1016/
