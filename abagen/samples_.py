@@ -400,7 +400,8 @@ def groupby_index(microarray, labels=None, metric='mean'):
         missing = np.setdiff1d(labels, np.unique(microarray.index))
         labels = pd.DataFrame(columns=microarray.columns,
                               index=pd.Series(missing, name='label'))
-
+    
+    print(labels)
     gene_by_label = (microarray.groupby('label')
                                .aggregate(metric)
                                .append(labels)
