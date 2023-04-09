@@ -407,7 +407,7 @@ def groupby_index(microarray, labels=None, metric='mean'):
                                #.sort_index()
                                #.rename_axis('label'))
     gene_by_label = (pd.concat([microarray.groupby('label')
-                               .aggregate(metric), label])
+                               .aggregate(metric), labels])
                                .sort_index()
                                .rename_axis('label'))
     
