@@ -754,7 +754,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
     if method not in COLLAPSE_METHODS:
         for donor, micro in microarray.items():
             symbols = probes.loc[micro.columns, 'gene_symbol']
-            micro = micro.set_axis(symbols, axis=1, inplace=False)
+            micro = micro.set_axis(symbols, axis=1)
             microarray[donor] = micro.sort_index(axis=1)
 
     n_genes = utils.first_entry(microarray).shape[-1]
