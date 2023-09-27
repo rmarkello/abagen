@@ -1,0 +1,96 @@
+name: run-tests
+
+on: 
+    workflow_dispatch:
+    push:
+      branches:
+        - main
+    pull_request:
+
+env:
+    ABAGEN_DATA: ~/abagen-data
+
+jobs:
+  check_style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8
+      - name: Run style checks
+        run: flake8 abagen
+
+  fetch_ahba:
+    needs: check_style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Install abagen
+        run: python -m pip install -e .
+      - name: Print abagen version
+        run: python -c "import abagen; print(abagen.__version__)"
+      - name: Fetch AHBA data
+        run: python -c "import abagen; abagen.fetch_microarray(data_dir='$ABAGEN_DATA', donors=['12876', '15496'], n_proc=2)"
+      - name: Upload AHBA data
+        uses: actions/upload-artifact@v3
+        with:
+          name: abagen-data
+          path: $ABAGEN_DATA
+
+  checks:
+    needs: [check_style, fetch_ahba]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        python-version: ['3.8']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov
+          python -m pip install -r requirements.txt
+      - name: Install abagen
+        run: python -m pip install -e .
+      - name: Print abagen version
+        run: python -c "import abagen; print(abagen.__version__)"
+      - name: Fetch AHBA data
+        uses: actions/download-artifact@v3
+        with:
+          name: abagen-data
+          path: $ABAGEN_DATA
+      - name: Run tests
+        run: pytest tests.py --doctest-modules --cov=abagen --cov-report=xml --junitxml=junit/test-results.xml --verbose --pyargs=abagen
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-results-${{ matrix.os }}-${{ matrix.python-version }}
+          path: junit/test-results.xml

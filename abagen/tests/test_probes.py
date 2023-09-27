@@ -10,6 +10,7 @@ import pytest
 import abagen
 from abagen import probes_
 from abagen.utils import first_entry, flatten_dict
+from functools import partial
 
 
 def test_reannotate_probes(testfiles):
@@ -67,7 +68,7 @@ def test_filter_probes(testfiles, threshold, expected_length):
 
 
 @pytest.mark.parametrize('func, expected', [
-    (probes_._max_idx, [3000, 5000, 6000]),
+    (partial(probes_._max_idx, column="a"), [3000, 5000, 6000]),
     (lambda x: x.index[0], [1000, 4000, 6000])
 ])
 def test_groupby_and_apply(func, expected):
@@ -94,18 +95,19 @@ def test_max_idx():
     assert probes_._max_idx(df, column='a') == 'three'
     assert probes_._max_idx(df, column='b') == 'one'
 
-    # not specifying column should use first numerical column (i.e., 'a')
-    assert probes_._max_idx(df) == 'three'
+    # not specifying column should raise error
+    with pytest.raises(TypeError):
+        probes_._max_idx(df)
 
     # what if we only have a single column dataframe?
     dfa = df[['a']]
     assert probes_._max_idx(dfa, column='a') == 'three'
-    assert probes_._max_idx(dfa) == 'three'
+    # assert probes_._max_idx(dfa) == 'three'
 
     # string column anywhere in dataframe is bad news bears
-    with pytest.raises(TypeError):
-        df['b'] = df['b'].astype(str)
-        probes_._max_idx(df)
+    # with pytest.raises(TypeError):
+    #     df['b'] = df['b'].astype(str)
+    #     probes_._max_idx(df)
 
 
 @pytest.mark.parametrize('angles, index', [

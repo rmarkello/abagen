@@ -325,7 +325,7 @@ def _rnaseq(expression, probes, annotation, *args, **kwargs):
     return _groupby_and_apply(expression, probes, info, applyfunc)
 
 
-def _max_idx(df, column=0):
+def _max_idx(df, column):
     """
     Returns probe ID with max index in `df`
 
@@ -344,7 +344,7 @@ def _max_idx(df, column=0):
         ID of probe selected as representative for given gene
     """
 
-    return df.idxmax()[column]
+    return df.idxmax(numeric_only=True)[column]
 
 
 def _max_loading(df):
@@ -754,7 +754,7 @@ def collapse_probes(microarray, annotation, probes, method='diff_stability',
     if method not in COLLAPSE_METHODS:
         for donor, micro in microarray.items():
             symbols = probes.loc[micro.columns, 'gene_symbol']
-            micro = micro.set_axis(symbols, axis=1)
+            micro = micro.set_axis(symbols, axis=1, copy=True)
             microarray[donor] = micro.sort_index(axis=1)
 
     n_genes = utils.first_entry(microarray).shape[-1]

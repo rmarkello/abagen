@@ -177,13 +177,10 @@ def labeltable_to_df(labels):
         if len(table) == 0:
             continue
         ids, label = zip(*table.items())
-        info = pd.concat(info,pd.DataFrame(
-                dict(id=ids, label=label, hemisphere=hemi, structure='cortex')
-            ), ignore_index=True)
-        #info = info.append(
-            #pd.DataFrame(
-                #dict(id=ids, label=label, hemisphere=hemi, structure='cortex')
-            #), ignore_index=True)
+        info = pd.concat([
+            info,
+            pd.DataFrame(dict(id=ids, label=label, hemisphere=hemi, structure='cortex'))
+        ], ignore_index=True)
     info = info.set_index('id').drop([0], axis=0).sort_index()
 
     if len(info) != 0:
