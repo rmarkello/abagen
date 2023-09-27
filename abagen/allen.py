@@ -502,8 +502,8 @@ def get_expression_data(atlas,
                 exp, lab = _interpolate_missing(atlas[subj], labels,
                                                 microarray[subj],
                                                 annotation[subj])
-                microarray[subj] = microarray[subj].append(exp)
-                labels = labels.append(lab)
+                microarray[subj] = pd.concat([microarray[subj], exp])
+                labels = pd.concat([labels, lab])
             elif missing == 'centroids':
                 centroids += [_match_centroids(atlas[subj], labels,
                                                microarray[subj],
@@ -541,7 +541,7 @@ def get_expression_data(atlas,
             ).T
             # assign same value to every subject
             for subj in microarray:
-                microarray[subj] = microarray[subj].append(exp)
+                microarray[subj] = pd.concat([microarray[subj], exp])
 
     microarray = samples_.aggregate_samples(microarray,
                                             labels=all_labels,
@@ -810,7 +810,7 @@ def _match_centroids(atlas, labels, microarray, annotation):
     exp.index = pd.Series(empty[mask], name='label')
     # if some labels weren't matched (due to e.g., hemispheric/structural
     # constraints) then append empty rows to the dataframe
-    exp = exp.append(pd.DataFrame(index=empty[~mask])) \
+    exp = pd.concat([exp, pd.DataFrame(index=empty[~mask])]) \
              .sort_index() \
              .rename_axis('gene_symbol', axis=1)
 
