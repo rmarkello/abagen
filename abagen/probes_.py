@@ -343,7 +343,7 @@ def _max_idx(df, column):
     probe_id : str
         ID of probe selected as representative for given gene
     """
-    
+
     return df.idxmax(numeric_only=True)[column]
 
 

@@ -811,7 +811,7 @@ def _match_centroids(atlas, labels, microarray, annotation):
     # if some labels weren't matched (due to e.g., hemispheric/structural
     # constraints) then append empty rows to the dataframe
     exp = pd.concat([exp, pd.DataFrame(index=empty[~mask])]) \
-             .sort_index() \
-             .rename_axis('gene_symbol', axis=1)
+        .sort_index() \
+        .rename_axis('gene_symbol', axis=1)
 
     return (exp, dict(zip(empty, dist)))

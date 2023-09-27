@@ -402,9 +402,9 @@ def groupby_index(microarray, labels=None, metric='mean'):
                               index=pd.Series(missing, name='label'))
 
     gene_by_label = pd.concat([
-    	               microarray.groupby('label').aggregate(metric),
-                       labels
-                    ]).sort_index().rename_axis('label')
+        microarray.groupby('label').aggregate(metric),
+        labels
+    ]).sort_index().rename_axis('label')
 
     # remove "zero" label (if it exists)
     if 0 in gene_by_label.index:

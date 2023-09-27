@@ -106,8 +106,8 @@ def test_max_idx():
 
     # string column anywhere in dataframe is bad news bears
     # with pytest.raises(TypeError):
-        # df['b'] = df['b'].astype(str)
-        # probes_._max_idx(df)
+    #     df['b'] = df['b'].astype(str)
+    #     probes_._max_idx(df)
 
 
 @pytest.mark.parametrize('angles, index', [
