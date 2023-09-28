@@ -1,4 +1,4 @@
-name: run-tests
+name: abagen-tests
 
 on: 
     workflow_dispatch:
@@ -53,15 +53,15 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: abagen-data
-          path: $ABAGEN_DATA
+          path: ${{ env.ABAGEN_DATA }}
 
-  checks:
+  run_tests:
     needs: [check_style, fetch_ahba]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        python-version: ['3.8']
+        python-version: ['3.8', '3.9', '3.10']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -86,9 +86,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: abagen-data
-          path: $ABAGEN_DATA
+          path: ${{ env.ABAGEN_DATA }}
       - name: Run tests
-        run: pytest tests.py --doctest-modules --cov=abagen --cov-report=xml --junitxml=junit/test-results.xml --verbose --pyargs=abagen
+        run: pytest --doctest-modules --cov=abagen --cov-report=xml --junitxml=junit/test-results.xml --verbose --pyargs abagen
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
         with:

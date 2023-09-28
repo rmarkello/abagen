@@ -11,6 +11,6 @@ generated/
 build/
 dist/
 allen_reference_*.csv
-
+junit/
 # PyCharm
 .idea/
