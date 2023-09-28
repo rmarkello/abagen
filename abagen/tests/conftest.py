@@ -5,7 +5,7 @@ Fixtures for all abagen tests
 
 import os
 import pytest
-
+from pathlib import Path
 from abagen.datasets import (fetch_desikan_killiany,
                              fetch_microarray,
                              fetch_raw_mri,
@@ -17,7 +17,7 @@ def datadir(tmp_path_factory):
     dd = os.environ.get('ABAGEN_DATA')
     if dd is None:
         dd = str(tmp_path_factory.mktemp('abagen-data'))
-    return dd
+    return str(Path(dd).expanduser())
 
 
 @pytest.fixture(scope='session')
