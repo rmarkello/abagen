@@ -109,11 +109,20 @@ Notice that extra columns (i.e., ``label``) are okay as long as the three
 required columns are present! If you want to confirm your file is formatted
 correctly you can use :func:`abagen.images.check_atlas`:
 
+.. note::
+
+    Do not run :func:`abagen.images.check_atlas` below if you are following
+    the tutorial for your first trial of abagen. It will convert the atlas
+    from ``atlas['image'], atlas['info']`` into :obj:`abagen.AtlasTree` object.
+    If you ran it accidentally, use ``atlas`` directly in the next steps,
+    instead of ``atlas['image'], atlas['info']``. For more, see the section
+    on :ref:`usage_parcellations_special`.
+
 .. doctest::
 
     >>> from abagen import images
     >>> atlas = abagen.fetch_desikan_killiany()
-    >>> atlas = images.check_atlas(atlas['image'], atlas['info']);
+    >>> # atlas = images.check_atlas(atlas['image'], atlas['info']);
 
 If something is amiss with the file this function will raise an error and try
 to give some information about what you should check for.

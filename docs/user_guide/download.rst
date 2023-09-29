@@ -57,6 +57,14 @@ the directory specified should have the following structure:
 
 (Note the directory does not have to be named ``microarray`` for this to work.)
 
+.. note::
+
+    If downloading failed for some reason, you can try directly downloading
+    from the `AHBA microarray data <https://human.brain-map.org/static/download>`_
+    website, and unzip them in the appropriate directory structure (in default
+    case, ``$HOME/abagen-data/microarray/``).
+
+
 .. _usage_download_loading:
 
 Loading the AHBA data
