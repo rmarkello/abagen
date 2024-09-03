@@ -83,7 +83,7 @@ jobs:
       - name: Print abagen version
         run: python -c "import abagen; print(abagen.__version__)"
       - name: Fetch AHBA data
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: abagen-data
           path: ${{ env.ABAGEN_DATA }}
