@@ -4,7 +4,7 @@ Tests for abagen.images module
 """
 
 import gzip
-from pkg_resources import resource_filename
+from abagen._resources import resource_filename
 
 import nibabel as nib
 import numpy as np

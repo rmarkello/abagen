@@ -8,7 +8,7 @@ import gzip
 from io import StringIO
 import itertools
 import logging
-from pkg_resources import resource_filename
+from ._resources import resource_filename
 
 import numpy as np
 import pandas as pd

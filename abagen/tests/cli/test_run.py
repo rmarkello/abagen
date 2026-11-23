@@ -4,7 +4,7 @@ Tests for abagen.cli module
 """
 
 import os
-from pkg_resources import resource_filename
+from abagen._resources import resource_filename
 import pytest
 
 from abagen import __version__ as version
