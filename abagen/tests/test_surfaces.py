@@ -13,12 +13,12 @@ from abagen import datasets, surfaces
 @pytest.fixture(scope='module')
 def surf():
     data = datasets.fetch_fsaverage5()
-    coords = np.row_stack([hemi.vertices for hemi in data])
+    coords = np.vstack([hemi.vertices for hemi in data])
     triangles, offset = [], 0
     for hemi in data:
         triangles.append(hemi.faces + offset)
         offset += hemi.vertices.shape[0]
-    triangles = np.row_stack(triangles)
+    triangles = np.vstack(triangles)
 
     return coords, triangles
 

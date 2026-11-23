@@ -423,7 +423,7 @@ def check_geometry(surface, space, donor=None, data_dir=None):
         coords, triangles = map(list, zip(*[i for i in surface]))
 
     triangles[-1] += coords[0].shape[0]
-    coords, triangles = np.row_stack(coords), np.row_stack(triangles)
+    coords, triangles = np.vstack(coords), np.vstack(triangles)
 
     if space == 'fsaverage':
         coords = transforms.fsaverage_to_mni152(coords)

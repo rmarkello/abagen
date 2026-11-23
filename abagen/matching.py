@@ -385,7 +385,7 @@ class AtlasTree:
         # if two or more parcels tied for neighboring frequency, use ROI
         # with closest centroid to `coords`
         coords = sample[['mni_x', 'mni_y', 'mni_z']]
-        centroids = np.row_stack([self.centroids[lab] for lab in labels])
+        centroids = np.vstack([self.centroids[lab] for lab in labels])
         return labels[closest_centroid(coords, centroids)]
 
     def match_closest_centroids(self, annotation, return_dist=False):

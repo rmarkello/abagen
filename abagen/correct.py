@@ -64,7 +64,7 @@ def _batch_correct(data):
     batch = np.column_stack([batch, np.ones(len(batch), dtype=int)])
 
     # fit least squares and residualize
-    raw = np.row_stack(data)
+    raw = np.vstack(data)
     betas = np.linalg.lstsq(batch, raw, rcond=None)[0]
     resid = raw - (batch[:, :-1] @ betas[:-1])
     residualized = np.split(resid, np.cumsum(n_samp)[:-1])
@@ -494,7 +494,7 @@ def remove_distance(coexpression, atlas, atlas_info=None, labels=None):
     # TODO: implement gray matter volume / cortical surface path distance
     if labels is None:
         labels = atlas.labels
-    centroids = np.row_stack([atlas.centroids[lab] for lab in labels])
+    centroids = np.vstack([atlas.centroids[lab] for lab in labels])
     dist = cdist(centroids, centroids, metric='euclidean')
 
     corr_resid = np.zeros_like(coexpression)
