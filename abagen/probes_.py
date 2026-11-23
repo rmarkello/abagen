@@ -144,7 +144,7 @@ def _groupby_structure_id(microarray, annotation):
 
     sid = io.read_annotation(annotation)['structure_id']
 
-    return io.read_microarray(microarray).groupby(sid, axis=1).mean()
+    return io.read_microarray(microarray).T.groupby(sid).mean().T
 
 
 def _groupby_and_apply(expression, probes, info, applyfunc):
