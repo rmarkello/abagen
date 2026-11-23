@@ -180,7 +180,7 @@ def make_surf_graph(vertices, faces, mask=None):
     # get all (direct + indirect) edges from surface
     direct_edges, direct_weights = _get_direct_edges(vertices, faces)
     indirect_edges, indirect_weights = _get_indirect_edges(vertices, faces)
-    edges = np.row_stack((direct_edges, indirect_edges))
+    edges = np.vstack((direct_edges, indirect_edges))
     weights = np.hstack((direct_weights, indirect_weights))
 
     # remove edges that include a vertex in `mask`

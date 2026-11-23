@@ -94,7 +94,7 @@ def test_AtlasTree(atlas, surface):
 
     # check coordinate assignment AND outlier removal in same go
     tree.coords = coords[::-1]
-    labels = tree.label_samples(np.row_stack((coords, [1000, 1000, 1000])))
+    labels = tree.label_samples(np.vstack((coords, [1000, 1000, 1000])))
     assert np.all(labels['label'] == [2, 2, 2, 1, 1, 1, 0])
 
     with pytest.raises(ValueError):
