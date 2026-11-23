@@ -7,7 +7,7 @@ from collections import namedtuple
 from functools import partial
 import multiprocessing as mp
 import os
-from pkg_resources import resource_filename
+from .._resources import resource_filename
 
 import nibabel as nib
 import pandas as pd

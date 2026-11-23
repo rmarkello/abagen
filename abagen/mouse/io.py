@@ -4,7 +4,7 @@ Functions to fetch (and load) mouse gene and structure lists from Allen API
 """
 
 import os.path as op
-from pkg_resources import resource_filename
+from .._resources import resource_filename
 
 import pandas as pd
 
